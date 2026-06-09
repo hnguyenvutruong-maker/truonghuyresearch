@@ -78,6 +78,12 @@ try:
 except ImportError:
     HAS_VNSTOCK = False
 
+try:
+    from vnstock.api.quote import Quote as VnQuote
+    HAS_VNQUOTE = True
+except ImportError:
+    HAS_VNQUOTE = False
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
@@ -218,43 +224,47 @@ def fetch_vnindex_weekly(
         "foreign_net_weekly_bn_vnd": None, "daily_data": [],
     }
 
-    # Try vnstock first
-    if HAS_VNSTOCK:
+    # Try vnstock v4.0 API first (Quote class)
+    if HAS_VNQUOTE:
         try:
-            stock = Vnstock()
-            df = stock.stock.symbols.history(
-                symbol="VNINDEX",
-                start=monday.isoformat(),
-                end=friday.isoformat(),
-                source="VCI",
-            )
+            q = VnQuote(symbol="VNINDEX", source="VCI")
+            df = q.history(start=monday.isoformat(), end=friday.isoformat(), interval="1d")
             if df is not None and not df.empty:
-                result["open"] = safe_num(df.iloc[0].get("open", df.iloc[0].get("Open")))
-                result["high"] = safe_num(df["high"].max() if "high" in df.columns else df["High"].max())
-                result["low"] = safe_num(df["low"].min() if "low" in df.columns else df["Low"].min())
-                result["close"] = safe_num(df.iloc[-1].get("close", df.iloc[-1].get("Close")))
-                if result["open"] and result["close"]:
-                    result["weekly_change_pct"] = round(
-                        (result["close"] - result["open"]) / result["open"] * 100, 2
+                # vnstock may include rows before the target week; filter to [monday, friday]
+                date_col = "time" if "time" in df.columns else "date" if "date" in df.columns else "Date"
+                if date_col in df.columns:
+                    df[date_col] = df[date_col].apply(
+                        lambda v: date.fromisoformat(str(v)[:10]) if isinstance(v, str)
+                        else v.date() if hasattr(v, "date") else v
                     )
-                # Liquidity
-                vol_col = "volume" if "volume" in df.columns else "Volume"
-                if vol_col in df.columns:
-                    total_vol = df[vol_col].sum()
-                    days = max(len(df), 1)
-                    result["avg_daily_liquidity_bn_vnd"] = round(total_vol / days / 1e9, 2)
-                # Store daily rows for chart
-                result["daily_data"] = df.to_dict("records")
-                log("1/8", f"  VN-Index: Open {result['open']}, Close {result['close']}, "
-                     f"High {result['high']}, Low {result['low']}")
-                return result
+                    df = df[(df[date_col] >= monday) & (df[date_col] <= friday)]
+                if df is not None and not df.empty:
+                    result["open"] = safe_num(df.iloc[0].get("open", df.iloc[0].get("Open")))
+                    result["high"] = safe_num(df["high"].max() if "high" in df.columns else df["High"].max())
+                    result["low"] = safe_num(df["low"].min() if "low" in df.columns else df["Low"].min())
+                    result["close"] = safe_num(df.iloc[-1].get("close", df.iloc[-1].get("Close")))
+                    if result["open"] and result["close"]:
+                        result["weekly_change_pct"] = round(
+                            (result["close"] - result["open"]) / result["open"] * 100, 2
+                        )
+                    # Liquidity
+                    vol_col = "volume" if "volume" in df.columns else "Volume"
+                    if vol_col in df.columns:
+                        total_vol = df[vol_col].sum()
+                        days = max(len(df), 1)
+                        result["avg_daily_liquidity_bn_vnd"] = round(total_vol / days / 1e9, 2)
+                    # Store daily rows for chart
+                    result["daily_data"] = df.to_dict("records")
+                    log("1/8", f"  [vnstock v4] VN-Index: Open {result['open']}, Close {result['close']}, "
+                         f"High {result['high']}, Low {result['low']}")
+                    return result
         except Exception as e:
-            log("1/8", f"  vnstock failed: {e}, trying yfinance fallback...")
+            log("1/8", f"  vnstock v4 Quote failed: {e}, trying yfinance fallback...")
 
-    # Fallback: yfinance
+    # Fallback: yfinance (correct ticker is ^VNINDEX.VN, not ^VNINDEX)
     if HAS_YFINANCE:
         try:
-            ticker = yf.Ticker("^VNINDEX")
+            ticker = yf.Ticker("^VNINDEX.VN")
             df = ticker.history(start=monday, end=friday + timedelta(days=1))
             if df is not None and not df.empty:
                 result["open"] = safe_num(df.iloc[0]["Open"])
