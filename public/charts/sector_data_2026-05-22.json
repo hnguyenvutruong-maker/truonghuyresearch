@@ -1,0 +1,22 @@
+[
+  {
+    "sector": "Banking",
+    "change_pct": 4.61
+  },
+  {
+    "sector": "Technology",
+    "change_pct": 3.02
+  },
+  {
+    "sector": "Food & Beverage",
+    "change_pct": 0.0
+  },
+  {
+    "sector": "Steel",
+    "change_pct": -0.57
+  },
+  {
+    "sector": "Securities",
+    "change_pct": -0.9
+  }
+]

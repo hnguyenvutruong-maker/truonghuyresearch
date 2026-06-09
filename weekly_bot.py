@@ -7,8 +7,10 @@ weekly_bot.py — Weekly Market View generator with 3 pillars:
 
 Output:
   - src/content/market-views/{Friday-date}.md   (Astro content collection)
-  - public/charts/vnindex_weekly_{date}.png
-  - public/charts/sector_performance_{date}.png
+  - public/charts/vnindex_weekly_{date}.png     (Bloomberg-style candlestick, PNG fallback)
+  - public/charts/sector_performance_{date}.png (sector bar chart, PNG fallback)
+  - public/charts/vnindex_data_{date}.json      (OHLCV for TradingView client-side)
+  - public/charts/sector_data_{date}.json       (sectors for TradingView client-side)
   - src/content/market-views/_quarterly_summary.json
 """
 
@@ -743,6 +745,60 @@ def _setup_dark_style() -> None:
     })
 
 
+def _parse_chart_date(row: dict[str, Any]) -> Optional[date]:
+    """
+    Extract a date object from an OHLCV row, handling multiple column conventions
+    (Date / time / date / trading_date). Returns None if no usable date found.
+    """
+    for key in ("Date", "time", "date", "trading_date", "index"):
+        val = row.get(key)
+        if val is not None:
+            try:
+                if isinstance(val, (date, datetime)):
+                    return val.date() if isinstance(val, datetime) else val
+                if isinstance(val, str):
+                    return date.fromisoformat(val[:10])
+                # Numeric (e.g. ordinal)
+                if val > 10000:
+                    return date.fromordinal(int(val))
+            except (TypeError, ValueError):
+                continue
+    return None
+
+
+def _extract_ohlcv_rows(
+    daily_data: list[dict[str, Any]],
+) -> tuple[list[date], list[float], list[float], list[float], list[float], list[float]]:
+    """
+    Parse daily OHLCV rows into parallel lists.
+    Filters out rows with missing date or zero OHLC.
+    """
+    dates_list: list[date] = []
+    opens: list[float] = []
+    highs: list[float] = []
+    lows: list[float] = []
+    closes: list[float] = []
+    volumes: list[float] = []
+
+    for row in daily_data:
+        d = _parse_chart_date(row)
+        o = safe_num(row.get("open", row.get("Open")), 0)
+        h = safe_num(row.get("high", row.get("High")), 0)
+        l = safe_num(row.get("low", row.get("Low")), 0)
+        c = safe_num(row.get("close", row.get("Close")), 0)
+        v = safe_num(row.get("volume", row.get("Volume")), 0)
+
+        if d and any(x > 0 for x in (o, h, l, c)):
+            dates_list.append(d)
+            opens.append(o)
+            highs.append(h)
+            lows.append(l)
+            closes.append(c)
+            volumes.append(v)
+
+    return dates_list, opens, highs, lows, closes, volumes
+
+
 def generate_vnindex_chart(
     daily_data: list[dict[str, Any]],
     monday: date,
@@ -760,46 +816,7 @@ def generate_vnindex_chart(
         log("7/8", "  No daily data, skipping chart")
         return ""
 
-    # Parse OHLC data from daily rows
-    dates_list: list[date] = []
-    opens: list[float] = []
-    highs: list[float] = []
-    lows: list[float] = []
-    closes: list[float] = []
-    volumes: list[float] = []
-
-    for row in daily_data:
-        # Handle different column name conventions
-        d = None
-        for key in ("Date", "time", "date", "trading_date", "index"):
-            val = row.get(key)
-            if val is not None:
-                try:
-                    if isinstance(val, (date, datetime)):
-                        d = val.date() if isinstance(val, datetime) else val
-                    elif isinstance(val, str):
-                        d = date.fromisoformat(val[:10])
-                    else:
-                        d = date.fromordinal(int(val)) if val > 10000 else None
-                    if d:
-                        break
-                except (TypeError, ValueError):
-                    continue
-
-        o = safe_num(row.get("open", row.get("Open")), 0)
-        h = safe_num(row.get("high", row.get("High")), 0)
-        l = safe_num(row.get("low", row.get("Low")), 0)
-        c = safe_num(row.get("close", row.get("Close")), 0)
-        v = safe_num(row.get("volume", row.get("Volume")), 0)
-
-        if d and any(x > 0 for x in (o, h, l, c)):
-            dates_list.append(d)
-            opens.append(o)
-            highs.append(h)
-            lows.append(l)
-            closes.append(c)
-            volumes.append(v)
-
+    dates_list, opens, highs, lows, closes, volumes = _extract_ohlcv_rows(daily_data)
     if len(dates_list) < 2:
         log("7/8", "  Not enough data points for candlestick chart")
         return ""
@@ -868,7 +885,7 @@ def generate_vnindex_chart(
     out_path = CHARTS_DIR / f"vnindex_weekly_{friday_str}.png"
     fig.savefig(out_path, dpi=150, bbox_inches="tight", facecolor=BG_COLOR)
     plt.close(fig)
-    log("7/8", f"  Saved: {out_path}")
+    log("7/8", "  Saved: {out_path}".format(out_path=out_path))
     return str(out_path)
 
 
@@ -927,8 +944,79 @@ def generate_sector_chart(
     out_path = CHARTS_DIR / f"sector_performance_{friday_str}.png"
     fig.savefig(out_path, dpi=150, bbox_inches="tight", facecolor=BG_COLOR)
     plt.close(fig)
-    log("8/8", f"  Saved: {out_path}")
+    log("8/8", "  Saved: {out_path}".format(out_path=out_path))
     return str(out_path)
+
+
+def export_vnindex_chart_data(
+    daily_data: list[dict[str, Any]],
+    friday_str: str,
+) -> str:
+    """
+    Export VN-Index OHLCV as JSON for TradingView Lightweight Charts.
+    Schema: { "candles": [{time, open, high, low, close}],
+              "volumes": [{time, value, color}] }
+    Returns the public path (e.g. "/charts/vnindex_data_2026-06-05.json").
+    """
+    if not daily_data:
+        log("7/8", "  No daily data, skipping JSON export")
+        return ""
+
+    dates_list, opens, highs, lows, closes, volumes = _extract_ohlcv_rows(daily_data)
+    if len(dates_list) < 1:
+        log("7/8", "  No valid rows, skipping JSON export")
+        return ""
+
+    candles = []
+    vols = []
+    for d, o, h, l, c, v in zip(dates_list, opens, highs, lows, closes, volumes):
+        time_str = d.isoformat()  # YYYY-MM-DD — TradingView business day format
+        candles.append({
+            "time": time_str,
+            "open": round(o, 2),
+            "high": round(h, 2),
+            "low": round(l, 2),
+            "close": round(c, 2),
+        })
+        vols.append({
+            "time": time_str,
+            "value": int(v),
+            "color": GREEN if c >= o else RED,
+        })
+
+    out = {"candles": candles, "volumes": vols}
+    out_path = CHARTS_DIR / f"vnindex_data_{friday_str}.json"
+    out_path.write_text(json.dumps(out, indent=2))
+    log("7/8", f"  Exported JSON: {out_path}")
+    return f"/charts/vnindex_data_{friday_str}.json"
+
+
+def export_sector_chart_data(
+    sectors: list[dict[str, Any]],
+    friday_str: str,
+) -> str:
+    """
+    Export top 5 sectors as JSON for client-side bar chart.
+    Returns the public path.
+    """
+    if not sectors:
+        log("8/8", "  No sector data, skipping JSON export")
+        return ""
+
+    top5 = sorted(sectors, key=lambda x: x.get("change_pct", 0), reverse=True)[:5]
+    if len(top5) < 1:
+        log("8/8", "  Not enough sectors, skipping JSON export")
+        return ""
+
+    out = [
+        {"sector": s["sector"], "change_pct": round(s["change_pct"], 2)}
+        for s in top5
+        if s.get("change_pct") is not None
+    ]
+    out_path = CHARTS_DIR / f"sector_data_{friday_str}.json"
+    out_path.write_text(json.dumps(out, indent=2))
+    log("8/8", f"  Exported JSON: {out_path}")
+    return f"/charts/sector_data_{friday_str}.json"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1279,6 +1367,8 @@ wti_weekly_change_pct: {n(fm['wti_chg'])}
 session_tone: "{tone}"
 chart_vnindex: "/charts/vnindex_weekly_{friday_iso}.png"
 chart_sectors: "/charts/sector_performance_{friday_iso}.png"
+vnindex_data: "/charts/vnindex_data_{friday_iso}.json"
+sector_data: "/charts/sector_data_{friday_iso}.json"
 ---
 
 ## Executive Summary
@@ -1289,11 +1379,11 @@ USD/VND, SBV policy, interbank. Key data releases. Reference quarterly macro tre
 
 ## VN-Index: Weekly Review
 Day-by-day narrative. Candlestick pattern. Volume vs 20-week average. Breadth. Foreign flow — who, why.
-Chart: <figure class="my-8"><div class="bg-terminal-card border border-terminal-border overflow-hidden"><img src="/charts/vnindex_weekly_{friday_iso}.png" alt="VN-Index Weekly" class="w-full h-auto" loading="lazy" /></div><figcaption class="font-label-md uppercase text-label-md text-on-surface-variant mt-2 text-center">VN-Index — weekly OHLC, volume, MA20</figcaption></figure>
+[VN-Index chart is rendered automatically by the Astro component from vnindex_data JSON]
 
 ## Sector Spotlight: [ROTATE — must differ from sectors_covered in quarterly summary unless exceptional]
 Deep dive. Tick-by-tick. Industry-specific analysis: regulatory, competitive, foreign ownership.
-Chart: <figure class="my-8"><div class="bg-terminal-card border border-terminal-border overflow-hidden"><img src="/charts/sector_performance_{friday_iso}.png" alt="Sector Performance" class="w-full h-auto" loading="lazy" /></div><figcaption class="font-label-md uppercase text-label-md text-on-surface-variant mt-2 text-center">Top 5 sectors — weekly % change</figcaption></figure>
+[Sector chart is rendered automatically by the Astro component from sector_data JSON]
 
 ## Global Cross-Asset Snapshot
 DXY → EM/VND. Gold, WTI drivers. BTC. Always tie back: "For Vietnam, this means..."
@@ -1479,6 +1569,8 @@ def validate_frontmatter(markdown_text: str) -> list[str]:
       session_tone: 'positive' | 'negative' | 'neutral'
       chart_vnindex: string (optional)
       chart_sectors: string (optional)
+      vnindex_data: string (optional) — JSON path for client-side TradingView chart
+      sector_data: string (optional) — JSON path for client-side TradingView chart
     """
     errors: list[str] = []
 
@@ -1554,7 +1646,7 @@ def validate_frontmatter(markdown_text: str) -> list[str]:
             errors.append(f"session_tone must be 'positive', 'negative', or 'neutral', got '{tone}'")
 
     # Optional chart fields
-    for field in ("chart_vnindex", "chart_sectors"):
+    for field in ("chart_vnindex", "chart_sectors", "vnindex_data", "sector_data"):
         if field in parsed and parsed[field]:
             val = parsed[field]
             if not val.startswith("/charts/"):
@@ -1591,6 +1683,11 @@ def main() -> None:
         "--charts-only",
         action="store_true",
         help="Only generate charts, skip LLM commentary.",
+    )
+    parser.add_argument(
+        "--data-only",
+        action="store_true",
+        help="Only export chart JSON data (no PNG, no LLM). Useful for backfilling.",
     )
     parser.add_argument(
         "--rebuild-summary",
@@ -1687,13 +1784,35 @@ def main() -> None:
         log("SYN", "All data from real sources — no synthesis needed")
 
     # ── Generate charts ─────────────────────────────────────────────────────
+    if args.data_only:
+        # Only export JSON for client-side TradingView charts
+        vn_data_path = export_vnindex_chart_data(
+            vn_data.get("daily_data", []), friday_str
+        )
+        sector_data_path = export_sector_chart_data(sectors, friday_str)
+        print()
+        print("=" * 60)
+        print("  JSON EXPORT COMPLETE")
+        print("=" * 60)
+        print(f"  VN-Index data:  {vn_data_path or 'N/A'}")
+        print(f"  Sector data:    {sector_data_path or 'N/A'}")
+        return
+
     chart_vn_path = generate_vnindex_chart(
         vn_data.get("daily_data", []), monday, friday, friday_str
     )
     chart_sector_path = generate_sector_chart(sectors, friday_str)
 
+    # Also export JSON data for client-side TradingView charts
+    vn_data_path = export_vnindex_chart_data(
+        vn_data.get("daily_data", []), friday_str
+    )
+    sector_data_path = export_sector_chart_data(sectors, friday_str)
+
     if args.charts_only:
         print("\n  Charts-only mode. Done.")
+        print(f"  VN-Index JSON:  {vn_data_path or 'N/A'}")
+        print(f"  Sector JSON:    {sector_data_path or 'N/A'}")
         return
 
     # ── Load / prepare quarterly summary ────────────────────────────────────
@@ -1749,6 +1868,8 @@ def main() -> None:
     log("OUT", f"Written: {output_md}")
     log("OUT", f"  Charts: {chart_vn_path or '(skipped)'}")
     log("OUT", f"          {chart_sector_path or '(skipped)'}")
+    log("OUT", f"  JSON:   {vn_data_path or '(skipped)'}")
+    log("OUT", f"          {sector_data_path or '(skipped)'}")
 
     # ── Update quarterly summary (LLM call #2) ──────────────────────────────
     if not args.skip_summary:
@@ -1766,6 +1887,8 @@ def main() -> None:
     print(f"  Markdown:       {output_md}")
     print(f"  VN-Index chart: {chart_vn_path or 'N/A'}")
     print(f"  Sector chart:   {chart_sector_path or 'N/A'}")
+    print(f"  VN-Index JSON:  {vn_data_path or 'N/A'}")
+    print(f"  Sector JSON:    {sector_data_path or 'N/A'}")
     print(f"  Quarter:        {current_quarter}")
     print(f"  News headlines: {'Yes' if not args.skip_news else 'Skipped'}")
     print(f"  LLM model:      {LLM_MODEL}")

@@ -1,0 +1,22 @@
+[
+  {
+    "sector": "Oil & Gas",
+    "change_pct": 6.2
+  },
+  {
+    "sector": "Real Estate",
+    "change_pct": 0.65
+  },
+  {
+    "sector": "Food & Beverage",
+    "change_pct": -0.5
+  },
+  {
+    "sector": "Securities",
+    "change_pct": -0.9
+  },
+  {
+    "sector": "Steel",
+    "change_pct": -1.03
+  }
+]

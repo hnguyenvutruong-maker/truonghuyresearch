@@ -36,8 +36,10 @@ const marketViews = defineCollection({
     wti_weekly_change_pct: z.number().nullable(),
 
     // Charts
-    chart_vnindex: z.string().optional(),
-    chart_sectors: z.string().optional(),
+    chart_vnindex: z.string().optional(),         // PNG path (kept for fallback/OG)
+    chart_sectors: z.string().optional(),         // PNG path
+    vnindex_data: z.string().optional(),          // JSON data path for TradingView client-side
+    sector_data: z.string().optional(),           // JSON data path for TradingView client-side
   }),
 });
 
