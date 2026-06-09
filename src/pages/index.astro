@@ -10,11 +10,11 @@ const allMarketViews = await getCollection('market-views');
 const latestResearch = allResearch.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()).slice(0, 2);
 const latestMarketViews = allMarketViews.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()).slice(0, 3);
 ---
-<BaseLayout title="[YOUR_FULL_NAME] — Finance & Capital Markets">
+<BaseLayout title="Nguyễn Vũ Trường Huy — Finance & Capital Markets">
   <!-- HERO -->
   <section>
     <p class="font-mono text-xs text-term-muted uppercase tracking-widest">PROFILE  //  VIETNAM CAPITAL MARKETS</p>
-    <h1 class="text-3xl md:text-4xl font-bold mt-2">[YOUR_FULL_NAME]</h1>
+    <h1 class="text-3xl md:text-4xl font-bold mt-2">Nguyễn Vũ Trường Huy</h1>
     <p class="font-mono text-sm text-term-muted mt-1">Finance & Banking · UEH · CFA Level II Candidate</p>
     <p class="text-term-text mt-4 max-w-2xl leading-relaxed">
       Finance analyst targeting private markets in Vietnam. CFA candidate.

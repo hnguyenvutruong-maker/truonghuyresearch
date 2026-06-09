@@ -6,7 +6,7 @@ import { getCollection } from 'astro:content';
 const allResearch = await getCollection('research');
 const sortedResearch = allResearch.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 ---
-<BaseLayout title="Equity Research — [YOUR_FULL_NAME]">
+<BaseLayout title="Equity Research — Nguyễn Vũ Trường Huy">
   <h1 class="text-lg font-semibold border-l-2 border-term-accent pl-3">EQUITY RESEARCH</h1>
   <p class="font-mono text-xs text-term-muted mt-2">Original analysis on Vietnamese listed companies and capital markets.</p>
   {sortedResearch.length > 0 ? (
