@@ -5,36 +5,49 @@
     "2026-06-05"
   ],
   "summary": {
-    "vn_index_trend": "VN-Index closed the inaugural week of Q2-2026 essentially flat at 1,838.59 (-0.02% w/w), printing a near-doji with a slight downside skew. A wide 37.5-point intraday range (1,824.74 low / 1,862.23 high) signaled indecision; buyers defended 1,824 twice while sellers capped rallies at 1,860. Liquidity was robust at 18,070 bn VND/day, suggesting rotation rather than capitulation. Tone neutral; breadth mixed (5 sectors green, 2 red) with heavyweight drags in Utilities and F&B.",
+    "vn_index_trend": "VN-Index broke the 1,825 support floor flagged in the Q2-2026 framework, closing at 1,838.90 (-1.53% w/w) after a volatile week that opened at 1,867.44 and printed a 1,871.09 high before capitulating to an intraday low of 1,798.05. The Thursday breakdown candle breached 1,825 and tagged 1,798.05 on closing-auction pressure; Friday's 1,838.90 close represents a tactical 40-point dead-cat bounce off the low but failed to reclaim the 1,850 pivot. A wide 73-point weekly range (1,798.05-1,871.09) replaced last week's indecisive near-doji with a decisive bearish-engulfing structure, shifting risk-reward toward the 1,775/1,800 band. Breadth deteriorated: 6 of 9 tracked sectors closed red, with cyclicals (Real Estate -3.18%, Oil & Gas -3.41%, Securities -1.82%) leading the decline and Technology (+3.88%), Construction (+2.11%), and Retail (+1.96%) the only green. Foreign net registered -35 bn VND, flagged as a synthetic estimate in the absence of real-time flow data. Tone: defensive, with rotation from cyclicals into growth.",
     "key_themes": [
-      "Vietnam tech re-rating: VinFast $1B capital raise, FPT ASEAN/Thailand deal flow, AI-as-new-market-face narrative",
-      "Power-sector governance shock: detention of chair and CFO at a power generator weighing on Utilities",
-      "EV incentive regime extended: 50% registration-fee waiver maintained through end-2030, supportive of VinFast volume ramp",
-      "EVN balance-sheet repair: ~150,000 bn VND routed into bank deposits as legacy losses extinguished, removing SOE credit-complex drag",
-      "Foreign-flow inflection risk: ~900 bn VND single-session sell flagged post-window, near-term dominant variable",
-      "Primary-market window open: USD 1tn-caliber IPO narratives underscore appetite for absorbing KOLS float",
-      "Safe-haven demand persistent: gold at USD 4,337 and large silver ETF adds reinforce defensive-hedge sizing for EM allocators"
+      "Vietnam tech re-rating continues: Technology led the tape at +3.88% on VinFast/FPT tailwinds, now extending into broader ICT narrative despite index drawdown",
+      "Power-sector governance overhang persists: PV Gas/EVN ecosystem role remains in flux following last week's detention event; Utilities drag extends",
+      "WTI regime shift: oil spiked from USD 79.36 to 90.54, compressing refiner crack spreads and weighing on Oil & Gas (-3.41%)",
+      "DXY capitulation to 100.07 (from 104.33) failed to transmit to VND: USD/VND firmed to 26,275 (+3% vs. last reference), indicating SBV-managed depreciation for export cushion",
+      "VND decoupling from DXY: SBV tolerating weaker VND despite USD weakness, deliberate policy to absorb post-EV-incentive current-account dynamic and WTI shock",
+      "EV incentive regime continues to support VinFast volume ramp: 50% registration-fee waiver through 2030 still in force",
+      "EVN balance-sheet repair: ~150,000 bn VND deposit redeployment continues to defuse SOE credit-complex drag",
+      "Gold safe-haven bid unwinding: -3.10% w/w to 4,337.10 reduces defensive allocation support for EM portfolios",
+      "BTC weakness (-4.51% to 60,922.67) pressures VinFast/FPT retail-investor base and risk-asset correlation channel",
+      "Foreign-flow rotation: directional bias from cyclicals into Tech aligns with post-VinFast-capital-raise narrative",
+      "Liquidity data integrity flag: avg daily liquidity print of 0.61 bn VND implies unit-labeling issue in source feed vs. ~18,070 bn VND/day quarterly reference"
     ],
-    "macro_environment": "SBV maintains managed-band posture: USD/VND firmed a controlled 0.13% to 25,499, second-tightest weekly move in EM Asia. DXY pinned at 104.33, giving Asian FX room. WTI at USD 79.36 caps Vietnam's net-importer inflation risk while pressuring refiners. Corporate-side catalysts dominated: EVN deposit redeployment removes a structural SOE drag, and the EV incentive extension preserves the consumer-stimulus regime. BTC at USD 65,714 keeps risk-asset correlation live. Overall macro backdrop: stable FX, contained inflation, idiosyncratic corporate action doing the heavy lifting.",
+    "macro_environment": "SBV posture shifted to managed depreciation: USD/VND firmed to 26,275 (-0.06% w/w) but is now ~3% above the 25,499 reference, with DXY collapsing from 104.33 to 100.07 yet VND not strengthening — clear decoupling indicating SBV is using the band for export cushion and current-account absorption rather than appreciation. DXY sub-101 print is the year's most significant USD move, reflecting Fed expectations reset and term-premium compression. WTI at USD 90.54 caps net-importer inflation risk while pressuring downstream refiners (PLX/BSR) via lagged administrative pump-price passthroughs. Gold at 4,337.10 and BTC at 60,922.67 both declined, signaling risk-on rotation out of defensive hedges. Corporate-side catalysts from Q2-2026 week 1 (EVN deposit redeployment, EV fee-waiver extension) continue to defuse structural drags, but the WTI spike and DXY/VND divergence forced macro back into the driver's seat this week. Overall: stable FX regime with deliberate managed weakness, contained inflation, but increased two-sided risk from cross-asset volatility.",
     "sectors_covered": [
       "Technology",
       "Aviation",
       "Utilities",
-      "F&B"
+      "F&B",
+      "Oil & Gas",
+      "Real Estate",
+      "Securities",
+      "Construction",
+      "Retail"
     ],
     "technical_levels": {
-      "support": "1,824.74 (week low) / 1,800 (psychological) / 1,775 (200-day region)",
-      "resistance": "1,862.23 (week high) / 1,880",
-      "key_moving_averages": "MA20 to be formally populated next week with second weekly close; current weekly tape is a near-doji at 1,838.59, setting initial base for trend tracking."
+      "support": "1,798.05 (week low) / 1,775 (200-day region) / 1,750",
+      "resistance": "1,860 (former pivot) / 1,871.09 (week high) / 1,880",
+      "key_moving_averages": "MA20 to be formally calibrated next week with a second weekly close; current 1,838.90 print sets the initial base. Weekly structure shifted from near-doji to bearish-engulfing."
     },
     "forward_risks": [
-      "Sustained foreign selling (>1,000 bn VND/week USD-equivalent) breaking 1,825 support toward 1,800/1,775",
-      "Second governance event in the power complex extending Utilities weakness",
-      "Single-session foreign outflow of ~900 bn VND flagged on 9/6 (post-window) as dominant near-term flow variable",
-      "SBV communication on VND band any unexpected widening",
-      "DXY breakout above 104.33 pressuring EM Asia FX",
-      "Oil spike above USD 80 reigniting inflation and pressuring refiners",
-      "Insider registrations at PNJ and residual margin-call disclosure overhangs",
+      "Sustained foreign selling breaking 1,798 support toward 1,775/1,750 (200-day region)",
+      "WTI spike above USD 95 forcing SBV policy response and reigniting inflation complex",
+      "DXY mean-reversion above 101 forcing sharper VND band test given current 26,275 level",
+      "VND decoupling stress if SBV widens band unexpectedly or DXY reverses sharply",
+      "Second governance event in power complex extending Utilities weakness beyond current drag",
+      "Refiner margin compression persisting (PLX/BSR crack-spread pressure) if WTI stays above 90",
+      "Upstream services capex delay risk for PVD/PVS if WTI fails to hold above 90",
+      "BTC weakness deepening weighing on VinFast/FPT retail-investor base and risk-asset correlation",
+      "Gold safe-haven unwinding freeing flows for either risk-on re-engagement or further EM de-risking",
+      "Liquidity data feed integrity issue (0.61 bn VND avg print vs. ~18,070 bn VND reference) complicating tape interpretation",
+      "Foreign-flow data flagged as synthetic estimate (-35 bn VND) — directional read unreliable until market-confirmed",
       "Idiosyncratic catalysts (margin calls, regulatory actions) layering on macro tape and amplifying two-sided risk"
     ]
   }
