@@ -1,19 +1,24 @@
 ---
+import '../styles/stichui.css';
+
 interface Props {
   title: string;
   description?: string;
 }
-const { title, description = 'Finance & Capital Markets Portfolio' } = Astro.props;
+const { title, description = 'Capital Markets Analyst — rigorous financial modeling & equity research' } = Astro.props;
+
+const currentPath = Astro.url.pathname;
 ---
 <!doctype html>
-<html lang="en" class="bg-term-bg">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="canonical" href={Astro.url.href} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta property="og:title" content={title} />
@@ -22,24 +27,110 @@ const { title, description = 'Finance & Capital Markets Portfolio' } = Astro.pro
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
   </head>
-  <body class="font-sans text-term-text bg-term-bg min-h-screen flex flex-col">
-    <nav class="sticky top-0 z-50 bg-term-bg border-t-2 border-term-accent border-b border-term-border">
-      <div class="max-w-4xl mx-auto px-4 flex items-center justify-between h-12">
-        <a href="/" class="font-mono text-sm text-term-accent">Nguyễn Vũ Trường Huy</a>
-        <div class="flex items-center gap-6">
-          <a href="/research" class="font-mono text-sm text-term-muted hover:text-term-text transition-colors">Research</a>
-          <a href="/market-views" class="font-mono text-sm text-term-muted hover:text-term-text transition-colors">Market Views</a>
-          <a href="https://linkedin.com" target="_blank" rel="noopener" class="font-mono text-sm text-term-muted hover:text-term-text transition-colors">LinkedIn ↗</a>
+  <body class="bg-terminal-bg text-terminal-text min-h-screen flex flex-col font-body-md antialiased">
+    <!-- Top Navigation — Bloomberg dark terminal: 2px amber top border, sticky -->
+    <header class="bg-terminal-bg border-t-2 border-t-terminal-accent border-b border-outline-variant sticky top-0 z-50 w-full">
+      <div class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto h-16">
+        <!-- Brand — JetBrains Mono, amber accent -->
+        <a class="font-headline-md text-headline-md font-bold tracking-tight text-terminal-accent" href="/">
+          Truong Huy.
+        </a>
+        <!-- Desktop Nav — uppercase label-md, amber on active -->
+        <nav class="hidden md:flex items-center gap-8">
+          <ul class="flex gap-6">
+            <li>
+              <a class:list={["font-label-md uppercase text-label-md block h-full flex flex-col justify-end pb-1", currentPath === "/" ? "text-terminal-accent border-b-2 border-terminal-accent" : "text-on-surface-variant hover:text-terminal-accent transition-colors"]} href="/">
+                Home
+              </a>
+            </li>
+            <li>
+              <a class:list={["font-label-md uppercase text-label-md block h-full flex flex-col justify-end pb-1", currentPath.startsWith("/market-views") ? "text-terminal-accent border-b-2 border-terminal-accent" : "text-on-surface-variant hover:text-terminal-accent transition-colors"]} href="/market-views">
+                Market Views
+              </a>
+            </li>
+            <li>
+              <a class:list={["font-label-md uppercase text-label-md block h-full flex flex-col justify-end pb-1", currentPath.startsWith("/research") ? "text-terminal-accent border-b-2 border-terminal-accent" : "text-on-surface-variant hover:text-terminal-accent transition-colors"]} href="/research">
+                Equity Research
+              </a>
+            </li>
+          </ul>
+        </nav>
+        <!-- Trailing Action — amber border button, hover inverts -->
+        <div class="flex items-center gap-4">
+          <a href="mailto:contact@truonghuyresearch.xyz" class="hidden md:inline-flex items-center justify-center px-4 py-2 border border-terminal-accent text-terminal-accent font-label-md uppercase text-label-md hover:bg-terminal-accent hover:text-terminal-bg transition-colors">
+            Contact
+          </a>
+          <button class="md:hidden text-terminal-accent p-2" id="mobile-menu-btn" aria-label="Menu">
+            <span class="material-symbols-outlined">menu</span>
+          </button>
         </div>
       </div>
-    </nav>
+      <!-- Mobile Nav -->
+      <div id="mobile-menu" class="hidden md:hidden border-t border-outline-variant bg-terminal-bg">
+        <ul class="flex flex-col px-margin-mobile py-4 gap-4">
+          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/">Home</a></li>
+          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/market-views">Market Views</a></li>
+          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/research">Equity Research</a></li>
+          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="mailto:contact@truonghuyresearch.xyz">Contact</a></li>
+          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/disclaimer">Disclaimer</a></li>
+        </ul>
+      </div>
+    </header>
 
-    <main class="max-w-4xl mx-auto px-4 py-12 flex-1">
+    <!-- Main Content -->
+    <main class="flex-grow w-full">
       <slot />
     </main>
 
-    <footer class="font-mono text-xs text-term-muted text-center border-t border-term-border py-6">
-      Updated daily via GitHub Actions · Claude API · © 2026
+    <!-- Footer — dark terminal: tonal surface, border-top divider, compact links -->
+    <footer class="bg-terminal-bg border-t border-outline-variant w-full mt-auto">
+      <div class="w-full py-section-gap px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-start gap-gutter">
+        <!-- Brand + bio + copyright (compact) -->
+        <div class="flex flex-col gap-4 max-w-sm">
+          <span class="font-headline-sm text-headline-sm font-semibold text-terminal-accent">
+            Truong Huy.
+          </span>
+          <p class="font-body-sm text-body-sm text-on-surface-variant">
+            Capital Markets Analyst focused on rigorous financial modeling and macroeconomic synthesis.
+          </p>
+          <p class="font-body-sm text-body-sm text-on-surface-variant opacity-70 mt-2">
+            © 2024 Nguyen Vu Truong Huy. All rights reserved. Financial data for analytical purposes only.
+          </p>
+        </div>
+        <!-- Compact right-aligned links -->
+        <div class="flex flex-col gap-1 md:items-end">
+          <ul class="flex flex-col md:items-end gap-1">
+            <li>
+              <a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent hover:underline decoration-1 underline-offset-4 transition-colors leading-tight" href="https://www.linkedin.com/in/trghuyy/" target="_blank" rel="noopener noreferrer">
+                LinkedIn
+              </a>
+            </li>
+            <li>
+              <a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent hover:underline decoration-1 underline-offset-4 transition-colors leading-tight" href="/cv.pdf" target="_blank" rel="noopener noreferrer">
+                CV
+              </a>
+            </li>
+            <li>
+              <a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent hover:underline decoration-1 underline-offset-4 transition-colors leading-tight" href="mailto:contact@truonghuyresearch.xyz">
+                Contact
+              </a>
+            </li>
+            <li>
+              <a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent hover:underline decoration-1 underline-offset-4 transition-colors leading-tight" href="/disclaimer">
+                Disclaimer
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
     </footer>
+
+    <script>
+      const btn = document.getElementById('mobile-menu-btn');
+      const menu = document.getElementById('mobile-menu');
+      btn?.addEventListener('click', () => {
+        menu?.classList.toggle('hidden');
+      });
+    </script>
   </body>
 </html>

@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import ChartImage from '../../components/ChartImage.astro';
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
@@ -13,40 +14,141 @@ export async function getStaticPaths() {
 const { entry } = Astro.props;
 const { Content } = await entry.render();
 
-const formattedDate = entry.data.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-const changeColor = entry.data.vn_index_change_pct >= 0 ? 'text-term-up' : 'text-term-down';
-const changeSign = entry.data.vn_index_change_pct >= 0 ? '+' : '';
+// Date range formatting "02 Jun – 06 Jun 2026"
+const fmtRange = (start: Date, end: Date): string => {
+  const sDay = start.toLocaleDateString('en-GB', { day: '2-digit' });
+  const sMon = start.toLocaleDateString('en-GB', { month: 'short' });
+  const eDay = end.toLocaleDateString('en-GB', { day: '2-digit' });
+  const eMon = end.toLocaleDateString('en-GB', { month: 'short' });
+  const eYr = end.toLocaleDateString('en-GB', { year: 'numeric' });
+  // Same month → "02–06 Jun 2026"
+  if (sMon === eMon) return `${sDay}–${eDay} ${eMon} ${eYr}`;
+  return `${sDay} ${sMon} – ${eDay} ${eMon} ${eYr}`;
+};
+const dateRange = fmtRange(entry.data.week_start, entry.data.week_end);
+
+// Color logic
+const changeColor = entry.data.vn_index_weekly_change_pct >= 0 ? 'text-tertiary' : 'text-error';
+const changeSign = entry.data.vn_index_weekly_change_pct >= 0 ? '+' : '';
+const toneColor = entry.data.session_tone === 'positive' ? 'bg-tertiary' : entry.data.session_tone === 'negative' ? 'bg-error' : 'bg-terminal-accent';
+
+// Cross-asset strip helpers
+const arrow = (val: number | null) => val == null ? '·' : val >= 0 ? '▲' : '▼';
+const arrowColor = (val: number | null) => val == null ? 'text-terminal-muted' : val >= 0 ? 'text-tertiary' : 'text-error';
+const sign = (val: number | null) => val == null ? '—' : (val >= 0 ? '+' : '') + val.toFixed(2) + '%';
+const fmtVal = (val: number | null, decimals: number = 2) => val == null ? '—' : val.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 ---
 <BaseLayout title={entry.data.title}>
-  <a href="/market-views" class="font-mono text-xs text-term-link">← All Market Views</a>
+  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap">
+    <!-- Breadcrumb -->
+    <a href="/market-views" class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors">
+      &larr; All Market Views
+    </a>
 
-  <div class="bg-term-surface border border-term-border rounded p-4 mt-4 grid grid-cols-3 gap-4">
-    <div>
-      <p class="font-mono text-xs text-term-muted">VN-INDEX CLOSE</p>
-      <p class="font-mono text-lg text-term-text">{entry.data.vn_index_close.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+    <!-- Key Findings Card — 2 rows of metrics, 2px amber top border, tone-colored left bar -->
+    <div class="bg-terminal-card border border-terminal-border border-t-2 border-t-terminal-accent p-6 mt-6 relative overflow-hidden">
+      <div class:list={["absolute left-0 top-0 bottom-0 w-1", toneColor]}></div>
+      <div class="ml-2">
+        <!-- Row 1: VN-INDEX CLOSE | WEEKLY CHANGE | DATE -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-gutter pb-4 border-b border-outline-variant">
+          <div>
+            <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">VN-INDEX CLOSE</p>
+            <p class="font-headline-md text-headline-md text-terminal-accent">{entry.data.vn_index_close.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+          </div>
+          <div>
+            <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">WEEKLY CHANGE</p>
+            <p class:list={["font-headline-md text-headline-md", changeColor]}>{changeSign}{entry.data.vn_index_weekly_change_pct.toFixed(2)}%</p>
+          </div>
+          <div>
+            <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">WEEK</p>
+            <p class="font-headline-md text-headline-md text-terminal-accent">{dateRange}</p>
+          </div>
+        </div>
+        <!-- Row 2: HIGH/LOW | AVG LIQUIDITY | FOREIGN NET -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-gutter pt-4">
+          <div>
+            <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">WEEKLY HIGH / LOW</p>
+            <p class="font-mono-data text-mono-data text-terminal-text">
+              H <span class="text-tertiary">{fmtVal(entry.data.vn_index_high)}</span>
+              &nbsp;·&nbsp;
+              L <span class="text-error">{fmtVal(entry.data.vn_index_low)}</span>
+            </p>
+            <p class="font-label-md uppercase text-label-md text-on-surface-variant mt-1">OPEN <span class="text-terminal-text">{fmtVal(entry.data.vn_index_open)}</span></p>
+          </div>
+          <div>
+            <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">AVG DAILY LIQUIDITY</p>
+            <p class="font-headline-md text-headline-md text-terminal-accent">{entry.data.avg_daily_liquidity_bn_vnd.toLocaleString('en-US', { maximumFractionDigits: 0 })}<span class="font-body-md text-body-md text-on-surface-variant ml-1">Bn VND</span></p>
+          </div>
+          <div>
+            <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">FOREIGN NET (WEEKLY)</p>
+            <p class:list={["font-headline-md text-headline-md", entry.data.foreign_net_weekly_bn_vnd >= 0 ? 'text-tertiary' : 'text-error']}>
+              {entry.data.foreign_net_weekly_bn_vnd >= 0 ? '+' : ''}{entry.data.foreign_net_weekly_bn_vnd.toLocaleString('en-US', { maximumFractionDigits: 0 })}<span class="font-body-md text-body-md text-on-surface-variant ml-1">Bn VND</span>
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
-    <div>
-      <p class="font-mono text-xs text-term-muted">CHANGE</p>
-      <p class:list={["font-mono text-lg", changeColor]}>{changeSign}{entry.data.vn_index_change_pts.toFixed(2)} ({changeSign}{entry.data.vn_index_change_pct.toFixed(2)}%)</p>
-    </div>
-    <div>
-      <p class="font-mono text-xs text-term-muted">DATE</p>
-      <p class="font-mono text-lg text-term-text">{formattedDate}</p>
-    </div>
-  </div>
 
-  <article class="mt-8">
-    <h1 class="text-2xl font-bold text-term-text">{entry.data.title}</h1>
-    <div class="prose prose-invert mt-6 text-term-text
-      prose-headings:text-term-text
-      prose-a:text-term-link
-      prose-code:bg-term-surface
-      prose-hr:border-term-border
-      prose-strong:text-term-text
-      prose-p:text-term-text
-      prose-li:text-term-text
-    ">
-      <Content />
+    <!-- Global Markets Strip — compact horizontal bar, Bloomberg density -->
+    <div class="bg-terminal-bg border border-terminal-border border-t-2 border-t-terminal-accent px-4 py-3 mt-4 overflow-x-auto">
+      <div class="flex items-center gap-6 min-w-max font-mono-data text-mono-data">
+        <div class="flex items-center gap-2">
+          <span class="font-label-md uppercase text-label-md text-on-surface-variant">DXY</span>
+          <span class="text-terminal-text">{fmtVal(entry.data.dxy_close, 2)}</span>
+          <span class:list={[arrowColor(entry.data.dxy_weekly_change_pct)]}>{arrow(entry.data.dxy_weekly_change_pct)}</span>
+          <span class:list={[arrowColor(entry.data.dxy_weekly_change_pct)]}>{sign(entry.data.dxy_weekly_change_pct)}</span>
+        </div>
+        <div class="w-px h-4 bg-outline-variant"></div>
+        <div class="flex items-center gap-2">
+          <span class="font-label-md uppercase text-label-md text-on-surface-variant">USD/VND</span>
+          <span class="text-terminal-text">{fmtVal(entry.data.usd_vnd, 0)}</span>
+          <span class:list={[arrowColor(entry.data.usd_vnd_weekly_change_pct)]}>{arrow(entry.data.usd_vnd_weekly_change_pct)}</span>
+          <span class:list={[arrowColor(entry.data.usd_vnd_weekly_change_pct)]}>{sign(entry.data.usd_vnd_weekly_change_pct)}</span>
+        </div>
+        <div class="w-px h-4 bg-outline-variant"></div>
+        <div class="flex items-center gap-2">
+          <span class="font-label-md uppercase text-label-md text-on-surface-variant">GOLD</span>
+          <span class="text-terminal-text">{fmtVal(entry.data.gold_close, 0)}</span>
+          <span class:list={[arrowColor(entry.data.gold_weekly_change_pct)]}>{arrow(entry.data.gold_weekly_change_pct)}</span>
+          <span class:list={[arrowColor(entry.data.gold_weekly_change_pct)]}>{sign(entry.data.gold_weekly_change_pct)}</span>
+        </div>
+        <div class="w-px h-4 bg-outline-variant"></div>
+        <div class="flex items-center gap-2">
+          <span class="font-label-md uppercase text-label-md text-on-surface-variant">WTI</span>
+          <span class="text-terminal-text">{fmtVal(entry.data.wti_close, 2)}</span>
+          <span class:list={[arrowColor(entry.data.wti_weekly_change_pct)]}>{arrow(entry.data.wti_weekly_change_pct)}</span>
+          <span class:list={[arrowColor(entry.data.wti_weekly_change_pct)]}>{sign(entry.data.wti_weekly_change_pct)}</span>
+        </div>
+        <div class="w-px h-4 bg-outline-variant"></div>
+        <div class="flex items-center gap-2">
+          <span class="font-label-md uppercase text-label-md text-on-surface-variant">BTC</span>
+          <span class="text-terminal-text">{fmtVal(entry.data.btc_close, 0)}</span>
+          <span class:list={[arrowColor(entry.data.btc_weekly_change_pct)]}>{arrow(entry.data.btc_weekly_change_pct)}</span>
+          <span class:list={[arrowColor(entry.data.btc_weekly_change_pct)]}>{sign(entry.data.btc_weekly_change_pct)}</span>
+        </div>
+      </div>
     </div>
-  </article>
+
+    <!-- Divider -->
+    <div class="mt-10">
+      <hr class="border-t border-outline-variant" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="mt-10">
+      <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-6">{entry.data.title}</h1>
+      <div class="prose max-w-none font-body-md text-body-md text-terminal-text mt-6
+        prose-headings:text-terminal-accent
+        prose-a:text-terminal-accent
+        prose-code:bg-terminal-card
+        prose-code:text-terminal-accent
+        prose-hr:border-outline-variant
+        prose-strong:text-terminal-accent
+        prose-p:text-terminal-text
+        prose-li:text-terminal-text
+      ">
+        <Content />
+      </div>
+    </article>
+  </section>
 </BaseLayout>

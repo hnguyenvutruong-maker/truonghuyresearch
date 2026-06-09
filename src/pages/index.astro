@@ -1,75 +1,205 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import MarketCard from '../components/MarketCard.astro';
-import ResearchCard from '../components/ResearchCard.astro';
 import { getCollection } from 'astro:content';
 
 const allResearch = await getCollection('research');
 const allMarketViews = await getCollection('market-views');
 
 const latestResearch = allResearch.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()).slice(0, 2);
-const latestMarketViews = allMarketViews.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()).slice(0, 3);
+const latestMarketViews = allMarketViews.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()).slice(0, 2);
 ---
-<BaseLayout title="Nguyễn Vũ Trường Huy — Finance & Capital Markets">
-  <!-- HERO -->
-  <section>
-    <p class="font-mono text-xs text-term-muted uppercase tracking-widest">PROFILE  //  VIETNAM CAPITAL MARKETS</p>
-    <h1 class="text-3xl md:text-4xl font-bold mt-2">Nguyễn Vũ Trường Huy</h1>
-    <p class="font-mono text-sm text-term-muted mt-1">Finance & Banking · UEH · CFA Level II Candidate</p>
-    <p class="text-term-text mt-4 max-w-2xl leading-relaxed">
-      Finance analyst targeting private markets in Vietnam. CFA candidate.
-      Building systematic views on capital allocation. Currently interning at
-      Hoàn Lộc Việt Investment Holdings, where I built a 20-indicator
-      operational dashboard grounded in a PE analytical framework.
-    </p>
-    <div class="flex gap-4 mt-6">
-      <a href="/research" class="border border-term-accent text-term-accent hover:bg-term-accent hover:text-term-bg font-mono text-sm px-4 py-2 transition-colors">View Research →</a>
-      <a href="/market-views" class="border border-term-border text-term-muted hover:border-term-link hover:text-term-link font-mono text-sm px-4 py-2 transition-colors">Market Views →</a>
-    </div>
-    <div class="flex flex-wrap gap-2 mt-8">
-      <span class="font-mono text-xs border border-term-border text-term-muted px-3 py-1">CFA II · AUG 2026</span>
-      <span class="font-mono text-xs border border-term-border text-term-muted px-3 py-1">CFA I PASSED</span>
-      <span class="font-mono text-xs border border-term-border text-term-muted px-3 py-1">PE INTERNSHIP</span>
-      <span class="font-mono text-xs border border-term-border text-term-muted px-3 py-1">GPA 3.64</span>
+<BaseLayout title="Nguyen Vu Truong Huy | Capital Markets Analyst">
+  <!-- Hero Section -->
+  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap">
+    <div class="max-w-3xl">
+      <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-6">
+        Nguyen Vu Truong Huy
+      </h1>
+      <p class="font-body-lg text-body-lg text-terminal-text mb-10 max-w-2xl border-l-4 border-terminal-accent pl-6">
+        Capital Markets Analyst focused on rigorous financial modeling, deep-value equity research, and macroeconomic synthesis.
+      </p>
+      <div class="flex flex-wrap gap-4">
+        <a href="#about" class="inline-flex items-center justify-center px-6 py-3 bg-terminal-accent text-terminal-bg font-label-md uppercase text-label-md hover:bg-on-primary transition-colors">
+          View Profile
+        </a>
+        <a href="#market-views" class="inline-flex items-center justify-center px-6 py-3 border border-terminal-accent text-terminal-accent font-label-md uppercase text-label-md hover:bg-terminal-card transition-colors">
+          Latest Research
+        </a>
+      </div>
     </div>
   </section>
 
-  <!-- FEATURED RESEARCH -->
-  <section class="mt-16">
-    <h2 class="text-lg font-semibold border-l-2 border-term-accent pl-3">EQUITY RESEARCH</h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+  <!-- Divider -->
+  <div class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+    <hr class="border-t border-outline-variant" />
+  </div>
+
+  <!-- About Section -->
+  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap" id="about">
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+      <div class="md:col-span-4">
+        <h2 class="font-display-lg text-display-lg text-terminal-accent mb-2">Background</h2>
+        <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-6 tracking-widest">Profile & Expertise</p>
+      </div>
+      <div class="md:col-span-8">
+        <div class="prose max-w-none font-body-md text-body-md text-terminal-text space-y-6">
+          <p>
+            I am a rigorous analytical thinker with a foundational background in Banking and Finance from the University of Economics Ho Chi Minh City (UEH), graduating with a GPA of 3.64. My academic grounding is augmented by practical experience and a commitment to continuous professional development, currently progressing as a CFA Level II Candidate (August 2026).
+          </p>
+          <p>
+            Professional tenure at Hoàn Lộc Việt refined my capacity for financial analysis, translating raw data into actionable strategic insights. My core competencies center on meticulous investment analysis, comprehensive financial modeling, and leveraging data analytics platforms including advanced Excel and Power BI to synthesize complex market narratives.
+          </p>
+        </div>
+        <!-- Skills Grid -->
+        <div class="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div class="border-t border-outline-variant pt-4">
+            <span class="material-symbols-outlined text-terminal-accent mb-2 block" style="font-variation-settings: 'FILL' 1;">analytics</span>
+            <h3 class="font-body-md text-body-md font-semibold text-terminal-accent mb-1">Financial Modeling</h3>
+            <p class="font-body-sm text-body-sm text-terminal-text">DCF, LBO, and three-statement integration.</p>
+          </div>
+          <div class="border-t border-outline-variant pt-4">
+            <span class="material-symbols-outlined text-terminal-accent mb-2 block" style="font-variation-settings: 'FILL' 1;">trending_up</span>
+            <h3 class="font-body-md text-body-md font-semibold text-terminal-accent mb-1">Investment Analysis</h3>
+            <p class="font-body-sm text-body-sm text-terminal-text">Equity valuation and risk assessment.</p>
+          </div>
+          <div class="border-t border-outline-variant pt-4">
+            <span class="material-symbols-outlined text-terminal-accent mb-2 block" style="font-variation-settings: 'FILL' 1;">data_usage</span>
+            <h3 class="font-body-md text-body-md font-semibold text-terminal-accent mb-1">Data Analytics</h3>
+            <p class="font-body-sm text-body-sm text-terminal-text">Advanced Excel, Power BI visualization.</p>
+          </div>
+        </div>
+        <!-- Credentials Tags -->
+        <div class="mt-8 flex flex-wrap gap-2">
+          <span class="inline-block bg-terminal-card border border-outline-variant px-3 py-1 font-label-md uppercase text-label-md text-terminal-text">CFA Level II Candidate</span>
+          <span class="inline-block bg-terminal-card border border-outline-variant px-3 py-1 font-label-md uppercase text-label-md text-terminal-text">UEH Alumni</span>
+          <span class="inline-block bg-terminal-card border border-outline-variant px-3 py-1 font-label-md uppercase text-label-md text-terminal-text">GPA 3.64</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Divider -->
+  <div class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+    <hr class="border-t border-outline-variant" />
+  </div>
+
+  <!-- Equity Research Section -->
+  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap" id="research">
+    <div class="mb-10 flex justify-between items-end">
+      <div>
+        <h2 class="font-display-lg text-display-lg text-terminal-accent mb-2">Equity Research</h2>
+        <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest">Latest Reports</p>
+      </div>
+      <a href="/research" class="hidden md:flex items-center gap-1 font-label-md uppercase text-label-md text-terminal-accent hover:text-on-primary transition-colors">
+        View All <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+      </a>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
       {latestResearch.map((entry) => (
-        <ResearchCard
-          title={entry.data.title}
-          date={entry.data.date}
-          ticker={entry.data.ticker}
-          sector={entry.data.sector}
-          recommendation={entry.data.recommendation}
-          summary={entry.data.summary}
-          pdf_path={entry.data.pdf_path}
-          slug={entry.slug}
-        />
+        <article class="group bg-terminal-card border border-terminal-border border-t-2 border-t-terminal-accent p-6 hover:border-terminal-accent transition-colors cursor-pointer flex flex-col h-full">
+          <div class="flex justify-between items-start mb-6">
+            <span class="inline-block px-2 py-1 bg-terminal-bg border border-outline-variant font-label-md uppercase text-label-md text-terminal-accent">{entry.data.ticker}</span>
+            <span class="font-mono-data text-mono-data text-terminal-text">{entry.data.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+          </div>
+          <h3 class="font-headline-md text-headline-md text-terminal-accent mb-4 group-hover:text-on-primary transition-colors">
+            {entry.data.title}
+          </h3>
+          <p class="font-body-sm text-body-sm text-terminal-text mb-6 flex-grow line-clamp-3">
+            {entry.data.summary}
+          </p>
+          <div class="flex items-center gap-2 font-label-md uppercase text-label-md text-terminal-accent mt-auto">
+            Read Full Note <span class="material-symbols-outlined text-[16px]">north_east</span>
+          </div>
+        </article>
       ))}
     </div>
-    <a href="/research" class="font-mono text-sm text-term-link mt-4 inline-block">View all research →</a>
+    <div class="mt-8 md:hidden">
+      <a href="/research" class="inline-flex items-center justify-center w-full px-4 py-3 border border-outline-variant text-terminal-text font-label-md uppercase text-label-md">
+        View All Research
+      </a>
+    </div>
   </section>
 
-  <!-- LATEST COMMENTARY -->
-  <section class="mt-16">
-    <h2 class="text-lg font-semibold border-l-2 border-term-accent pl-3">MARKET COMMENTARY</h2>
-    <p class="font-mono text-xs text-term-muted mt-1">Daily close — VN-Index</p>
-    <div class="space-y-3 mt-4">
-      {latestMarketViews.map((entry) => (
-        <MarketCard
-          title={entry.data.title}
-          date={entry.data.date}
-          vn_index_close={entry.data.vn_index_close}
-          vn_index_change_pct={entry.data.vn_index_change_pct}
-          session_tone={entry.data.session_tone}
-          slug={entry.slug}
-        />
-      ))}
+  <!-- Divider -->
+  <div class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+    <hr class="border-t border-outline-variant" />
+  </div>
+
+  <!-- Market Views Section -->
+  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap bg-terminal-bg" id="market-views">
+    <div class="mb-10 flex justify-between items-end">
+      <div>
+        <h2 class="font-display-lg text-display-lg text-terminal-accent mb-2">Market Views</h2>
+        <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest">Weekly Market View</p>
+      </div>
+      <a href="/market-views" class="hidden md:flex items-center gap-1 font-label-md uppercase text-label-md text-terminal-accent hover:text-on-primary transition-colors">
+        View All <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+      </a>
     </div>
-    <a href="/market-views" class="font-mono text-sm text-term-link mt-4 inline-block">View all →</a>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+      {latestMarketViews.map((entry, i) => {
+        const isAccent = i === 1;
+        // Week range "02 Jun – 06 Jun"
+        const ws = entry.data.week_start;
+        const we = entry.data.week_end;
+        const sDay = ws.toLocaleDateString('en-GB', { day: '2-digit' });
+        const sMon = ws.toLocaleDateString('en-GB', { month: 'short' });
+        const eDay = we.toLocaleDateString('en-GB', { day: '2-digit' });
+        const eMon = we.toLocaleDateString('en-GB', { month: 'short' });
+        const weekLabel = sMon === eMon ? `${sDay}–${eDay} ${eMon}` : `${sDay} ${sMon} – ${eDay} ${eMon}`;
+        // Cross-asset arrow helper
+        const arrow = (v: number | null | undefined) => v == null ? '·' : v >= 0 ? '▲' : '▼';
+        const aCol = (v: number | null | undefined) => v == null ? 'text-terminal-muted' : v >= 0 ? 'text-tertiary' : 'text-error';
+        const sgn = (v: number | null | undefined) => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+        const tone = entry.data.session_tone;
+        const toneClass = tone === 'positive' ? 'text-tertiary border-tertiary' : tone === 'negative' ? 'text-error border-error' : 'text-terminal-accent border-terminal-accent';
+        return (
+          <article class="group bg-terminal-card border border-terminal-border border-t-2 border-t-terminal-accent p-6 hover:border-terminal-accent transition-colors cursor-pointer flex flex-col h-full relative overflow-hidden">
+            {isAccent && <div class="absolute left-0 top-0 bottom-0 w-1 bg-terminal-accent"></div>}
+            <div class:list={["flex justify-between items-start mb-6", isAccent ? "ml-2" : ""]}>
+              <span class:list={["inline-block px-2 py-1 bg-terminal-bg border font-label-md uppercase text-label-md", toneClass]}>
+                Weekly Market View
+              </span>
+              <span class="font-mono-data text-mono-data text-terminal-text">{weekLabel} {we.toLocaleDateString('en-GB', { year: 'numeric' })}</span>
+            </div>
+            <h3 class:list={["font-headline-md text-headline-md text-terminal-accent mb-4 group-hover:text-on-primary transition-colors", isAccent ? "ml-2" : ""]}>
+              {entry.data.title}
+            </h3>
+            <p class:list={["font-body-sm text-body-sm text-terminal-text mb-4 flex-grow line-clamp-3", isAccent ? "ml-2" : ""]}>
+              VN-Index closed at <span class="font-mono-data text-mono-data text-terminal-text">{entry.data.vn_index_close.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              <span class:list={["font-mono-data text-mono-data ml-2", entry.data.vn_index_weekly_change_pct >= 0 ? 'text-tertiary' : 'text-error']}>
+                {entry.data.vn_index_weekly_change_pct >= 0 ? '+' : ''}{entry.data.vn_index_weekly_change_pct.toFixed(2)}%
+              </span>
+            </p>
+            <!-- Cross-asset mini-strip -->
+            <div class:list={["border-t border-outline-variant pt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono-data text-mono-data", isAccent ? "ml-2" : ""]}>
+              <span class="flex items-center gap-1">
+                <span class="font-label-md uppercase text-label-md text-on-surface-variant">DXY</span>
+                <span class:list={[aCol(entry.data.dxy_weekly_change_pct)]}>{arrow(entry.data.dxy_weekly_change_pct)}</span>
+                <span class:list={[aCol(entry.data.dxy_weekly_change_pct)]}>{sgn(entry.data.dxy_weekly_change_pct)}</span>
+              </span>
+              <span class="flex items-center gap-1">
+                <span class="font-label-md uppercase text-label-md text-on-surface-variant">Gold</span>
+                <span class:list={[aCol(entry.data.gold_weekly_change_pct)]}>{arrow(entry.data.gold_weekly_change_pct)}</span>
+                <span class:list={[aCol(entry.data.gold_weekly_change_pct)]}>{sgn(entry.data.gold_weekly_change_pct)}</span>
+              </span>
+              <span class="flex items-center gap-1">
+                <span class="font-label-md uppercase text-label-md text-on-surface-variant">BTC</span>
+                <span class:list={[aCol(entry.data.btc_weekly_change_pct)]}>{arrow(entry.data.btc_weekly_change_pct)}</span>
+                <span class:list={[aCol(entry.data.btc_weekly_change_pct)]}>{sgn(entry.data.btc_weekly_change_pct)}</span>
+              </span>
+            </div>
+            <div class:list={["flex items-center gap-2 font-label-md uppercase text-label-md text-terminal-accent mt-4", isAccent ? "ml-2" : ""]}>
+              Read Full Note <span class="material-symbols-outlined text-[16px]">north_east</span>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+    <div class="mt-8 md:hidden">
+      <a href="/market-views" class="inline-flex items-center justify-center w-full px-4 py-3 border border-outline-variant text-terminal-text font-label-md uppercase text-label-md">
+        View All Market Views
+      </a>
+    </div>
   </section>
 </BaseLayout>

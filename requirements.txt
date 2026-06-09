@@ -1,2 +1,4 @@
 vnstock>=4.0.0
 python-dateutil>=2.8.0
+yfinance>=0.2.0
+matplotlib>=3.9.0

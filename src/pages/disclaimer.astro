@@ -1,0 +1,37 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Disclaimer">
+  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap">
+    <!-- Breadcrumb -->
+    <a href="/" class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors">
+      &larr; Back to Home
+    </a>
+
+    <!-- Page Header -->
+    <header class="mt-6 mb-10 max-w-3xl border-b border-outline-variant pb-8">
+      <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-4">Disclaimer</h1>
+    </header>
+
+    <!-- Content -->
+    <article class="prose max-w-none font-body-md text-body-md text-terminal-text
+      prose-headings:text-terminal-accent
+      prose-a:text-terminal-accent
+      prose-strong:text-terminal-accent
+      prose-p:text-terminal-text
+      prose-li:text-terminal-text
+      space-y-6
+    ">
+      <p>
+        The information, analysis, and views expressed on this website are for educational and informational purposes only. They do not constitute financial, investment, or legal advice.
+      </p>
+      <p>
+        All financial models, market commentaries, and equity research reports reflect my personal opinions and independent research as a Capital Markets Analyst. They do not represent the views, official positions, or investment strategies of my current or past employers.
+      </p>
+      <p>
+        Financial markets are inherently risky. Readers should conduct their own due diligence or consult a certified financial advisor before making any investment decisions. I assume no responsibility or liability for any errors, omissions, or actions taken based on the content of this site.
+      </p>
+    </article>
+  </section>
+</BaseLayout>

@@ -1,0 +1,254 @@
+/*
+ * High-Density Terminal — Bloomberg Dark Theme
+ * Amber #f0a500 on Black #0d1117
+ * JetBrains Mono (UI) + Inter (body)
+ * Sharp corners, 2px amber top borders on cards/nav
+ */
+
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0d1117;
+}
+
+body {
+  background-color: #0d1117;
+  color: #e6edf3;
+  font-family: 'Inter', ui-sans-serif, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+::selection {
+  background-color: #f0a500;
+  color: #0d1117;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  color: #f0a500;
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 48px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  h1 {
+    font-size: 36px;
+    line-height: 1.2;
+  }
+}
+
+h2 {
+  font-size: 32px;
+  line-height: 1.3;
+}
+
+h3 {
+  font-size: 24px;
+  line-height: 1.3;
+}
+
+p {
+  font-family: 'Inter', sans-serif;
+  color: #e6edf3;
+  line-height: 1.5;
+}
+
+code, .label-data, .mono-data {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+a {
+  color: #f0a500;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: #ffc56c;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #514533;
+  margin: 0;
+}
+
+.prose {
+  color: #e6edf3;
+}
+
+.prose h1, .prose h2, .prose h3,
+.prose h4, .prose h5, .prose h6 {
+  color: #f0a500;
+}
+
+.prose a {
+  color: #f0a500;
+}
+
+.prose a:hover {
+  color: #ffc56c;
+}
+
+.prose strong {
+  color: #f0a500;
+  font-weight: 600;
+}
+
+.prose code {
+  background-color: #1c2026;
+  color: #f0a500;
+  padding: 0.125rem 0.25rem;
+  font-size: 0.875em;
+}
+
+.prose hr {
+  border-top: 1px solid #514533;
+}
+
+.prose blockquote {
+  border-left: 4px solid #f0a500;
+  color: #d6c4ac;
+  padding-left: 1rem;
+  font-style: italic;
+}
+
+.prose ul li::marker, .prose ol li::marker {
+  color: #f0a500;
+}
+
+.stich-card {
+  background-color: #161b22;
+  border: 1px solid #30363d;
+  border-top: 2px solid #f0a500;
+  padding: 1.5rem;
+  transition: border-color 0.2s ease;
+}
+
+.stich-card:hover {
+  border-color: #f0a500;
+}
+
+.stich-callout {
+  border-left: 4px solid #f0a500;
+  padding-left: 1.5rem;
+}
+
+.stich-chip {
+  display: inline-block;
+  background-color: #161b22;
+  border: 1px solid #514533;
+  padding: 0.25rem 0.75rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #e6edf3;
+}
+
+.stich-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  background-color: #f0a500;
+  color: #0d1117;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: background-color 0.2s ease;
+}
+
+.stich-btn-primary:hover {
+  background-color: #ffc56c;
+}
+
+.stich-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid #f0a500;
+  color: #f0a500;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: background-color 0.2s ease;
+}
+
+.stich-btn-ghost:hover {
+  background-color: #161b22;
+}
+
+.stich-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.stich-table th {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background-color: #161b22;
+  border-bottom: 1px solid #514533;
+  color: #f0a500;
+}
+
+.stich-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #30363d;
+  color: #e6edf3;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+}
+
+.stich-table tr:hover td {
+  background-color: #1c2026;
+}
+
+.market-gain {
+  color: #84e588;
+}
+
+.market-loss {
+  color: #ffb4ab;
+}
+
+/* Journalistic rule line (separator between articles) */
+.journal-rule {
+  border-bottom: 1px solid #514533;
+}
+
+/* Card hover border effect */
+.card-hover-border {
+  transition: border-color 0.2s ease-in-out;
+}
+.card-hover-border:hover {
+  border-color: #f0a500;
+}

@@ -1,11 +1,10 @@
-name: Daily Market Commentary
+name: Weekly Market View
 
 on:
   schedule:
-    # 9:00 AM UTC = 4:00 PM ICT (Vietnam time), Mon-Fri
-    - cron: '0 9 * * 1-5'
+    # 10:00 AM UTC Saturday = 5:00 PM ICT Friday (after VN market close)
+    - cron: '0 10 * * 6'
   workflow_dispatch:
-    # Manual trigger for testing
 
 jobs:
   generate:
@@ -23,15 +22,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Generate market commentary
+      - name: Generate weekly market view
         env:
           MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
-        run: python market_bot.py
+        run: python weekly_bot.py
 
       - name: Commit and push if new content
         run: |
           git config user.name "Market Bot"
           git config user.email "bot@truonghuyresearch.xyz"
           git add -A
-          git diff --staged --quiet || git commit -m "daily: market commentary $(date +%Y-%m-%d)"
+          git diff --staged --quiet || git commit -m "weekly: market view $(date +%Y-%m-%d)"
           git push

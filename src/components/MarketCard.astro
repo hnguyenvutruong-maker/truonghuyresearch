@@ -9,21 +9,30 @@ interface Props {
 }
 const { title, date, vn_index_close, vn_index_change_pct, session_tone, slug } = Astro.props;
 
-const toneBorder: Record<string, string> = {
-  positive: 'border-term-up',
-  negative: 'border-term-down',
-  neutral: 'border-term-accent',
+const toneAccent: Record<string, string> = {
+  positive: 'bg-tertiary',
+  negative: 'bg-error',
+  neutral: 'bg-terminal-accent',
 };
-const changeColor = vn_index_change_pct >= 0 ? 'text-term-up' : 'text-term-down';
+const changeColor = vn_index_change_pct >= 0 ? 'text-tertiary' : 'text-error';
 const formattedDate = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 ---
-<a href={`/market-views/${slug}`} class:list={["block bg-term-surface border border-term-border rounded p-4 border-t-2", toneBorder[session_tone], "hover:border-term-link transition-colors cursor-pointer"]}>
-  <div class="flex justify-between items-center">
-    <span class="font-mono text-xs text-term-muted">{formattedDate}</span>
-    <span class="font-mono text-sm text-term-text">{vn_index_close.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+<a href={`/market-views/${slug}`} class="group bg-terminal-card border border-terminal-border border-t-2 border-t-terminal-accent p-6 hover:border-terminal-accent transition-colors cursor-pointer flex flex-col h-full relative overflow-hidden">
+  <!-- Left accent bar (Bloomberg dark style) -->
+  <div class:list={["absolute left-0 top-0 bottom-0 w-1", toneAccent[session_tone]]}></div>
+  <div class="flex justify-between items-start mb-4 ml-2">
+    <span class="inline-block px-2 py-1 bg-terminal-bg border border-outline-variant font-label-md uppercase text-label-md text-terminal-text">{session_tone.charAt(0).toUpperCase() + session_tone.slice(1)}</span>
+    <span class="font-mono-data text-mono-data text-terminal-text">{formattedDate}</span>
   </div>
-  <p class="text-sm font-medium text-term-text mt-1">{title}</p>
-  <div class="flex justify-end mt-1">
-    <span class:list={["font-mono text-xs", changeColor]}>{vn_index_change_pct >= 0 ? '+' : ''}{vn_index_change_pct.toFixed(2)}%</span>
+  <h3 class="font-headline-md text-headline-md text-terminal-accent mb-2 ml-2 group-hover:text-on-primary transition-colors">
+    {title}
+  </h3>
+  <div class="flex justify-between items-center mt-auto ml-2">
+    <span class="font-mono-data text-mono-data text-terminal-text">{vn_index_close.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+    <span class:list={["font-mono-data text-mono-data", changeColor]}>{vn_index_change_pct >= 0 ? '+' : ''}{vn_index_change_pct.toFixed(2)}%</span>
+  </div>
+  <div class="flex items-center gap-2 font-label-md uppercase text-label-md text-terminal-accent mt-4 ml-2">
+    Read Full Note
+    <span class="material-symbols-outlined text-[16px]">north_east</span>
   </div>
 </a>

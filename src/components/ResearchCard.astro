@@ -12,26 +12,33 @@ interface Props {
 const { title, date, ticker, sector, recommendation, summary, pdf_path, slug } = Astro.props;
 
 const recStyles: Record<string, string> = {
-  BUY: 'text-term-up border-term-up',
-  SELL: 'text-term-down border-term-down',
-  HOLD: 'text-term-muted border-term-border',
-  NEUTRAL: 'text-term-muted border-term-border',
+  BUY: 'text-tertiary',
+  SELL: 'text-error',
+  HOLD: 'text-on-surface-variant',
+  NEUTRAL: 'text-on-surface-variant',
 };
 const formattedDate = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 ---
-<a href={`/research/${slug}`} class="block bg-term-surface border border-term-border rounded p-4 border-t-2 border-term-accent hover:border-term-link transition-colors">
-  <div class="flex justify-between items-center">
-    <span class="font-mono text-xs text-term-accent border border-term-accent px-2 py-0.5">{ticker}</span>
-    <span class:list={["font-mono text-xs px-2 py-0.5 border", recStyles[recommendation]]}>{recommendation}</span>
+<a href={`/research/${slug}`} class="group bg-terminal-card border border-terminal-border border-t-2 border-t-terminal-accent p-6 hover:border-terminal-accent transition-colors cursor-pointer flex flex-col h-full">
+  <div class="flex justify-between items-start mb-6">
+    <span class="inline-block px-2 py-1 bg-terminal-bg border border-outline-variant font-label-md uppercase text-label-md text-terminal-accent">{ticker}</span>
+    <span class:list={["inline-block px-2 py-1 bg-terminal-bg border border-outline-variant font-label-md uppercase text-label-md", recStyles[recommendation]]}>{recommendation}</span>
   </div>
-  <p class="font-mono text-xs text-term-muted mt-2">{sector}</p>
-  <p class="text-sm font-medium text-term-text mt-1">{title}</p>
-  <p class="text-xs text-term-muted mt-1 line-clamp-2">{summary}</p>
-  <div class="flex justify-between items-center mt-3">
-    <span class="font-mono text-xs text-term-muted">{formattedDate}</span>
-    <div class="flex gap-3">
-      {pdf_path && <span class="font-mono text-xs text-term-link">PDF ↓</span>}
-      <span class="font-mono text-xs text-term-link">Read →</span>
+  <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-2">{sector}</p>
+  <h3 class="font-headline-md text-headline-md text-terminal-accent mb-4 group-hover:text-on-primary transition-colors">
+    {title}
+  </h3>
+  <p class="font-body-sm text-body-sm text-terminal-text mb-6 flex-grow line-clamp-3">
+    {summary}
+  </p>
+  <div class="flex justify-between items-center mt-auto pt-4 border-t border-outline-variant">
+    <span class="font-mono-data text-mono-data text-on-surface-variant">{formattedDate}</span>
+    <div class="flex gap-4">
+      {pdf_path && <span class="font-label-md uppercase text-label-md text-terminal-accent">PDF <span class="material-symbols-outlined text-[16px] align-middle">north_east</span></span>}
+      <span class="flex items-center gap-1 font-label-md uppercase text-label-md text-terminal-accent">
+        Read
+        <span class="material-symbols-outlined text-[16px]">north_east</span>
+      </span>
     </div>
   </div>
 </a>

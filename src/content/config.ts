@@ -3,14 +3,41 @@ import { defineCollection, z } from 'astro:content';
 const marketViews = defineCollection({
   type: 'content',
   schema: z.object({
+    // Core
     title: z.string(),
     date: z.coerce.date(),
-    vn_index_close: z.number(),
-    vn_index_change_pts: z.number(),
-    vn_index_change_pct: z.number(),
-    liquidity_bn_vnd: z.number(),
-    foreign_net_bn_vnd: z.number(),
+    week_start: z.coerce.date(),
+    week_end: z.coerce.date(),
     session_tone: z.enum(['positive', 'negative', 'neutral']),
+
+    // VN-Index
+    vn_index_open: z.number(),
+    vn_index_high: z.number(),
+    vn_index_low: z.number(),
+    vn_index_close: z.number(),
+    vn_index_weekly_change_pct: z.number(),
+    avg_daily_liquidity_bn_vnd: z.number(),
+    foreign_net_weekly_bn_vnd: z.number(),
+
+    // Global macro
+    dxy_close: z.number().nullable(),
+    dxy_weekly_change_pct: z.number().nullable(),
+    usd_vnd: z.number().nullable(),
+    usd_vnd_weekly_change_pct: z.number().nullable(),
+
+    // Crypto
+    btc_close: z.number().nullable(),
+    btc_weekly_change_pct: z.number().nullable(),
+
+    // Commodities
+    gold_close: z.number().nullable(),
+    gold_weekly_change_pct: z.number().nullable(),
+    wti_close: z.number().nullable(),
+    wti_weekly_change_pct: z.number().nullable(),
+
+    // Charts
+    chart_vnindex: z.string().optional(),
+    chart_sectors: z.string().optional(),
   }),
 });
 
