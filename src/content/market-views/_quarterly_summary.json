@@ -1,0 +1,41 @@
+{
+  "quarter": "Q2-2026",
+  "last_updated": "2026-06-05",
+  "weeks_covered": [
+    "2026-06-05"
+  ],
+  "summary": {
+    "vn_index_trend": "VN-Index closed the inaugural week of Q2-2026 essentially flat at 1,838.59 (-0.02% w/w), printing a near-doji with a slight downside skew. A wide 37.5-point intraday range (1,824.74 low / 1,862.23 high) signaled indecision; buyers defended 1,824 twice while sellers capped rallies at 1,860. Liquidity was robust at 18,070 bn VND/day, suggesting rotation rather than capitulation. Tone neutral; breadth mixed (5 sectors green, 2 red) with heavyweight drags in Utilities and F&B.",
+    "key_themes": [
+      "Vietnam tech re-rating: VinFast $1B capital raise, FPT ASEAN/Thailand deal flow, AI-as-new-market-face narrative",
+      "Power-sector governance shock: detention of chair and CFO at a power generator weighing on Utilities",
+      "EV incentive regime extended: 50% registration-fee waiver maintained through end-2030, supportive of VinFast volume ramp",
+      "EVN balance-sheet repair: ~150,000 bn VND routed into bank deposits as legacy losses extinguished, removing SOE credit-complex drag",
+      "Foreign-flow inflection risk: ~900 bn VND single-session sell flagged post-window, near-term dominant variable",
+      "Primary-market window open: USD 1tn-caliber IPO narratives underscore appetite for absorbing KOLS float",
+      "Safe-haven demand persistent: gold at USD 2,361 and large silver ETF adds reinforce defensive-hedge sizing for EM allocators"
+    ],
+    "macro_environment": "SBV maintains managed-band posture: USD/VND firmed a controlled 0.13% to 25,499, second-tightest weekly move in EM Asia. DXY pinned at 104.33, giving Asian FX room. WTI at USD 79.36 caps Vietnam's net-importer inflation risk while pressuring refiners. Corporate-side catalysts dominated: EVN deposit redeployment removes a structural SOE drag, and the EV incentive extension preserves the consumer-stimulus regime. BTC at USD 65,714 keeps risk-asset correlation live. Overall macro backdrop: stable FX, contained inflation, idiosyncratic corporate action doing the heavy lifting.",
+    "sectors_covered": [
+      "Technology",
+      "Aviation",
+      "Utilities",
+      "F&B"
+    ],
+    "technical_levels": {
+      "support": "1,824.74 (week low) / 1,800 (psychological) / 1,775 (200-day region)",
+      "resistance": "1,862.23 (week high) / 1,880",
+      "key_moving_averages": "MA20 to be formally populated next week with second weekly close; current weekly tape is a near-doji at 1,838.59, setting initial base for trend tracking."
+    },
+    "forward_risks": [
+      "Sustained foreign selling (>1,000 bn VND/week USD-equivalent) breaking 1,825 support toward 1,800/1,775",
+      "Second governance event in the power complex extending Utilities weakness",
+      "Single-session foreign outflow of ~900 bn VND flagged on 9/6 (post-window) as dominant near-term flow variable",
+      "SBV communication on VND band any unexpected widening",
+      "DXY breakout above 104.33 pressuring EM Asia FX",
+      "Oil spike above USD 80 reigniting inflation and pressuring refiners",
+      "Insider registrations at PNJ and residual margin-call disclosure overhangs",
+      "Idiosyncratic catalysts (margin calls, regulatory actions) layering on macro tape and amplifying two-sided risk"
+    ]
+  }
+}
