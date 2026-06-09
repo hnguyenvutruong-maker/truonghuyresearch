@@ -1,0 +1,37 @@
+---
+interface Props {
+  title: string;
+  date: Date;
+  ticker: string;
+  sector: string;
+  recommendation: 'BUY' | 'HOLD' | 'SELL' | 'NEUTRAL';
+  summary: string;
+  pdf_path?: string;
+  slug: string;
+}
+const { title, date, ticker, sector, recommendation, summary, pdf_path, slug } = Astro.props;
+
+const recStyles: Record<string, string> = {
+  BUY: 'text-term-up border-term-up',
+  SELL: 'text-term-down border-term-down',
+  HOLD: 'text-term-muted border-term-border',
+  NEUTRAL: 'text-term-muted border-term-border',
+};
+const formattedDate = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+---
+<a href={`/research/${slug}`} class="block bg-term-surface border border-term-border rounded p-4 border-t-2 border-term-accent hover:border-term-link transition-colors">
+  <div class="flex justify-between items-center">
+    <span class="font-mono text-xs text-term-accent border border-term-accent px-2 py-0.5">{ticker}</span>
+    <span class:list={["font-mono text-xs px-2 py-0.5 border", recStyles[recommendation]]}>{recommendation}</span>
+  </div>
+  <p class="font-mono text-xs text-term-muted mt-2">{sector}</p>
+  <p class="text-sm font-medium text-term-text mt-1">{title}</p>
+  <p class="text-xs text-term-muted mt-1 line-clamp-2">{summary}</p>
+  <div class="flex justify-between items-center mt-3">
+    <span class="font-mono text-xs text-term-muted">{formattedDate}</span>
+    <div class="flex gap-3">
+      {pdf_path && <span class="font-mono text-xs text-term-link">PDF ↓</span>}
+      <span class="font-mono text-xs text-term-link">Read →</span>
+    </div>
+  </div>
+</a>

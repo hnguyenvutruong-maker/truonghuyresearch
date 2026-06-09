@@ -1,0 +1,75 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import MarketCard from '../components/MarketCard.astro';
+import ResearchCard from '../components/ResearchCard.astro';
+import { getCollection } from 'astro:content';
+
+const allResearch = await getCollection('research');
+const allMarketViews = await getCollection('market-views');
+
+const latestResearch = allResearch.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()).slice(0, 2);
+const latestMarketViews = allMarketViews.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()).slice(0, 3);
+---
+<BaseLayout title="[YOUR_FULL_NAME] — Finance & Capital Markets">
+  <!-- HERO -->
+  <section>
+    <p class="font-mono text-xs text-term-muted uppercase tracking-widest">PROFILE  //  VIETNAM CAPITAL MARKETS</p>
+    <h1 class="text-3xl md:text-4xl font-bold mt-2">[YOUR_FULL_NAME]</h1>
+    <p class="font-mono text-sm text-term-muted mt-1">Finance & Banking · UEH · CFA Level II Candidate</p>
+    <p class="text-term-text mt-4 max-w-2xl leading-relaxed">
+      Finance analyst targeting private markets in Vietnam. CFA candidate.
+      Building systematic views on capital allocation. Currently interning at
+      Hoàn Lộc Việt Investment Holdings, where I built a 20-indicator
+      operational dashboard grounded in a PE analytical framework.
+    </p>
+    <div class="flex gap-4 mt-6">
+      <a href="/research" class="border border-term-accent text-term-accent hover:bg-term-accent hover:text-term-bg font-mono text-sm px-4 py-2 transition-colors">View Research →</a>
+      <a href="/market-views" class="border border-term-border text-term-muted hover:border-term-link hover:text-term-link font-mono text-sm px-4 py-2 transition-colors">Market Views →</a>
+    </div>
+    <div class="flex flex-wrap gap-2 mt-8">
+      <span class="font-mono text-xs border border-term-border text-term-muted px-3 py-1">CFA II · AUG 2026</span>
+      <span class="font-mono text-xs border border-term-border text-term-muted px-3 py-1">CFA I PASSED</span>
+      <span class="font-mono text-xs border border-term-border text-term-muted px-3 py-1">PE INTERNSHIP</span>
+      <span class="font-mono text-xs border border-term-border text-term-muted px-3 py-1">GPA 3.64</span>
+    </div>
+  </section>
+
+  <!-- FEATURED RESEARCH -->
+  <section class="mt-16">
+    <h2 class="text-lg font-semibold border-l-2 border-term-accent pl-3">EQUITY RESEARCH</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+      {latestResearch.map((entry) => (
+        <ResearchCard
+          title={entry.data.title}
+          date={entry.data.date}
+          ticker={entry.data.ticker}
+          sector={entry.data.sector}
+          recommendation={entry.data.recommendation}
+          summary={entry.data.summary}
+          pdf_path={entry.data.pdf_path}
+          slug={entry.slug}
+        />
+      ))}
+    </div>
+    <a href="/research" class="font-mono text-sm text-term-link mt-4 inline-block">View all research →</a>
+  </section>
+
+  <!-- LATEST COMMENTARY -->
+  <section class="mt-16">
+    <h2 class="text-lg font-semibold border-l-2 border-term-accent pl-3">MARKET COMMENTARY</h2>
+    <p class="font-mono text-xs text-term-muted mt-1">Daily close — VN-Index</p>
+    <div class="space-y-3 mt-4">
+      {latestMarketViews.map((entry) => (
+        <MarketCard
+          title={entry.data.title}
+          date={entry.data.date}
+          vn_index_close={entry.data.vn_index_close}
+          vn_index_change_pct={entry.data.vn_index_change_pct}
+          session_tone={entry.data.session_tone}
+          slug={entry.slug}
+        />
+      ))}
+    </div>
+    <a href="/market-views" class="font-mono text-sm text-term-link mt-4 inline-block">View all →</a>
+  </section>
+</BaseLayout>

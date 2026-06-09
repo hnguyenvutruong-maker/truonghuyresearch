@@ -1,0 +1,32 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ResearchCard from '../components/ResearchCard.astro';
+import { getCollection } from 'astro:content';
+
+const allResearch = await getCollection('research');
+const sortedResearch = allResearch.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+---
+<BaseLayout title="Equity Research — [YOUR_FULL_NAME]">
+  <h1 class="text-lg font-semibold border-l-2 border-term-accent pl-3">EQUITY RESEARCH</h1>
+  <p class="font-mono text-xs text-term-muted mt-2">Original analysis on Vietnamese listed companies and capital markets.</p>
+  {sortedResearch.length > 0 ? (
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+      {sortedResearch.map((entry) => (
+        <ResearchCard
+          title={entry.data.title}
+          date={entry.data.date}
+          ticker={entry.data.ticker}
+          sector={entry.data.sector}
+          recommendation={entry.data.recommendation}
+          summary={entry.data.summary}
+          pdf_path={entry.data.pdf_path}
+          slug={entry.slug}
+        />
+      ))}
+    </div>
+  ) : (
+    <div class="border-2 border-dashed border-term-border rounded p-8 mt-8 text-center">
+      <p class="font-mono text-sm text-term-muted">Research reports will appear here.</p>
+    </div>
+  )}
+</BaseLayout>

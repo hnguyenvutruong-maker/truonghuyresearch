@@ -1,0 +1,52 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const views = await getCollection('market-views');
+  return views.map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+
+const formattedDate = entry.data.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+const changeColor = entry.data.vn_index_change_pct >= 0 ? 'text-term-up' : 'text-term-down';
+const changeSign = entry.data.vn_index_change_pct >= 0 ? '+' : '';
+---
+<BaseLayout title={entry.data.title}>
+  <a href="/market-views" class="font-mono text-xs text-term-link">← All Market Views</a>
+
+  <div class="bg-term-surface border border-term-border rounded p-4 mt-4 grid grid-cols-3 gap-4">
+    <div>
+      <p class="font-mono text-xs text-term-muted">VN-INDEX CLOSE</p>
+      <p class="font-mono text-lg text-term-text">{entry.data.vn_index_close.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+    </div>
+    <div>
+      <p class="font-mono text-xs text-term-muted">CHANGE</p>
+      <p class:list={["font-mono text-lg", changeColor]}>{changeSign}{entry.data.vn_index_change_pts.toFixed(2)} ({changeSign}{entry.data.vn_index_change_pct.toFixed(2)}%)</p>
+    </div>
+    <div>
+      <p class="font-mono text-xs text-term-muted">DATE</p>
+      <p class="font-mono text-lg text-term-text">{formattedDate}</p>
+    </div>
+  </div>
+
+  <article class="mt-8">
+    <h1 class="text-2xl font-bold text-term-text">{entry.data.title}</h1>
+    <div class="prose prose-invert mt-6 text-term-text
+      prose-headings:text-term-text
+      prose-a:text-term-link
+      prose-code:bg-term-surface
+      prose-hr:border-term-border
+      prose-strong:text-term-text
+      prose-p:text-term-text
+      prose-li:text-term-text
+    ">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>
