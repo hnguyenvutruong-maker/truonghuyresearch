@@ -2,7 +2,7 @@
 """
 market_bot.py — Daily VN-Index market commentary generator.
 
-Fetches VN-Index data via vnstock, calls MiniMax M3 via OpenAI-compatible API,
+Fetches VN-Index data via vnstock, calls MiniMax M3 via Ollama Cloud API,
 and writes a markdown file matching the Astro content collection schema.
 
 Usage:
@@ -10,26 +10,27 @@ Usage:
     python market_bot.py --date 2026-06-09  # specific date
 
 Environment:
-    MINIMAX_API_KEY  — MiniMax API key (required)
-    LLM_BASE_URL     — API base URL (default: https://api.minimax.io/v1)
-    LLM_MODEL        — Model name (default: MiniMax-M3)
+    MINIMAX_API_KEY  — Ollama Cloud API key (required)
+    LLM_BASE_URL     — API base URL (default: https://ollama.com/api)
+    LLM_MODEL        — Model name (default: minimax-m3)
 """
 
 import argparse
+import json
 import os
 import sys
+import urllib.request
+import urllib.error
 from datetime import datetime, timedelta
 from pathlib import Path
-
-from openai import OpenAI
 
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
 
 CONTENT_DIR = Path(__file__).parent / "src" / "content" / "market-views"
-LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.minimax.io/v1")
-LLM_MODEL = os.environ.get("LLM_MODEL", "MiniMax-M3")
+LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://ollama.com/api")
+LLM_MODEL = os.environ.get("LLM_MODEL", "minimax-m3")
 ICT_OFFSET = timedelta(hours=7)  # UTC+7
 
 # ---------------------------------------------------------------------------
@@ -151,14 +152,12 @@ def _fallback_data(date_str: str) -> dict:
 
 
 def generate_commentary(data: dict, foreign_net: int, date_str: str) -> str:
-    """Call MiniMax M3 to generate market commentary markdown."""
+    """Call MiniMax M3 via Ollama Cloud API to generate market commentary markdown."""
 
     api_key = os.environ.get("MINIMAX_API_KEY") or os.environ.get("LLM_API_KEY")
     if not api_key:
         print("ERROR: MINIMAX_API_KEY or LLM_API_KEY environment variable not set")
         sys.exit(1)
-
-    client = OpenAI(base_url=LLM_BASE_URL, api_key=api_key)
 
     # Determine session tone based on data
     if data["close"] == 0:
@@ -231,13 +230,36 @@ Rules:
   change_pct < -0.3, "neutral" otherwise.
 - All numeric frontmatter fields must be raw numbers (no quotes, no units)."""
 
-    response = client.chat.completions.create(
-        model=LLM_MODEL,
-        max_tokens=2000,
-        messages=[{"role": "user", "content": prompt}],
+    # Call Ollama Cloud API (/api/chat endpoint)
+    url = f"{LLM_BASE_URL}/chat"
+    payload = {
+        "model": LLM_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "stream": False,
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+    }
+
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers=headers,
     )
 
-    text = response.choices[0].message.content.strip()
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        print(f"ERROR: LLM API returned HTTP {e.code}: {body[:500]}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"ERROR: LLM API call failed: {e}")
+        sys.exit(1)
+
+    text = result.get("message", {}).get("content", "").strip()
 
     # Strip any leading/trailing markdown code fences if the LLM adds them
     if text.startswith("```markdown"):
