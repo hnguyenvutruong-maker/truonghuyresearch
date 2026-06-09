@@ -1,0 +1,37 @@
+name: Daily Market Commentary
+
+on:
+  schedule:
+    # 9:00 AM UTC = 4:00 PM ICT (Vietnam time), Mon-Fri
+    - cron: '0 9 * * 1-5'
+  workflow_dispatch:
+    # Manual trigger for testing
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate market commentary
+        env:
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+        run: python market_bot.py
+
+      - name: Commit and push if new content
+        run: |
+          git config user.name "Market Bot"
+          git config user.email "bot@truonghuyresearch.xyz"
+          git add -A
+          git diff --staged --quiet || git commit -m "daily: market commentary $(date +%Y-%m-%d)"
+          git push
