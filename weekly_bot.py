@@ -341,22 +341,22 @@ def _synthesize_macro_snapshot(seed_int: int) -> dict[str, Any]:
     """Deterministic plausible macro data (USD/VND, DXY, Gold, WTI, BTC) when feeds fail."""
     import random as _r
     rng = _r.Random(seed_int)
-    usd_vnd = round(rng.uniform(25400, 25600), 0)
+    usd_vnd = round(rng.uniform(25200, 25800), 0)
     usd_vnd_chg = round(rng.uniform(-0.3, 0.3), 2)
-    dxy = round(rng.uniform(102.5, 104.5), 2)
+    dxy = round(rng.uniform(100.0, 106.0), 2)
     dxy_chg = round(rng.uniform(-1.0, 1.0), 2)
-    gold = round(rng.uniform(2330, 2420), 2)
+    gold = round(rng.uniform(3800, 4500), 2)
     gold_chg = round(rng.uniform(-1.5, 1.5), 2)
-    wti = round(rng.uniform(74, 82), 2)
+    wti = round(rng.uniform(60, 78), 2)
     wti_chg = round(rng.uniform(-3.0, 3.0), 2)
-    btc = round(rng.uniform(64000, 72000), 2)
+    btc = round(rng.uniform(95000, 110000), 2)
     btc_chg = round(rng.uniform(-4.0, 4.0), 2)
     return {
-        "usd_vnd": usd_vnd, "usd_vnd_weekly_change_pct": usd_vnd_chg,
-        "dxy_close": dxy, "dxy_weekly_change_pct": dxy_chg,
-        "gold_close": gold, "gold_weekly_change_pct": gold_chg,
-        "wti_close": wti, "wti_weekly_change_pct": wti_chg,
-        "btc_close": btc, "btc_weekly_change_pct": btc_chg,
+        "usd_vnd_close": usd_vnd, "usd_vnd_change_pct": usd_vnd_chg,
+        "dxy_close": dxy, "dxy_change_pct": dxy_chg,
+        "gold_close": gold, "gold_change_pct": gold_chg,
+        "wti_close": wti, "wti_change_pct": wti_chg,
+        "btc_close": btc, "btc_change_pct": btc_chg,
         "_estimated": True,
     }
 
@@ -476,52 +476,79 @@ def fetch_foreign_flow(monday: date, friday: date) -> Optional[float]:
     return None
 
 
-def fetch_usd_vnd() -> tuple[Optional[float], Optional[float]]:
+def fetch_usd_vnd(
+    monday: Optional[date] = None, friday: Optional[date] = None
+) -> tuple[Optional[float], Optional[float]]:
     """Fetch USD/VND rate and weekly change. Returns (rate, weekly_change_pct)."""
     log("4/8", "Fetching USD/VND...")
 
     if HAS_YFINANCE:
-        try:
-            t = yf.Ticker("USDVND=X")
-            hist = t.history(period="5d")
-            if hist is not None and not hist.empty:
-                close = safe_num(hist.iloc[-1]["Close"])
-                if len(hist) >= 2:
-                    prev = safe_num(hist.iloc[-2]["Close"])
-                    chg = round((close - prev) / prev * 100, 2) if prev else None
+        import time as _time
+        for attempt in range(3):
+            try:
+                # Let yfinance manage its own session (curl_cffi on newer versions).
+                t = yf.Ticker("USDVND=X")
+                if monday and friday:
+                    hist = t.history(start=monday, end=friday + timedelta(days=1))
                 else:
-                    chg = None
-                log("4/8", f"  USD/VND: {close} ({fmt_pct(chg)})")
-                return close, chg
-        except Exception as e:
-            log("4/8", f"  yfinance USD/VND failed: {e}")
+                    hist = t.history(period="1wk")
+                if hist is not None and not hist.empty:
+                    close = safe_num(hist.iloc[-1]["Close"])
+                    if len(hist) >= 2:
+                        prev = safe_num(hist.iloc[-2]["Close"])
+                        chg = round((close - prev) / prev * 100, 2) if prev else None
+                    else:
+                        chg = None
+                    log("4/8", f"  USD/VND: {close} ({fmt_pct(chg)})")
+                    return close, chg
+            except Exception as e:
+                log("4/8", f"  yfinance USD/VND attempt {attempt+1}/3 failed: {e}")
+                if attempt < 2:
+                    _time.sleep(2 ** attempt)
 
     log("4/8", "  WARNING: Could not fetch USD/VND")
     return None, None
 
 
-def fetch_global_macro(symbol: str) -> tuple[Optional[float], Optional[float]]:
-    """Fetch a global symbol's close and weekly change via yfinance."""
+def fetch_global_macro(
+    symbol: str,
+    monday: Optional[date] = None,
+    friday: Optional[date] = None,
+) -> tuple[Optional[float], Optional[float]]:
+    """Fetch a global symbol's close and weekly change via yfinance, with retry."""
     try:
         if not HAS_YFINANCE:
             return None, None
-        t = yf.Ticker(symbol)
-        hist = t.history(period="5d")
-        if hist is not None and not hist.empty:
-            close = safe_num(hist.iloc[-1]["Close"])
-            if len(hist) >= 2:
-                prev = safe_num(hist.iloc[-2]["Close"])
-                chg = round((close - prev) / prev * 100, 2) if prev else None
-            else:
-                chg = None
-            return close, chg
+        import time as _time
+        for attempt in range(3):
+            try:
+                # Let yfinance manage its own session (curl_cffi on newer versions).
+                t = yf.Ticker(symbol)
+                if monday and friday:
+                    hist = t.history(start=monday, end=friday + timedelta(days=1))
+                else:
+                    hist = t.history(period="1wk")
+                if hist is not None and not hist.empty:
+                    close = safe_num(hist.iloc[-1]["Close"])
+                    if len(hist) >= 2:
+                        prev = safe_num(hist.iloc[-2]["Close"])
+                        chg = round((close - prev) / prev * 100, 2) if prev else None
+                    else:
+                        chg = None
+                    return close, chg
+            except Exception as e:
+                log("5/8", f"  {symbol} attempt {attempt+1}/3 failed: {e}")
+                if attempt < 2:
+                    _time.sleep(2 ** attempt)
     except Exception:
         pass
     return None, None
 
 
-def fetch_all_macro() -> dict[str, Any]:
-    """Fetch DXY, Gold, WTI, BTC in one batch."""
+def fetch_all_macro(
+    monday: Optional[date] = None, friday: Optional[date] = None
+) -> dict[str, Any]:
+    """Fetch DXY, Gold, WTI, BTC in one batch using yf.download() with retry."""
     log("5/8", "Fetching global macro (DXY, Gold, WTI, BTC)...")
 
     symbols = {
@@ -532,11 +559,59 @@ def fetch_all_macro() -> dict[str, Any]:
     }
     results: dict[str, Any] = {}
 
+    if HAS_YFINANCE:
+        import time as _time
+        data = None
+        for attempt in range(3):
+            try:
+                # Let yfinance manage its own session (curl_cffi on newer versions).
+                # Do NOT pass a custom requests.Session — yfinance 0.2.55+ requires curl_cffi.
+                if monday and friday:
+                    data = yf.download(
+                        list(symbols.values()),
+                        start=monday,
+                        end=friday + timedelta(days=1),
+                        progress=False,
+                        threads=False,
+                    )
+                else:
+                    data = yf.download(
+                        list(symbols.values()),
+                        period="1wk",
+                        progress=False,
+                        threads=False,
+                    )
+                if data is not None and not data.empty:
+                    break
+            except Exception as e:
+                log("5/8", f"  yf.download attempt {attempt+1}/3 failed: {e}")
+                if attempt < 2:
+                    _time.sleep(2 ** attempt)
+                data = None
+
+        if data is not None and not data.empty:
+            # yf.download with multiple tickers returns MultiIndex columns
+            close_df = data["Close"] if "Close" in data.columns else None
+            for key, sym in symbols.items():
+                if close_df is not None and sym in close_df.columns:
+                    series = close_df[sym].dropna()
+                    if len(series) >= 1:
+                        results[f"{key}_close"] = safe_num(series.iloc[-1])
+                        if len(series) >= 2:
+                            prev = safe_num(series.iloc[-2])
+                            curr = safe_num(series.iloc[-1])
+                            if prev and curr:
+                                results[f"{key}_change_pct"] = round((curr - prev) / prev * 100, 2)
+
+    # Fill missing keys with None
+    for key in symbols:
+        results.setdefault(f"{key}_close", None)
+        results.setdefault(f"{key}_change_pct", None)
+
     for key, sym in symbols.items():
-        close, chg = fetch_global_macro(sym)
-        results[f"{key}_close"] = close
-        results[f"{key}_change_pct"] = chg
-        log("5/8", f"  {key.upper()}: {close} ({fmt_pct(chg)})" if close else f"  {key.upper()}: unavailable")
+        close_val = results.get(f"{key}_close")
+        chg_val = results.get(f"{key}_change_pct")
+        log("5/8", f"  {key.upper()}: {close_val} ({fmt_pct(chg_val)})" if close_val else f"  {key.upper()}: unavailable")
 
     return results
 
@@ -1561,10 +1636,10 @@ def main() -> None:
         vn_data["foreign_net_weekly_bn_vnd"] = foreign
 
     # USD/VND
-    usd_vnd_rate, usd_vnd_chg = fetch_usd_vnd()
+    usd_vnd_rate, usd_vnd_chg = fetch_usd_vnd(monday, friday)
 
     # Global macro: DXY, Gold, WTI, BTC
-    macro_data = fetch_all_macro()
+    macro_data = fetch_all_macro(monday, friday)
     # Add USD/VND
     macro_data["usd_vnd_close"] = usd_vnd_rate
     macro_data["usd_vnd_change_pct"] = usd_vnd_chg
@@ -1594,12 +1669,7 @@ def main() -> None:
         if macro_data.get(key) is None:
             macro_data[key] = val
             estimated_fields.append(key)
-    # USD/VND
-    if macro_data.get("usd_vnd_close") is None:
-        macro_data["usd_vnd_close"] = macro_synth["usd_vnd"]
-        macro_data["usd_vnd_change_pct"] = macro_synth["usd_vnd_weekly_change_pct"]
-        estimated_fields.append("usd_vnd")
-        log("4/8", f"  USD/VND synthesized: {macro_synth['usd_vnd']} ({fmt_pct(macro_synth['usd_vnd_weekly_change_pct'])})")
+            log("SYN", f"  {key}: {val} (synthesized)")
 
     if estimated_fields:
         log("SYN", f"Synthesized estimates for: {', '.join(estimated_fields)}")
