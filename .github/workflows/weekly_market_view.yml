@@ -24,7 +24,7 @@ jobs:
 
       - name: Generate weekly market view
         env:
-          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
         run: python weekly_bot.py
 
       - name: Commit and push if new content

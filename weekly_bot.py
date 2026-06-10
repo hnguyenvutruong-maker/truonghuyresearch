@@ -84,7 +84,7 @@ QUARTERLY_FILE = CONTENT_DIR / "_quarterly_summary.json"
 FOREIGN_FLOW_CACHE = CONTENT_DIR / "_foreign_flow_cache.json"
 
 # LLM config
-LLM_API_KEY = os.getenv("MINIMAX_API_KEY") or os.getenv("LLM_API_KEY") or ""
+LLM_API_KEY = os.getenv("OLLAMA_API_KEY") or os.getenv("LLM_API_KEY") or ""
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://ollama.com/api")
 LLM_MODEL = os.getenv("LLM_MODEL", "minimax-m3")
 
@@ -1019,9 +1019,9 @@ def call_llm(
     """
     if not LLM_API_KEY:
         raise RuntimeError(
-            "MINIMAX_API_KEY or LLM_API_KEY environment variable is required. "
-            "Set it before running: $env:MINIMAX_API_KEY='your-key' (PowerShell) "
-            "or export MINIMAX_API_KEY='your-key' (bash)"
+            "OLLAMA_API_KEY or LLM_API_KEY environment variable is required. "
+            "Set it before running: $env:OLLAMA_API_KEY='your-key' (PowerShell) "
+            "or export OLLAMA_API_KEY='your-key' (bash)"
         )
 
     # Choose endpoint based on base_url.

@@ -1,0 +1,36 @@
+{
+  "last_updated": "May 2026",
+  "months_covered": [
+    "May 2026"
+  ],
+  "current_month": {
+    "vn_index_trend": "Defensive month in May 2026. Monthly low at 1,840 established as critical support, with May highs near 1,900 now acting as resistance. A clean break below 1,840 opens the path toward 1,800; a reclaim of 1,900 would re-establish the May highs as resistance-turned-support. Net positioning into June: neutral with a slight defensive tilt.",
+    "key_themes": [
+      "Global liquidity conditions stable, but growth-sensitive assets pricing in softening demand (WTI -14.30%, BTC -5.88%)",
+      "Domestic liquidity structurally elevated at ~VND 26tn/day versus 2024-25 averages",
+      "VND peg intact; SBV stable-FX posture absorbs DXY bid (DXY +0.71% to 98.91) without yield-stress spillover",
+      "Mid-month MSCI rebalance window and Q2 earnings pre-announcement cycle (Banking, Real Estate) as principal June catalysts",
+      "Retail sector -9.17% May drawdown flagged as leading indicator for soft May consumer-spend data",
+      "Gold (-1.50% to 4,560.50) gave back portion of prior-month premium but remains a tail-risk hedge of choice"
+    ],
+    "macro_regime": "Stable global liquidity overlaying a softening global growth signal. Domestic offset from VND stability, intact onshore liquidity, and SBV's defensive-FX posture preserve the carry argument for foreign allocators. External backdrop is the principal risk channel; domestic fundamentals remain supportive. Stance: neutral with a slight defensive tilt.",
+    "sector_leaders": [
+      "Banking and Real Estate positioned as the principal domestic catalysts via the Q2 earnings pre-announcement cycle, though May leaders are not explicitly identified in the commentary"
+    ],
+    "sector_laggards": [
+      "Retail (-9.17% in May) — leading indicator for weakening consumer spend; risk of de-rating extension on soft May data print",
+      "Energy — exposed to the WTI -14.30% collapse, with contagion risk into upstream earnings revisions",
+      "Gold (-1.50% to 4,560.50) — gave back prior-month premium, though still in historically elevated territory"
+    ],
+    "foreign_flow_direction": "Neutral with a cautiously constructive lean. Intact carry argument, stable VND, and the upcoming MSCI rebalance window support an inflow bias, but the soft global growth signal and one-sided FX risk (DXY pushing toward 99 with no VND response) cap conviction. Commentary does not confirm explicit May flow data.",
+    "forward_risks": [
+      "WTI -14.30% contagion into Energy-sector earnings revisions, particularly for upstream-exposed names",
+      "Soft May consumer-spend data extending the Retail -9.17% de-rating",
+      "DXY break higher toward 99+ forcing a defensive SBV response and one-sided FX-channel stress",
+      "VN-Index break of the 1,840 monthly support opening a path to 1,800"
+    ]
+  },
+  "prior_months": [
+    {}
+  ]
+}

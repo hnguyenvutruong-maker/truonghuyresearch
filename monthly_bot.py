@@ -68,7 +68,7 @@ MONTHLY_SUMMARY_FILE = CONTENT_DIR / "_monthly_summary.json"
 WEEKLY_CONTENT_DIR = PROJECT_ROOT / "src" / "content" / "market-views"
 FOREIGN_FLOW_CACHE = WEEKLY_CONTENT_DIR / "_foreign_flow_cache.json"
 
-LLM_API_KEY = os.getenv("MINIMAX_API_KEY") or os.getenv("LLM_API_KEY") or ""
+LLM_API_KEY = os.getenv("OLLAMA_API_KEY") or os.getenv("LLM_API_KEY") or ""
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://ollama.com/api")
 LLM_MODEL = os.getenv("LLM_MODEL", "minimax-m3")
 
@@ -429,7 +429,7 @@ def fetch_macro_monthly(
 def call_llm(system: str, user: str, temperature: float = 0.7, max_tokens: int = 4096) -> str:
     """Call LLM via OpenAI-compatible API (same pattern as weekly_bot)."""
     if not LLM_API_KEY:
-        raise RuntimeError("MINIMAX_API_KEY or LLM_API_KEY environment variable is required.")
+        raise RuntimeError("OLLAMA_API_KEY or LLM_API_KEY environment variable is required.")
 
     base_url = LLM_BASE_URL.rstrip("/")
     use_ollama_native = base_url.endswith("/api") or "ollama.com" in base_url

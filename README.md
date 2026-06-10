@@ -74,12 +74,12 @@ Each post contains: Executive Summary, Vietnam Macro Pulse, VN-Index Weekly Revi
 
 | Variable            | Default                     | Notes                                  |
 | :------------------ | :-------------------------- | :------------------------------------- |
-| `MINIMAX_API_KEY`   | —                           | Required. Ollama Cloud key.            |
-| `LLM_API_KEY`       | (falls back to `MINIMAX_API_KEY`) | Alias accepted.                |
+| `OLLAMA_API_KEY`    | —                           | Required. Ollama Cloud key.            |
+| `LLM_API_KEY`       | (falls back to `OLLAMA_API_KEY`) | Alias accepted.                |
 | `LLM_BASE_URL`      | `https://ollama.com/api`    | Optional.                              |
 | `LLM_MODEL`         | `minimax-m3`                | Optional.                              |
 
-For local runs, set `MINIMAX_API_KEY` in your shell or a `.env` file.
+For local runs, set `OLLAMA_API_KEY` in your shell or a `.env` file.
 
 ---
 
