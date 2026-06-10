@@ -249,12 +249,12 @@ def fetch_vnindex_weekly(
                         result["weekly_change_pct"] = round(
                             (result["close"] - result["open"]) / result["open"] * 100, 2
                         )
-                    # Liquidity
+                    # Liquidity: VCI `volume` is in shares — multiply by close to get VND turnover
                     vol_col = "volume" if "volume" in df.columns else "Volume"
-                    if vol_col in df.columns:
-                        total_vol = df[vol_col].sum()
-                        days = max(len(df), 1)
-                        result["avg_daily_liquidity_bn_vnd"] = round(total_vol / days / 1e9, 2)
+                    close_col = "close" if "close" in df.columns else "Close"
+                    if vol_col in df.columns and close_col in df.columns:
+                        per_day_vnd = (df[vol_col] * df[close_col]) / 1e9
+                        result["avg_daily_liquidity_bn_vnd"] = round(per_day_vnd.mean(), 2)
                     # Store daily rows for chart
                     result["daily_data"] = df.to_dict("records")
                     log("1/8", f"  [vnstock v4] VN-Index: Open {result['open']}, Close {result['close']}, "
