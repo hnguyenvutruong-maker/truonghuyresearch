@@ -187,6 +187,44 @@ def log(step: str, message: str = "") -> None:
 # DATA FETCHING
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def _fetch_hose_avg_share_price() -> Optional[float]:
+    """
+    Fetch the average HOSE share price (VND per share) from CafeF banggia API.
+
+    CafeF returns both `value` (tỷ VND) and `volume` (shares) for VNINDEX,
+    which represents the HOSE total market. The ratio value/volume gives
+    the average price per share traded — far more accurate than using the
+    VN-Index close (~1,840) as a proxy for average share price (~28,000 VND).
+
+    Returns None if the API is unreachable.
+    """
+    if not HAS_BS4:
+        return None
+    try:
+        url = "https://banggia.cafef.vn/stockhandler.ashx?center=1&index=true"
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        resp = requests_lib.get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        for item in data:
+            if isinstance(item, dict) and item.get("name") == "VNINDEX":
+                val_str = item.get("value", "0")
+                vol_str = item.get("volume", "0")
+                # Parse comma-separated numbers (e.g. "10,285.49", "423,201,967")
+                val_ty = float(val_str.replace(",", ""))
+                vol = float(vol_str.replace(",", ""))
+                if vol > 0:
+                    avg_price = val_ty * 1e9 / vol  # tỷ VND → VND per share
+                    log("1\8", f"  CafeF HOSE value={val_ty:,.2f} tỷ, volume={vol:,.0f} shares, "
+                         f"avg price={avg_price:,.0f} VND/share")
+                    return avg_price
+        return None
+    except Exception as e:
+        log("1\8", f"  CafeF banggia API failed: {e}")
+        return None
+
+
 def fetch_vnindex_weekly(
     monday: date, friday: date
 ) -> dict[str, Any]:
@@ -226,12 +264,29 @@ def fetch_vnindex_weekly(
                         result["weekly_change_pct"] = round(
                             (result["close"] - result["open"]) / result["open"] * 100, 2
                         )
-                    # Liquidity: VCI `volume` is in shares — multiply by close to get VND turnover
+                    # Liquidity: VCI `volume` is total HOSE shares traded.
+                    # VN-Index `close` is an index level (~1840), NOT an average share
+                    # price (~28,000 VND). Multiplying shares × index_close gives a
+                    # value that is ~16× too low. Instead, fetch the actual HOSE trading
+                    # value (tỷ VND) from CafeF banggia API and derive the avg share
+                    # price, then apply to each day's volume.
                     vol_col = "volume" if "volume" in df.columns else "Volume"
-                    close_col = "close" if "close" in df.columns else "Close"
-                    if vol_col in df.columns and close_col in df.columns:
-                        per_day_vnd = (df[vol_col] * df[close_col]) / 1e9
-                        result["avg_daily_liquidity_bn_vnd"] = round(per_day_vnd.mean(), 2)
+                    if vol_col in df.columns:
+                        avg_price = _fetch_hose_avg_share_price()
+                        if avg_price:
+                            per_day_bn = (df[vol_col] * avg_price) / 1e9
+                            result["avg_daily_liquidity_bn_vnd"] = round(
+                                per_day_bn.mean(), 2
+                            )
+                            log("1\8", f"  Liquidity via CafeF ratio (avg price {avg_price:,.0f} VND/share): "
+                                 f"{result['avg_daily_liquidity_bn_vnd']:,.0f} bn VND/day")
+                        else:
+                            # Fallback: use index_close as last resort (known ~16× low)
+                            close_col = "close" if "close" in df.columns else "Close"
+                            if close_col in df.columns:
+                                per_day_vnd = (df[vol_col] * df[close_col]) / 1e9
+                                result["avg_daily_liquidity_bn_vnd"] = round(per_day_vnd.mean(), 2)
+                                log("1\8", "  WARNING: Liquidity estimated via volume×close (~16× low, no CafeF data)")
                     # Store daily rows for chart
                     result["daily_data"] = df.to_dict("records")
                     log("1/8", f"  [vnstock v4] VN-Index: Open {result['open']}, Close {result['close']}, "
@@ -256,10 +311,17 @@ def fetch_vnindex_weekly(
                     )
                 total_vol = df["Volume"].sum()
                 days = max(len(df), 1)
-                # VN-Index volume is in shares; approximate VND value
-                result["avg_daily_liquidity_bn_vnd"] = round(
-                    total_vol * (result["close"] or 1200) / days / 1e9, 2
-                )
+                # VN-Index volume is in shares; use CafeF avg share price for conversion
+                avg_price = _fetch_hose_avg_share_price()
+                if avg_price:
+                    result["avg_daily_liquidity_bn_vnd"] = round(
+                        total_vol * avg_price / days / 1e9, 2
+                    )
+                else:
+                    # Fallback: index_close is ~16× too low as share price proxy
+                    result["avg_daily_liquidity_bn_vnd"] = round(
+                        total_vol * (result["close"] or 1200) / days / 1e9, 2
+                    )
                 result["daily_data"] = df.reset_index().to_dict("records")
                 log("1/8", f"  [yfinance] VN-Index: Open {result['open']}, Close {result['close']}")
                 return result
@@ -946,6 +1008,7 @@ def generate_commentary(
         "change_pct": market_data.get("weekly_change_pct"),
         "liquidity": market_data.get("avg_daily_liquidity_bn_vnd"),
         "foreign_net": market_data.get("foreign_net_weekly_bn_vnd"),
+        "foreign_net_estimated": "foreign_net_weekly_bn_vnd" in (estimated_fields or []),
         "dxy": macro_data.get("dxy_close"),
         "dxy_chg": macro_data.get("dxy_change_pct"),
         "usd_vnd": macro_data.get("usd_vnd_close"),
@@ -1034,6 +1097,7 @@ vn_index_close: {n(fm['close'])}
 vn_index_weekly_change_pct: {n(fm['change_pct'])}
 avg_daily_liquidity_bn_vnd: {n(fm['liquidity'])}
 foreign_net_weekly_bn_vnd: {n(fm['foreign_net'])}
+foreign_net_estimated: {str(fm['foreign_net_estimated']).lower()}
 dxy_close: {n(fm['dxy'])}
 dxy_weekly_change_pct: {n(fm['dxy_chg'])}
 usd_vnd: {n(fm['usd_vnd'])}
@@ -1229,6 +1293,7 @@ def validate_frontmatter(markdown_text: str) -> list[str]:
       vn_index_weekly_change_pct: number
       avg_daily_liquidity_bn_vnd: number
       foreign_net_weekly_bn_vnd: number
+      foreign_net_estimated: boolean (default false)
       dxy_close: number | null
       dxy_weekly_change_pct: number | null
       usd_vnd: number | null

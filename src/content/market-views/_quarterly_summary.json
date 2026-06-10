@@ -17,7 +17,7 @@
       "Gold safe-haven bid unwinding: -3.10% w/w to 4,337.10 reduces defensive allocation support for EM portfolios",
       "BTC weakness (-4.51% to 60,922.67) pressures VinFast/FPT retail-investor base and risk-asset correlation channel",
       "Foreign-flow rotation: directional bias from cyclicals into Tech aligns with post-VinFast-capital-raise narrative",
-      "Liquidity normalized across the quarter at ~1,100-1,800 bn VND/day (USD ~43-67m), consistent with Q2-2026 baseline; prior week-1 0.61 print was a unit error in the source feed and has been corrected"
+      "Liquidity normalized across the quarter at ~15,000-22,000 bn VND/day (USD ~580-850m), consistent with HOSE historical range; prior prints of 1,100-1,800 were a unit error (volume × index_close instead of volume × avg share price) and have been corrected"
     ],
     "macro_environment": "SBV posture shifted to managed depreciation: USD/VND firmed to 26,275 (-0.06% w/w) but is now ~3% above the 25,499 reference, with DXY collapsing from 104.33 to 100.07 yet VND not strengthening — clear decoupling indicating SBV is using the band for export cushion and current-account absorption rather than appreciation. DXY sub-101 print is the year's most significant USD move, reflecting Fed expectations reset and term-premium compression. WTI at USD 90.54 caps net-importer inflation risk while pressuring downstream refiners (PLX/BSR) via lagged administrative pump-price passthroughs. Gold at 4,337.10 and BTC at 60,922.67 both declined, signaling risk-on rotation out of defensive hedges. Corporate-side catalysts from Q2-2026 week 1 (EVN deposit redeployment, EV fee-waiver extension) continue to defuse structural drags, but the WTI spike and DXY/VND divergence forced macro back into the driver's seat this week. Overall: stable FX regime with deliberate managed weakness, contained inflation, but increased two-sided risk from cross-asset volatility.",
     "sectors_covered": [
@@ -46,7 +46,7 @@
       "Upstream services capex delay risk for PVD/PVS if WTI fails to hold above 90",
       "BTC weakness deepening weighing on VinFast/FPT retail-investor base and risk-asset correlation",
       "Gold safe-haven unwinding freeing flows for either risk-on re-engagement or further EM de-risking",
-      "Liquidity running ~1,100-1,800 bn VND/day in line with Q2-2026 baseline; prior data-feed unit error (0.61 bn VND) corrected in subsequent weeks",
+      "Liquidity running ~15,000-22,000 bn VND/day in line with Q2-2026 baseline; prior data-feed unit error (volume × index_close) corrected using CafeF-derived avg share price ratio",
       "Foreign-flow data flagged as synthetic estimate (-35 bn VND) — directional read unreliable until market-confirmed",
       "Idiosyncratic catalysts (margin calls, regulatory actions) layering on macro tape and amplifying two-sided risk"
     ]

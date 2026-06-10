@@ -96,7 +96,7 @@ const latestMarketViews = allMarketViews.sort((a, b) => b.data.date.valueOf() - 
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
       {latestResearch.map((entry) => (
-        <article class="group bg-terminal-card border border-terminal-border border-t-2 border-t-terminal-accent p-6 hover:border-terminal-accent transition-colors cursor-pointer flex flex-col h-full">
+        <a href={`/research/${entry.slug}`} class="group block bg-terminal-card border border-terminal-border border-t-2 border-t-terminal-accent p-6 hover:border-terminal-accent transition-colors flex flex-col h-full relative overflow-hidden no-underline text-terminal-accent">
           <div class="flex justify-between items-start mb-6">
             <span class="inline-block px-2 py-1 bg-terminal-bg border border-outline-variant font-label-md uppercase text-label-md text-terminal-accent">{entry.data.ticker}</span>
             <span class="font-mono-data text-mono-data text-terminal-text">{entry.data.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
@@ -110,7 +110,7 @@ const latestMarketViews = allMarketViews.sort((a, b) => b.data.date.valueOf() - 
           <div class="flex items-center gap-2 font-label-md uppercase text-label-md text-terminal-accent mt-auto">
             Read Full Note <span class="material-symbols-outlined text-[16px]">north_east</span>
           </div>
-        </article>
+        </a>
       ))}
     </div>
     <div class="mt-8 md:hidden">
@@ -154,7 +154,7 @@ const latestMarketViews = allMarketViews.sort((a, b) => b.data.date.valueOf() - 
         const tone = entry.data.session_tone;
         const toneClass = tone === 'positive' ? 'text-tertiary border-tertiary' : tone === 'negative' ? 'text-error border-error' : 'text-terminal-accent border-terminal-accent';
         return (
-          <article class="group bg-terminal-card border border-terminal-border border-t-2 border-t-terminal-accent p-6 hover:border-terminal-accent transition-colors cursor-pointer flex flex-col h-full relative overflow-hidden">
+          <a href={`/market-views/${entry.slug}`} class="group block bg-terminal-card border border-terminal-border border-t-2 border-t-terminal-accent p-6 hover:border-terminal-accent transition-colors flex flex-col h-full relative overflow-hidden no-underline text-terminal-accent">
             {isAccent && <div class="absolute left-0 top-0 bottom-0 w-1 bg-terminal-accent"></div>}
             <div class:list={["flex justify-between items-start mb-6", isAccent ? "ml-2" : ""]}>
               <span class:list={["inline-block px-2 py-1 bg-terminal-bg border font-label-md uppercase text-label-md", toneClass]}>
@@ -192,7 +192,7 @@ const latestMarketViews = allMarketViews.sort((a, b) => b.data.date.valueOf() - 
             <div class:list={["flex items-center gap-2 font-label-md uppercase text-label-md text-terminal-accent mt-4", isAccent ? "ml-2" : ""]}>
               Read Full Note <span class="material-symbols-outlined text-[16px]">north_east</span>
             </div>
-          </article>
+          </a>
         );
       })}
     </div>

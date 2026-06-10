@@ -18,6 +18,7 @@ const marketViews = defineCollection({
     vn_index_weekly_change_pct: z.number(),
     avg_daily_liquidity_bn_vnd: z.number(),
     foreign_net_weekly_bn_vnd: z.number(),
+    foreign_net_estimated: z.boolean().default(false),
 
     // Global macro
     dxy_close: z.number().nullable(),
