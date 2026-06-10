@@ -81,6 +81,7 @@ except ImportError:
 PROJECT_ROOT = Path(__file__).resolve().parent
 CONTENT_DIR = PROJECT_ROOT / "src" / "content" / "market-views"
 QUARTERLY_FILE = CONTENT_DIR / "_quarterly_summary.json"
+FOREIGN_FLOW_CACHE = CONTENT_DIR / "_foreign_flow_cache.json"
 
 # LLM config
 LLM_API_KEY = os.getenv("MINIMAX_API_KEY") or os.getenv("LLM_API_KEY") or ""
@@ -223,6 +224,149 @@ def _fetch_hose_avg_share_price() -> Optional[float]:
     except Exception as e:
         log("1\8", f"  CafeF banggia API failed: {e}")
         return None
+
+
+# ── Foreign flow cache ───────────────────────────────────────────────────────
+# CafeF banggia API provides real-time foreign buy/sell volumes per stock
+# (fields 'x'=foreign buy vol, 'y'=foreign sell vol, prices in nghin VND),
+# but ONLY for the latest trading day — no historical endpoint exists.
+# Strategy: run `--collect-foreign-flow` daily (cron) to accumulate daily
+# values in _foreign_flow_cache.json; the weekly bot then sums from cache.
+
+def _load_foreign_flow_cache() -> dict[str, Any]:
+    """Load the foreign flow cache. Returns {date_str: net_bn_vnd, ...}."""
+    if FOREIGN_FLOW_CACHE.exists():
+        try:
+            return json.loads(FOREIGN_FLOW_CACHE.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {}
+
+
+def _save_foreign_flow_cache(cache: dict[str, Any]) -> None:
+    """Persist the foreign flow cache to disk."""
+    FOREIGN_FLOW_CACHE.parent.mkdir(parents=True, exist_ok=True)
+    FOREIGN_FLOW_CACHE.write_text(
+        json.dumps(cache, indent=2, ensure_ascii=False, sort_keys=True),
+        encoding="utf-8",
+    )
+
+
+def collect_foreign_flow_today() -> Optional[float]:
+    """
+    Fetch today's HOSE foreign net flow from CafeF banggia API and cache it.
+
+    CafeF returns stock-level data with obfuscated keys:
+      - 'a' = symbol, 'e' = price (nghin VND), 'n' = total volume
+      - 'x' = foreign buy volume (shares), 'y' = foreign sell volume (shares)
+
+    Returns net foreign flow in bn VND, or None if API fails.
+    """
+    if not HAS_BS4:
+        log("FF", "  requests/bs4 not available, skipping foreign flow collection")
+        return None
+    try:
+        url = "https://banggia.cafef.vn/stockhandler.ashx?center=1"
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        resp = requests_lib.get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            log("FF", f"  CafeF API returned status {resp.status_code}")
+            return None
+        data = resp.json()
+        if not isinstance(data, list) or not data:
+            log("FF", "  CafeF API returned empty/invalid data")
+            return None
+
+        # Sum foreign net value across all HOSE stocks
+        # Price in nghin VND (* 1000 for actual VND)
+        foreign_net_vnd = 0.0
+        foreign_buy_vol = 0
+        foreign_sell_vol = 0
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            price_vnd = item.get("e", 0) * 1000  # nghin VND → VND
+            fb = item.get("x", 0)  # foreign buy volume
+            fs = item.get("y", 0)  # foreign sell volume
+            foreign_buy_vol += fb
+            foreign_sell_vol += fs
+            if price_vnd > 0:
+                foreign_net_vnd += (fb - fs) * price_vnd
+
+        net_bn = round(foreign_net_vnd / 1e9, 2)
+        total_vol = sum(item.get("n", 0) for item in data if isinstance(item, dict))
+        fpct = (foreign_buy_vol + foreign_sell_vol) / total_vol * 100 if total_vol else 0
+
+        # Get the trading date from the data
+        trade_date_str = ""
+        first_item = next((i for i in data if isinstance(i, dict)), None)
+        if first_item and "Time" in first_item:
+            # Parse "14:07 10/06/2026" → "2026-06-10"
+            time_str = first_item["Time"]
+            parts = time_str.split()
+            if len(parts) >= 2:
+                day_parts = parts[1].split("/")
+                if len(day_parts) == 3:
+                    trade_date_str = f"{day_parts[2]}-{day_parts[1]}-{day_parts[0]}"
+
+        if not trade_date_str:
+            trade_date_str = today_ict().isoformat()
+
+        # Cache the result
+        cache = _load_foreign_flow_cache()
+        cache[trade_date_str] = net_bn
+        # Keep only last 30 days of data
+        cutoff = (today_ict() - timedelta(days=30)).isoformat()
+        cache = {k: v for k, v in cache.items() if k >= cutoff}
+        _save_foreign_flow_cache(cache)
+
+        log("FF", f"  HOSE foreign flow for {trade_date_str}: "
+             f"net {net_bn:+,.2f} bn VND "
+             f"(buy {foreign_buy_vol:,.0f} / sell {foreign_sell_vol:,.0f} shares, "
+             f"participation {fpct:.1f}%)")
+        return net_bn
+
+    except Exception as e:
+        log("FF", f"  CafeF foreign flow collection failed: {e}")
+        return None
+
+
+def fetch_foreign_flow_weekly(monday: date, friday: date) -> Optional[float]:
+    """
+    Compute weekly foreign net flow from cached daily values.
+
+    Returns total weekly net foreign flow in bn VND, or None if no data.
+    """
+    cache = _load_foreign_flow_cache()
+    if not cache:
+        return None
+
+    # Find all cached dates within the week [monday, friday]
+    week_dates = []
+    for date_str, net_bn in cache.items():
+        try:
+            d = date.fromisoformat(date_str)
+            if monday <= d <= friday:
+                week_dates.append((date_str, net_bn))
+        except (ValueError, TypeError):
+            continue
+
+    if not week_dates:
+        return None
+
+    week_dates.sort()
+    total_net = round(sum(v for _, v in week_dates), 2)
+    days_found = len(week_dates)
+    log("3/8", f"  Foreign flow from cache: {days_found} days found, "
+         f"weekly net = {total_net:+,.2f} bn VND")
+    log("3/8", f"  Cached days: {', '.join(d for d, _ in week_dates)}")
+
+    # If not all 5 trading days are cached, note it
+    if days_found < 5:
+        log("3/8", f"  WARNING: Only {days_found}/5 trading days in cache for this week. "
+             f"Run --collect-foreign-flow daily for complete data.")
+
+    return total_net
 
 
 def fetch_vnindex_weekly(
@@ -495,14 +639,30 @@ def fetch_sector_performance(monday: date, friday: date) -> list[dict[str, Any]]
     return []
 
 
-def fetch_foreign_flow(monday: date, friday: date) -> Optional[float]:
-    """Fetch foreign net buy/sell for the week in bn VND."""
+def fetch_foreign_flow(monday: date, friday: date) -> tuple[Optional[float], bool]:
+    """
+    Fetch foreign net buy/sell for the week in bn VND.
+
+    Strategy (in priority order):
+    1. Sum cached daily values from _foreign_flow_cache.json (REAL data
+       collected daily via CafeF banggia API + --collect-foreign-flow).
+    2. Fallback: try vnstock foreign_flow API (often NotImplementedError).
+    3. Fallback: synthesize deterministic estimate.
+
+    Returns (net_bn_vnd, is_estimated).
+    """
     log("3/8", "Fetching foreign flow data...")
 
+    # 1. Try cache first (real data from daily collection)
+    cached = fetch_foreign_flow_weekly(monday, friday)
+    if cached is not None:
+        log("3/8", f"  Foreign net (cached/real): {cached:+,.2f} bn VND")
+        return cached, False
+
+    # 2. Try vnstock API
     if HAS_VNSTOCK:
         try:
             stock = Vnstock()
-            # Try to get foreign trading data
             df = stock.trading.foreign_flow(
                 symbol="VNINDEX",
                 start=monday.isoformat(),
@@ -510,7 +670,6 @@ def fetch_foreign_flow(monday: date, friday: date) -> Optional[float]:
                 source="VCI",
             )
             if df is not None and not df.empty:
-                # Sum net values
                 net_col = None
                 for col in ["net_val", "NetVal", "net_value", "NetForeignValue"]:
                     if col in df.columns:
@@ -518,13 +677,14 @@ def fetch_foreign_flow(monday: date, friday: date) -> Optional[float]:
                         break
                 if net_col:
                     net = round(safe_num(df[net_col].sum(), 0) / 1e9, 2)
-                    log("3/8", f"  Foreign net: {net} bn VND")
-                    return net
+                    log("3/8", f"  Foreign net (vnstock): {net:+,.2f} bn VND")
+                    return net, False
         except Exception as e:
             log("3/8", f"  vnstock foreign flow failed: {e}")
 
-    log("3/8", "  WARNING: Could not fetch foreign flow data")
-    return None
+    # 3. Fallback: synthesize
+    log("3/8", "  WARNING: No real foreign flow data available, using estimate")
+    return None, True
 
 
 def fetch_usd_vnd(
@@ -1397,6 +1557,7 @@ def main() -> None:
               python weekly_bot.py --rebuild-summary Q2-2026          # rebuild quarterly summary
               python weekly_bot.py --week 2026-05-15 --skip-news      # skip news scraping
               python weekly_bot.py --week 2026-05-15 --skip-summary   # skip quarterly update
+              python weekly_bot.py --collect-foreign-flow              # cache today's foreign flow
         """),
     )
     parser.add_argument(
@@ -1422,6 +1583,12 @@ def main() -> None:
         action="store_true",
         help="Skip quarterly summary update.",
     )
+    parser.add_argument(
+        "--collect-foreign-flow",
+        action="store_true",
+        help="Collect today's HOSE foreign flow from CafeF and save to cache. "
+             "Run this daily (Mon-Fri) via cron for complete weekly data.",
+    )
 
     args = parser.parse_args()
 
@@ -1440,6 +1607,16 @@ def main() -> None:
         print(f"\n  Done. Summary rebuilt with {len(new_summary.get('weeks_covered', []))} weeks.")
         return
 
+    # ── Handle --collect-foreign-flow ──────────────────────────────────────
+    if args.collect_foreign_flow:
+        print("\n  Collecting today's HOSE foreign flow from CafeF...")
+        net_bn = collect_foreign_flow_today()
+        if net_bn is not None:
+            print(f"\n  Done. Today's foreign net: {net_bn:+,.2f} bn VND (cached)")
+        else:
+            print("\n  Failed to collect foreign flow data.")
+        return
+
     # ── Determine target week ───────────────────────────────────────────────
     monday, friday, _today = get_week_dates(args.week)
     friday_str = week_identifier(friday)
@@ -1453,10 +1630,15 @@ def main() -> None:
     vn_data = fetch_vnindex_weekly(monday, friday)
     sectors = fetch_sector_performance(monday, friday)
 
+    # Collect today's foreign flow into cache (best-effort, non-blocking)
+    collect_foreign_flow_today()
+
     # Foreign flow — merge into vn_data
-    foreign = fetch_foreign_flow(monday, friday)
+    foreign, foreign_is_estimated = fetch_foreign_flow(monday, friday)
     if foreign is not None and vn_data.get("foreign_net_weekly_bn_vnd") is None:
         vn_data["foreign_net_weekly_bn_vnd"] = foreign
+    if foreign_is_estimated:
+        estimated_fields.append("foreign_net_weekly_bn_vnd")
 
     # USD/VND
     usd_vnd_rate, usd_vnd_chg = fetch_usd_vnd(monday, friday)
@@ -1472,7 +1654,8 @@ def main() -> None:
     # fill remaining gaps with deterministic plausible values so the LLM has
     # something concrete to work with. Mark estimated fields in commentary.
     seed = friday.year * 100 + friday.isocalendar().week
-    estimated_fields: list[str] = []
+    if 'estimated_fields' not in dir() or not isinstance(estimated_fields, list):
+        estimated_fields: list[str] = []
 
     if vn_data.get("foreign_net_weekly_bn_vnd") is None:
         vn_data["foreign_net_weekly_bn_vnd"] = _synthesize_foreign_flow(seed)
