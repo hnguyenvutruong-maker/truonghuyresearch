@@ -59,6 +59,9 @@ const accentColor = entry.data.recommendation === 'BUY' ? 'bg-tertiary' : entry.
         {entry.data.pdf_path && (
           <a href={entry.data.pdf_path} class="inline-block bg-terminal-accent px-3 py-1 font-label-md uppercase text-label-md text-terminal-bg hover:bg-on-primary transition-colors">Download PDF</a>
         )}
+        {entry.data.xlsx_path && (
+          <a href={entry.data.xlsx_path} class="inline-block bg-terminal-card border border-terminal-accent px-3 py-1 font-label-md uppercase text-label-md text-terminal-accent hover:bg-terminal-accent hover:text-terminal-bg transition-colors">Download Model</a>
+        )}
       </div>
     </div>
 

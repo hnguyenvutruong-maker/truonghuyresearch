@@ -95,6 +95,7 @@ const research = defineCollection({
     recommendation: z.enum(['BUY', 'HOLD', 'SELL', 'NEUTRAL']),
     target_price_vnd: z.number().optional(),
     pdf_path: z.string().optional(),
+    xlsx_path: z.string().optional(),
     summary: z.string().max(200),
   }),
 });
