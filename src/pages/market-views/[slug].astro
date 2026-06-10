@@ -1,8 +1,5 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import ChartImage from '../../components/ChartImage.astro';
-import VNIndexChart from '../../components/VNIndexChart.astro';
-import SectorChart from '../../components/SectorChart.astro';
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
@@ -130,25 +127,6 @@ const fmtVal = (val: number | null, decimals: number = 2) => val == null ? '—'
         </div>
       </div>
     </div>
-
-    <!-- Interactive Charts — TradingView Lightweight Charts, client-side rendered -->
-    {(entry.data.vnindex_data || entry.data.sector_data) && (
-      <div class="mt-8 space-y-6">
-        {entry.data.vnindex_data && (
-          <VNIndexChart
-            dataPath={entry.data.vnindex_data}
-            weekHigh={entry.data.vn_index_high}
-            weekLow={entry.data.vn_index_low}
-            weekOpen={entry.data.vn_index_open}
-            weekClose={entry.data.vn_index_close}
-            changePct={entry.data.vn_index_weekly_change_pct}
-          />
-        )}
-        {entry.data.sector_data && (
-          <SectorChart dataPath={entry.data.sector_data} />
-        )}
-      </div>
-    )}
 
     <!-- Divider -->
     <div class="mt-10">
