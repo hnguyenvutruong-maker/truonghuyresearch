@@ -1,9 +1,9 @@
-﻿name: Daily Foreign Flow
+﻿name: Daily Foreign Flow Collection
 
 on:
   schedule:
-    # 10:30 UTC = 17:30 ICT (after HOSE close at 15:00 + buffer)
-    - cron: '30 10 * * 1-5'   # Mon-Fri
+    # 09:30 UTC Mon-Fri = 16:30 ICT (after HOSE close)
+    - cron: '30 9 * * 1-5'
   workflow_dispatch:
 
 jobs:
@@ -11,24 +11,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
       - name: Install dependencies
         run: pip install -r requirements.txt
-
       - name: Collect foreign flow
+        timeout-minutes: 5
         run: python weekly_bot.py --collect-foreign-flow
-
-      - name: Commit and push if new data
+      - name: Commit cache
         run: |
-          git config user.name "Foreign Flow Bot"
+          git config user.name "Market Bot"
           git config user.email "bot@truonghuyresearch.xyz"
           git add -A
-          git diff --staged --quiet || git commit -m "daily: foreign flow cache $(date +%Y-%m-%d)"
+          git diff --staged --quiet || git commit -m "cache: foreign flow"
           git push

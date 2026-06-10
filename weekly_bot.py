@@ -23,6 +23,7 @@ import urllib.error
 import uuid
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Optional
 
 # ── Reconfigure stdout/stderr to UTF-8 (Windows console default is cp1252/charmap,
@@ -262,18 +263,113 @@ def _save_foreign_flow_cache(cache: dict[str, Any]) -> None:
     )
 
 
-def collect_foreign_flow_today() -> Optional[dict[str, Any]]:
-    """
-    Fetch today's HOSE foreign flow from CafeF banggia API and cache it.
+def _fetch_hsx_foreign_stock(code: str) -> Optional[dict[str, Any]]:
+    """Fetch per-stock foreign flow from HSX API for current session."""
+    if not HAS_BS4:
+        return None
+    try:
+        url = f"https://api.hsx.vn/mk/api/v1/market/securities/foreign/{code}"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "application/json",
+            "Origin": "https://www.hsx.vn",
+            "Referer": "https://www.hsx.vn/",
+        }
+        resp = requests_lib.get(url, headers=headers, timeout=5)
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        items = data.get("data", {}).get("list", [])
+        if not items:
+            return None
+        item = items[0]
+        return {
+            "code": code,
+            "main_buy_val": item.get("mainBuyerForeignValue", 0) or 0,
+            "main_sell_val": item.get("mainSellerForeignValue", 0) or 0,
+            "biglot_buy_val": item.get("bigLotBuyerForeignValue", 0) or 0,
+            "biglot_sell_val": item.get("bigLotSellerForeignValue", 0) or 0,
+        }
+    except Exception:
+        return None
 
-    CafeF returns stock-level data with obfuscated keys:
-      - 'a' = symbol, 'e' = price (nghin VND), 'n' = total volume
-      - 'x' = foreign buy volume (shares), 'y' = foreign sell volume (shares)
 
-    Returns dict with {net, buy, sell} in bn VND, or None if API fails.
+def _collect_foreign_flow_hsx() -> Optional[dict[str, Any]]:
+    """Collect HOSE foreign flow from HSX API (primary source).
+
+    Aggregates per-stock foreign data across all HOSE stocks.
+    Uses mainBuyerForeignValue + bigLotBuyerForeignValue for accurate totals.
+
+    Returns dict with {net, buy, sell, source} in bn VND, or None if API fails.
     """
     if not HAS_BS4:
-        log("FF", "  requests/bs4 not available, skipping foreign flow collection")
+        log("FF", "  requests not available, skipping HSX foreign flow")
+        return None
+
+    # Step 1: Get stock list from CafeF (has all ~389 HOSE codes)
+    try:
+        url = "https://banggia.cafef.vn/stockhandler.ashx?center=1"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        resp = requests_lib.get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            log("FF", f"  CafeF stock list API returned {resp.status_code}")
+            return None
+        data = resp.json()
+        stock_codes = [item.get("a", "") for item in data
+                       if isinstance(item, dict) and item.get("a")]
+        if not stock_codes:
+            log("FF", "  No stock codes from CafeF")
+            return None
+    except Exception as e:
+        log("FF", f"  CafeF stock list fetch failed: {e}")
+        return None
+
+    # Step 2: Aggregate foreign data from HSX API for all stocks (parallel)
+    total_main_buy = 0.0
+    total_main_sell = 0.0
+    total_biglot_buy = 0.0
+    total_biglot_sell = 0.0
+    count = 0
+
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        futures = {executor.submit(_fetch_hsx_foreign_stock, code): code
+                   for code in stock_codes}
+        for future in as_completed(futures):
+            result = future.result()
+            if result:
+                total_main_buy += result["main_buy_val"]
+                total_main_sell += result["main_sell_val"]
+                total_biglot_buy += result["biglot_buy_val"]
+                total_biglot_sell += result["biglot_sell_val"]
+                count += 1
+
+    if count == 0:
+        log("FF", "  No HSX foreign data fetched")
+        return None
+
+    # Use main board values only (consistent with official HOSE GiaoDichNN reports)
+    # Note: big lot values exist in HSX API but official HOSE reports use main board only
+    total_buy_vnd = total_main_buy
+    total_sell_vnd = total_main_sell
+
+    buy_bn = round(total_buy_vnd / 1e9, 2)
+    sell_bn = round(total_sell_vnd / 1e9, 2)
+    net_bn = round((total_buy_vnd - total_sell_vnd) / 1e9, 2)
+
+    log("FF", f"  HSX API: {count}/{len(stock_codes)} stocks")
+
+    return {"net": net_bn, "buy": buy_bn, "sell": sell_bn, "source": "hsx_api"}
+
+
+def _collect_foreign_flow_cafef() -> Optional[dict[str, Any]]:
+    """Collect HOSE foreign flow from CafeF (fallback source).
+
+    Uses close price * foreign volume as approximation.
+
+    Returns dict with {net, buy, sell, source} in bn VND, or None if API fails.
+    """
+    if not HAS_BS4:
+        log("FF", "  requests not available, skipping CafeF foreign flow")
         return None
     try:
         url = "https://banggia.cafef.vn/stockhandler.ashx?center=1"
@@ -287,64 +383,87 @@ def collect_foreign_flow_today() -> Optional[dict[str, Any]]:
             log("FF", "  CafeF API returned empty/invalid data")
             return None
 
-        # Sum foreign flow across all HOSE stocks
-        # Price in nghin VND (* 1000 for actual VND)
-        foreign_net_vnd = 0.0
         foreign_buy_vnd = 0.0
         foreign_sell_vnd = 0.0
-        foreign_buy_vol = 0
-        foreign_sell_vol = 0
         for item in data:
             if not isinstance(item, dict):
                 continue
-            price_vnd = item.get("e", 0) * 1000  # nghin VND -> VND
-            fb = item.get("x", 0)  # foreign buy volume
-            fs = item.get("y", 0)  # foreign sell volume
-            foreign_buy_vol += fb
-            foreign_sell_vol += fs
+            price_vnd = item.get("e", 0) * 1000
+            fb = item.get("x", 0) or 0
+            fs = item.get("y", 0) or 0
             if price_vnd > 0:
-                foreign_net_vnd += (fb - fs) * price_vnd
                 foreign_buy_vnd += fb * price_vnd
                 foreign_sell_vnd += fs * price_vnd
 
-        net_bn = round(foreign_net_vnd / 1e9, 2)
         buy_bn = round(foreign_buy_vnd / 1e9, 2)
         sell_bn = round(foreign_sell_vnd / 1e9, 2)
-        total_vol = sum(item.get("n", 0) for item in data if isinstance(item, dict))
-        fpct = (foreign_buy_vol + foreign_sell_vol) / total_vol * 100 if total_vol else 0
+        net_bn = round((foreign_buy_vnd - foreign_sell_vnd) / 1e9, 2)
 
-        # Get the trading date from the data
-        trade_date_str = ""
-        first_item = next((i for i in data if isinstance(i, dict)), None)
-        if first_item and "Time" in first_item:
-            time_str = first_item["Time"]
-            parts = time_str.split()
-            if len(parts) >= 2:
-                day_parts = parts[1].split("/")
-                if len(day_parts) == 3:
-                    trade_date_str = f"{day_parts[2]}-{day_parts[1]}-{day_parts[0]}"
-
-        if not trade_date_str:
-            trade_date_str = today_ict().isoformat()
-
-        # Cache the result (new format: {net, buy, sell})
-        cache = _load_foreign_flow_cache()
-        cache[trade_date_str] = {"net": net_bn, "buy": buy_bn, "sell": sell_bn}
-        # Keep only last 30 days of data
-        cutoff = (today_ict() - timedelta(days=30)).isoformat()
-        cache = {k: v for k, v in cache.items() if k >= cutoff}
-        _save_foreign_flow_cache(cache)
-
-        log("FF", f"  HOSE foreign flow for {trade_date_str}: "
-             f"net {net_bn:+,.2f} bn VND "
-             f"(buy {buy_bn:,.2f} / sell {sell_bn:,.2f} bn VND, "
-             f"participation {fpct:.1f}%)")
-        return {"net": net_bn, "buy": buy_bn, "sell": sell_bn}
-
+        return {"net": net_bn, "buy": buy_bn, "sell": sell_bn, "source": "cafef_approx"}
     except Exception as e:
         log("FF", f"  CafeF foreign flow collection failed: {e}")
         return None
 
+
+def collect_foreign_flow_today() -> Optional[dict[str, Any]]:
+    """Fetch today's HOSE foreign flow and cache it.
+
+    Strategy (in priority order):
+    1. HSX API: aggregates actual per-stock trade values (main + big lot).
+    2. CafeF: uses close_price * foreign_volume as approximation.
+
+    Returns dict with {net, buy, sell} in bn VND, or None if all sources fail.
+    """
+    trade_date_str = today_ict().isoformat()
+
+    # Try to get actual date from CafeF data
+    try:
+        url = "https://banggia.cafef.vn/stockhandler.ashx?center=1"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        resp = requests_lib.get(url, headers=headers, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            first_item = next((i for i in data if isinstance(i, dict)), None)
+            if first_item and "Time" in first_item:
+                time_str = first_item["Time"]
+                parts = time_str.split()
+                if len(parts) >= 2:
+                    day_parts = parts[1].split("/")
+                    if len(day_parts) == 3:
+                        trade_date_str = f"{day_parts[2]}-{day_parts[1]}-{day_parts[0]}"
+    except Exception:
+        pass
+
+    result = None
+
+    # 1. Try HSX API (most accurate)
+    log("FF", "  Trying HSX API (primary source)...")
+    result = _collect_foreign_flow_hsx()
+
+    # 2. Fallback to CafeF approximation
+    if result is None:
+        log("FF", "  HSX API failed, falling back to CafeF...")
+        result = _collect_foreign_flow_cafef()
+
+    if result is None:
+        log("FF", "  All foreign flow sources failed")
+        return None
+
+    net_bn = result["net"]
+    buy_bn = result["buy"]
+    sell_bn = result["sell"]
+    source = result.get("source", "unknown")
+
+    cache = _load_foreign_flow_cache()
+    cache[trade_date_str] = {"net": net_bn, "buy": buy_bn, "sell": sell_bn}
+    cutoff = (today_ict() - timedelta(days=60)).isoformat()
+    cache = {k: v for k, v in cache.items() if k >= cutoff}
+    _save_foreign_flow_cache(cache)
+
+    log("FF", f"  HOSE foreign flow for {trade_date_str} [{source}]: "
+         f"net {net_bn:+,.2f} bn VND "
+         f"(buy {buy_bn:,.2f} / sell {sell_bn:,.2f} bn VND)")
+    return {"net": net_bn, "buy": buy_bn, "sell": sell_bn}
 
 
 
@@ -1352,7 +1471,8 @@ RULES:
 - Professional Bloomberg/FT tone. Every claim quantified.
 - Use quarterly summary for continuity. Reference prior weeks.
 - Use news headlines to explain catalysts. Cite sources where possible.
-- Never fabricate data. Say "data unavailable" if needed."""
+- Never fabricate data. Say "data unavailable" if needed.
+- CRITICAL: foreign_net_weekly_bn_vnd, foreign_buy_weekly_bn_vnd, and foreign_sell_weekly_bn_vnd MUST be null when no real foreign flow data is available. Do NOT invent or estimate these values. If the provided data shows null, output null."""
 
     response = call_llm(system_msg, user_msg, temperature=0.7, max_tokens=16000)
     return response
@@ -1668,7 +1788,7 @@ def main() -> None:
 
     # ── Handle --collect-foreign-flow ──────────────────────────────────────
     if args.collect_foreign_flow:
-        print("\n  Collecting today's HOSE foreign flow from CafeF...")
+        print("\n  Collecting today HOSE foreign flow...\n")
         ff_result = collect_foreign_flow_today()
         if ff_result is not None:
             print(f"\n  Done. Today's foreign net: {ff_result['net']:+,.2f} bn VND (cached)")

@@ -678,7 +678,8 @@ def generate_commentary(
         5. ## Global Cross-Asset Synthesis — DXY, Gold, WTI, BTC monthly moves
         6. ## The Month Ahead — forward risks and catalysts
 
-        DO NOT wrap output in code fences. Output raw markdown.
+        CRITICAL: foreign_net_monthly_bn_vnd, foreign_buy_monthly_bn_vnd, and foreign_sell_monthly_bn_vnd MUST be null when no real foreign flow data is available. Do NOT invent or estimate these values. If the provided data shows null, output null.
+DO NOT wrap output in code fences. Output raw markdown.
     """)
 
     user_prompt = textwrap.dedent(f"""\
