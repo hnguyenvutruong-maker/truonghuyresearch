@@ -194,7 +194,7 @@ def fetch_vnindex_monthly(
     result: dict[str, Any] = {
         "open": None, "high": None, "low": None, "close": None,
         "monthly_change_pct": None, "avg_daily_liquidity_bn_vnd": None,
-        "foreign_net_monthly_bn_vnd": None, "trading_days": 0,
+        "foreign_net_monthly_bn_vnd": None, "foreign_buy_monthly_bn_vnd": None, "foreign_sell_monthly_bn_vnd": None, "trading_days": 0,
         "daily_data": [],
     }
 
@@ -227,21 +227,42 @@ def fetch_vnindex_monthly(
                         result["avg_daily_liquidity_bn_vnd"] = round(per_day_bn.mean(), 2)
                         log("1/7", f"  Avg daily liquidity: {result['avg_daily_liquidity_bn_vnd']:,.0f} bn VND")
 
-                # Foreign flow from cache
+                # Foreign flow from cache (with buy/sell breakdown)
                 cache = _load_foreign_flow_cache()
                 month_net = 0.0
+                month_buy = 0.0
+                month_sell = 0.0
                 days_found = 0
-                for date_str, net_bn in cache.items():
+                for date_str, entry in cache.items():
                     try:
                         d = date.fromisoformat(date_str)
-                        if first_day <= d <= last_day and net_bn is not None:
-                            month_net += net_bn
-                            days_found += 1
+                        if isinstance(entry, dict):
+                            net_val = entry.get("net")
+                            buy_val = entry.get("buy")
+                            sell_val = entry.get("sell")
+                        else:
+                            # Legacy format
+                            net_val = entry
+                            buy_val = None
+                            sell_val = None
+                        if first_day <= d <= last_day:
+                            if net_val is not None:
+                                month_net += net_val
+                                days_found += 1
+                            if buy_val is not None:
+                                month_buy += buy_val
+                            if sell_val is not None:
+                                month_sell += sell_val
                     except (ValueError, TypeError):
                         continue
                 if days_found > 0:
                     result["foreign_net_monthly_bn_vnd"] = round(month_net, 2)
-                    log("1/7", f"  Foreign flow from cache: {days_found} days, net={month_net:+,.2f} bn VND")
+                    has_buy_sell = (month_buy != 0 or month_sell != 0)
+                    if has_buy_sell:
+                        result["foreign_buy_monthly_bn_vnd"] = round(month_buy, 2)
+                        result["foreign_sell_monthly_bn_vnd"] = round(month_sell, 2)
+                    log("1/7", f"  Foreign flow from cache: {days_found} days, net={month_net:+,.2f} bn VND" +
+                         (f", buy={month_buy:,.2f}/sell={month_sell:,.2f}" if has_buy_sell else ""))
 
                 result["daily_data"] = df.to_dict("records")
                 log("1/7", f"  VN-Index: Open {result['open']}, Close {result['close']}, "
@@ -579,6 +600,8 @@ def generate_commentary(
         "change_pct": market_data.get("monthly_change_pct"),
         "liquidity": market_data.get("avg_daily_liquidity_bn_vnd"),
         "foreign_net": market_data.get("foreign_net_monthly_bn_vnd"),
+        "foreign_buy": market_data.get("foreign_buy_monthly_bn_vnd"),
+        "foreign_sell": market_data.get("foreign_sell_monthly_bn_vnd"),
         "foreign_net_estimated": False,  # Only true if synthetic; cache data is real
         "trading_days": market_data.get("trading_days", 0),
         "best_sector": best_sector["sector"] if best_sector else None,
@@ -628,6 +651,8 @@ def generate_commentary(
           vn_index_monthly_change_pct: number
           avg_daily_liquidity_bn_vnd: number
           foreign_net_monthly_bn_vnd: number | null
+          foreign_buy_monthly_bn_vnd: number | null  (nullable — foreign inflow in bn VND)
+          foreign_sell_monthly_bn_vnd: number | null  (nullable — foreign outflow in bn VND)
           foreign_net_estimated: boolean
           trading_days: number
           best_sector: string | null
@@ -670,6 +695,8 @@ def generate_commentary(
         - Monthly Change: {fmt_pct(fm['change_pct'])}
         - Avg Daily Liquidity: {n(fm['liquidity'])} bn VND
         - Foreign Net Monthly: {n(fm['foreign_net'])} bn VND
+- Foreign Buy Monthly: {n(fm['foreign_buy'])} bn VND
+- Foreign Sell Monthly: {n(fm['foreign_sell'])} bn VND
         - Trading Days: {fm['trading_days']}
 
         ## Week-by-Week Recap
@@ -699,6 +726,8 @@ def generate_commentary(
           vn_index_monthly_change_pct: {n(fm['change_pct'])}
           avg_daily_liquidity_bn_vnd: {n(fm['liquidity'])}
           foreign_net_monthly_bn_vnd: {n(fm['foreign_net'])}
+          foreign_buy_monthly_bn_vnd: {n(fm['foreign_buy'])}
+          foreign_sell_monthly_bn_vnd: {n(fm['foreign_sell'])}
           foreign_net_estimated: {str(fm['foreign_net_estimated']).lower()}
           trading_days: {fm['trading_days']}
           best_sector: {fm['best_sector'] or 'null'}
