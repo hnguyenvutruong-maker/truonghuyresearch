@@ -643,6 +643,15 @@ def generate_commentary(
         - If data is unavailable, write a detailed limitation note and explain how that
           affects confidence; do not fill space with invented numbers.
 
+        PUBLICATION HYGIENE (CRITICAL):
+        - Do not mention local file paths, repository paths, scripts, cache files, or
+          tooling commands in the public article.
+        - Do not mention "D:\\", "markitdown", "python -m", "_cache", or "repository".
+        - Refer to the source generically as "HOSE foreign-trading data" or
+          "available foreign-trading data".
+        - For negative flows, write "net selling of VND Xbn" or "foreign investors
+          were net sellers of VND Xbn"; do not write "VND -Xbn net outflow".
+
         CRITICAL: Your output MUST be a valid Markdown document starting with a YAML
         frontmatter block (between --- delimiters). The frontmatter must contain exactly
         these fields with these types:
