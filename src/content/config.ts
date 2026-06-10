@@ -38,6 +38,51 @@ const marketViews = defineCollection({
   }),
 });
 
+const monthlyViews = defineCollection({
+  type: 'content',
+  schema: z.object({
+    // Core
+    title: z.string(),
+    date: z.coerce.date(),            // last trading day
+    month_start: z.coerce.date(),
+    month_end: z.coerce.date(),
+    session_tone: z.enum(['positive', 'negative', 'neutral']),
+
+    // VN-Index
+    vn_index_open: z.number(),
+    vn_index_high: z.number(),
+    vn_index_low: z.number(),
+    vn_index_close: z.number(),
+    vn_index_monthly_change_pct: z.number(),
+    avg_daily_liquidity_bn_vnd: z.number(),
+    foreign_net_monthly_bn_vnd: z.number().nullable(),
+    foreign_net_estimated: z.boolean().default(false),
+    trading_days: z.number(),
+
+    // Best / Worst sectors
+    best_sector: z.string().nullable(),
+    best_sector_change_pct: z.number().nullable(),
+    worst_sector: z.string().nullable(),
+    worst_sector_change_pct: z.number().nullable(),
+
+    // Global macro
+    dxy_close: z.number().nullable(),
+    dxy_monthly_change_pct: z.number().nullable(),
+    usd_vnd: z.number().nullable(),
+    usd_vnd_monthly_change_pct: z.number().nullable(),
+
+    // Crypto
+    btc_close: z.number().nullable(),
+    btc_monthly_change_pct: z.number().nullable(),
+
+    // Commodities
+    gold_close: z.number().nullable(),
+    gold_monthly_change_pct: z.number().nullable(),
+    wti_close: z.number().nullable(),
+    wti_monthly_change_pct: z.number().nullable(),
+  }),
+});
+
 const research = defineCollection({
   type: 'content',
   schema: z.object({
@@ -52,4 +97,4 @@ const research = defineCollection({
   }),
 });
 
-export const collections = { 'market-views': marketViews, research };
+export const collections = { 'market-views': marketViews, 'monthly-views': monthlyViews, research };

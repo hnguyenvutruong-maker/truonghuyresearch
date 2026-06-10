@@ -1,0 +1,64 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const allViews = await getCollection('monthly-views');
+const sortedViews = allViews.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+function fmtMonthLabel(start: Date): string {
+  return start.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+}
+---
+<BaseLayout title="Monthly Views — NVTH Capital Markets">
+  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap">
+    <!-- Page Header -->
+    <header class="mb-section-gap max-w-3xl">
+      <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-4">Monthly Views</h1>
+      <p class="font-body-lg text-body-lg text-on-surface-variant">Monthly market commentary with week-by-week recap, sector rotation, and cross-asset synthesis on Vietnam and global capital markets.</p>
+    </header>
+
+    <!-- Articles list (Journalistic List Layout) -->
+    <div class="flex flex-col gap-0">
+      {sortedViews.map((entry) => {
+        const changeColor = entry.data.vn_index_monthly_change_pct >= 0 ? 'text-tertiary' : 'text-error';
+        const changeSign = entry.data.vn_index_monthly_change_pct >= 0 ? '+' : '';
+        const tone = entry.data.session_tone;
+        const toneClass = tone === 'positive' ? 'text-tertiary border-tertiary' : tone === 'negative' ? 'text-error border-error' : 'text-terminal-accent border-terminal-accent';
+        const toneBg = tone === 'positive' ? 'bg-tertiary' : tone === 'negative' ? 'bg-error' : 'bg-terminal-accent';
+        const monthLabel = fmtMonthLabel(entry.data.month_start);
+        return (
+          <a href={`/monthly-views/${entry.slug}`} class="group block py-8 journal-rule">
+            <div class="flex flex-col sm:flex-row gap-4 sm:gap-8 items-baseline">
+              <time class="font-label-data text-label-data text-on-surface-variant shrink-0 w-40" datetime={entry.data.date.toISOString()}>
+                {monthLabel.toUpperCase()}
+              </time>
+              <div class="flex-grow">
+                <div class="flex flex-wrap items-center gap-3 mb-3">
+                  <span class:list={["inline-block px-2 py-0.5 border font-label-md uppercase text-label-md", toneClass]}>
+                    Monthly Market View
+                  </span>
+                  <span class:list={["inline-block w-2 h-2", toneBg]}></span>
+                  <span class="font-label-md uppercase text-label-md text-on-surface-variant">{tone}</span>
+                  {entry.data.trading_days ? (
+                    <span class="font-label-md uppercase text-label-md text-on-surface-variant">{entry.data.trading_days} sessions</span>
+                  ) : null}
+                </div>
+                <h2 class="font-headline-md text-headline-md text-terminal-text mb-3 group-hover:text-terminal-accent transition-colors">
+                  {entry.data.title}
+                </h2>
+                <p class="font-body-md text-body-md text-on-surface-variant mb-4">
+                  {monthLabel} · VN-Index closed at
+                  <span class="font-mono-data text-mono-data text-terminal-text ml-1">{entry.data.vn_index_close.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  <span class:list={["font-mono-data text-mono-data ml-2", changeColor]}>{changeSign}{entry.data.vn_index_monthly_change_pct.toFixed(2)}%</span>
+                </p>
+                <span class="inline-flex items-center gap-1 font-label-md uppercase text-label-md text-terminal-accent group-hover:text-on-primary transition-colors">
+                  Read Full Note <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </span>
+              </div>
+            </div>
+          </a>
+        );
+      })}
+    </div>
+  </section>
+</BaseLayout>

@@ -4,9 +4,11 @@ import { getCollection } from 'astro:content';
 
 const allResearch = await getCollection('research');
 const allMarketViews = await getCollection('market-views');
+const allMonthlyViews = await getCollection('monthly-views');
 
 const latestResearch = allResearch.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()).slice(0, 2);
 const latestMarketViews = allMarketViews.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()).slice(0, 2);
+const latestMonthlyView = allMonthlyViews.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()).slice(0, 1);
 ---
 <BaseLayout title="Nguyen Vu Truong Huy | Capital Markets Analyst">
   <!-- Hero Section -->
@@ -119,6 +121,88 @@ const latestMarketViews = allMarketViews.sort((a, b) => b.data.date.valueOf() - 
       </a>
     </div>
   </section>
+
+  <!-- Divider -->
+  <div class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+    <hr class="border-t border-outline-variant" />
+  </div>
+
+  <!-- Monthly Views Section -->
+  {latestMonthlyView.length > 0 && (
+    <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap bg-terminal-bg" id="monthly-views">
+      <div class="mb-10 flex justify-between items-end">
+        <div>
+          <h2 class="font-display-lg text-display-lg text-terminal-accent mb-2">Monthly Views</h2>
+          <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest">Monthly Market View</p>
+        </div>
+        <a href="/monthly-views" class="hidden md:flex items-center gap-1 font-label-md uppercase text-label-md text-terminal-accent hover:text-on-primary transition-colors">
+          View All <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </a>
+      </div>
+      {latestMonthlyView.map((entry) => {
+        const monthLabel = entry.data.month_start.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+        const tone = entry.data.session_tone;
+        const toneClass = tone === 'positive' ? 'text-tertiary border-tertiary' : tone === 'negative' ? 'text-error border-error' : 'text-terminal-accent border-terminal-accent';
+        const arrow = (v: number | null | undefined) => v == null ? '·' : v >= 0 ? '▲' : '▼';
+        const aCol = (v: number | null | undefined) => v == null ? 'text-terminal-muted' : v >= 0 ? 'text-tertiary' : 'text-error';
+        const sgn = (v: number | null | undefined) => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+        return (
+          <a href={`/monthly-views/${entry.slug}`} class="group block bg-terminal-card border border-terminal-border border-t-2 border-t-terminal-accent p-6 hover:border-terminal-accent transition-colors relative overflow-hidden no-underline text-terminal-accent">
+            <div class="absolute left-0 top-0 bottom-0 w-1 bg-terminal-accent"></div>
+            <div class="ml-2">
+              <div class="flex justify-between items-start mb-6">
+                <div class="flex flex-wrap items-center gap-3">
+                  <span class:list={["inline-block px-2 py-1 bg-terminal-bg border font-label-md uppercase text-label-md", toneClass]}>
+                    Monthly Market View
+                  </span>
+                  <span class="font-mono-data text-mono-data text-on-surface-variant">{monthLabel}</span>
+                </div>
+              </div>
+              <h3 class="font-headline-md text-headline-md text-terminal-accent mb-4 group-hover:text-on-primary transition-colors">
+                {entry.data.title}
+              </h3>
+              <p class="font-body-sm text-body-sm text-terminal-text mb-4">
+                VN-Index closed at <span class="font-mono-data text-mono-data text-terminal-text">{entry.data.vn_index_close.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                <span class:list={["font-mono-data text-mono-data ml-2", entry.data.vn_index_monthly_change_pct >= 0 ? 'text-tertiary' : 'text-error']}>
+                  {entry.data.vn_index_monthly_change_pct >= 0 ? '+' : ''}{entry.data.vn_index_monthly_change_pct.toFixed(2)}%
+                </span>
+                <span class="font-mono-data text-mono-data text-on-surface-variant ml-3">{entry.data.trading_days} sessions</span>
+                {entry.data.best_sector && (
+                  <span class="font-mono-data text-mono-data text-tertiary ml-3">Best: {entry.data.best_sector}</span>
+                )}
+              </p>
+              <!-- Cross-asset mini-strip -->
+              <div class="border-t border-outline-variant pt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono-data text-mono-data">
+                <span class="flex items-center gap-1">
+                  <span class="font-label-md uppercase text-label-md text-on-surface-variant">DXY</span>
+                  <span class:list={[aCol(entry.data.dxy_monthly_change_pct)]}>{arrow(entry.data.dxy_monthly_change_pct)}</span>
+                  <span class:list={[aCol(entry.data.dxy_monthly_change_pct)]}>{sgn(entry.data.dxy_monthly_change_pct)}</span>
+                </span>
+                <span class="flex items-center gap-1">
+                  <span class="font-label-md uppercase text-label-md text-on-surface-variant">Gold</span>
+                  <span class:list={[aCol(entry.data.gold_monthly_change_pct)]}>{arrow(entry.data.gold_monthly_change_pct)}</span>
+                  <span class:list={[aCol(entry.data.gold_monthly_change_pct)]}>{sgn(entry.data.gold_monthly_change_pct)}</span>
+                </span>
+                <span class="flex items-center gap-1">
+                  <span class="font-label-md uppercase text-label-md text-on-surface-variant">BTC</span>
+                  <span class:list={[aCol(entry.data.btc_monthly_change_pct)]}>{arrow(entry.data.btc_monthly_change_pct)}</span>
+                  <span class:list={[aCol(entry.data.btc_monthly_change_pct)]}>{sgn(entry.data.btc_monthly_change_pct)}</span>
+                </span>
+              </div>
+              <div class="flex items-center gap-2 font-label-md uppercase text-label-md text-terminal-accent mt-4">
+                Read Full Note <span class="material-symbols-outlined text-[16px]">north_east</span>
+              </div>
+            </div>
+          </a>
+        );
+      })}
+      <div class="mt-8 md:hidden">
+        <a href="/monthly-views" class="inline-flex items-center justify-center w-full px-4 py-3 border border-outline-variant text-terminal-text font-label-md uppercase text-label-md">
+          View All Monthly Views
+        </a>
+      </div>
+    </section>
+  )}
 
   <!-- Divider -->
   <div class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
