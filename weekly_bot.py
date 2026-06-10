@@ -1452,7 +1452,7 @@ def validate_frontmatter(markdown_text: str) -> list[str]:
       vn_index_close: number
       vn_index_weekly_change_pct: number
       avg_daily_liquidity_bn_vnd: number
-      foreign_net_weekly_bn_vnd: number
+      foreign_net_weekly_bn_vnd: number | null  (nullable — null when no real data available)
       foreign_net_estimated: boolean (default false)
       dxy_close: number | null
       dxy_weekly_change_pct: number | null
@@ -1495,7 +1495,6 @@ def validate_frontmatter(markdown_text: str) -> list[str]:
     required_numbers = [
         "vn_index_open", "vn_index_high", "vn_index_low", "vn_index_close",
         "vn_index_weekly_change_pct", "avg_daily_liquidity_bn_vnd",
-        "foreign_net_weekly_bn_vnd",
     ]
     for field in required_numbers:
         if field not in parsed:
@@ -1658,9 +1657,9 @@ def main() -> None:
         estimated_fields: list[str] = []
 
     if vn_data.get("foreign_net_weekly_bn_vnd") is None:
-        vn_data["foreign_net_weekly_bn_vnd"] = _synthesize_foreign_flow(seed)
-        estimated_fields.append("foreign_net_weekly_bn_vnd")
-        log("3/8", f"  Foreign net synthesized: {vn_data['foreign_net_weekly_bn_vnd']:+.0f} bn VND")
+        # No real foreign flow data available — leave as None rather than
+        # synthesizing fake data. Frontend displays "—" / "data unavailable".
+        log("3/8", "  No real foreign flow data; field will be null in frontmatter")
 
     if not sectors:
         sectors = _synthesize_sectors(seed)
