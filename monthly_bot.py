@@ -630,9 +630,18 @@ def generate_commentary(
     m_label = month_label(first_day, last_day)
 
     system_prompt = textwrap.dedent("""\
-        You are a senior capital markets analyst writing a Monthly Market View report
-        for the Vietnam stock market (HOSE / VN-Index). You write in concise, data-dense
-        English with a Bloomberg-terminal tone. You are factual and avoid speculation.
+        You are a senior capital markets analyst writing a long-form Monthly Market View
+        report for the Vietnam stock market (HOSE / VN-Index). You write in data-dense,
+        institutional English with a Bloomberg-terminal tone. You are factual, explicit
+        about the evidence, and careful to separate measured data from interpretation.
+
+        LENGTH REQUIREMENT (CRITICAL):
+        - The body after frontmatter MUST be 3,000 to 4,000 words.
+        - Do not write a short note. Do not compress the analysis into brief paragraphs.
+        - Every major section must include concrete numbers, implications, and
+          market-structure interpretation.
+        - If data is unavailable, write a detailed limitation note and explain how that
+          affects confidence; do not fill space with invented numbers.
 
         CRITICAL: Your output MUST be a valid Markdown document starting with a YAML
         frontmatter block (between --- delimiters). The frontmatter must contain exactly
@@ -670,13 +679,23 @@ def generate_commentary(
           wti_close: number | null
           wti_monthly_change_pct: number | null
 
-        After the frontmatter, write these 6 markdown sections:
-        1. ## Executive Summary (~150 words)
-        2. ## Macro Regime — VND policy, SBV stance, inflation, credit growth
-        3. ## VN-Index Monthly Review — include week-by-week recap
-        4. ## Sector Rotation Map — best/worst sectors, rotation narrative
-        5. ## Global Cross-Asset Synthesis — DXY, Gold, WTI, BTC monthly moves
-        6. ## The Month Ahead — forward risks and catalysts
+        After the frontmatter, write these markdown sections with the target lengths:
+        1. ## Executive Summary (350-450 words)
+        2. ## Market Structure and Tape Quality (350-450 words)
+        3. ## Macro Regime (450-600 words) - VND policy, SBV stance, inflation,
+           credit growth, external liquidity, and oil sensitivity
+        4. ## VN-Index Monthly Review (500-650 words) - opening setup, high/low,
+           close, drawdown/rally path, liquidity, and week-by-week recap
+        5. ## Foreign Flow and Ownership Quality (350-500 words) - use real buy,
+           sell, and net values when available; discuss data coverage
+        6. ## Sector Rotation Map (350-500 words) - best/worst sectors, breadth,
+           leadership quality, and what the sector spread implies
+        7. ## Global Cross-Asset Synthesis (350-500 words) - DXY, USD/VND, Gold,
+           WTI, BTC, and how each channel maps into Vietnam equities
+        8. ## Risk Scenarios and Technical Levels (350-500 words) - bull/base/bear
+           cases, support/resistance, invalidation levels
+        9. ## The Month Ahead (350-500 words) - forward risks, catalysts, what data
+           to watch, and portfolio stance
 
         CRITICAL: foreign_net_monthly_bn_vnd, foreign_buy_monthly_bn_vnd, and foreign_sell_monthly_bn_vnd MUST be null when no real foreign flow data is available. Do NOT invent or estimate these values. If the provided data shows null, output null.
 DO NOT wrap output in code fences. Output raw markdown.
@@ -748,25 +767,34 @@ DO NOT wrap output in code fences. Output raw markdown.
         ---
 
         ## Executive Summary
-        ~150 words.
+        350-450 words. Write a full executive summary, not a teaser.
+
+        ## Market Structure and Tape Quality
+        350-450 words.
 
         ## Macro Regime
-        ...
+        450-600 words.
 
         ## VN-Index Monthly Review
-        Include the week-by-week recap naturally.
+        500-650 words. Include the week-by-week recap naturally.
+
+        ## Foreign Flow and Ownership Quality
+        350-500 words.
 
         ## Sector Rotation Map
-        ...
+        350-500 words.
 
         ## Global Cross-Asset Synthesis
-        ...
+        350-500 words.
+
+        ## Risk Scenarios and Technical Levels
+        350-500 words.
 
         ## The Month Ahead
-        ...
+        350-500 words.
     """)
 
-    return call_llm(system_prompt, user_prompt, temperature=0.7, max_tokens=16000)
+    return call_llm(system_prompt, user_prompt, temperature=0.7, max_tokens=24000)
 
 
 def update_monthly_summary_via_llm(
