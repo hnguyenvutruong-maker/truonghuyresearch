@@ -1,0 +1,37 @@
+{
+  "generated": "2026-06-10",
+  "note": "Historical data scraped from Cafef/DNSE weekly recap articles. These are editorial sources, not raw API data. Use with moderate confidence.",
+  "weekly": {
+    "2026-05-15": {
+      "net_bn_vnd": -3964.8,
+      "source": "DNSE article: week 11-15/5, toan thi truong ban rong 3,964.8 billion",
+      "hose_only": -3865.08,
+      "note": "HOSE -3,865 bn, HNX -41 bn, UPCoM -58.7 bn. Total market -3,964.8 bn"
+    },
+    "2026-05-22": {
+      "net_bn_vnd": -6377,
+      "source": "Cafef: mid-May week (18-22/5), HOSE ban rong 6,281 bn",
+      "hose_only": -6281,
+      "note": "HOSE -6,281 bn, HNX -130 bn, UPCoM +34 bn. Total market -6,377 bn"
+    },
+    "2026-05-29": {
+      "net_bn_vnd": -3000,
+      "source": "Estimated from monthly total + known weeks. Cafef reported -750bn on final Friday 29/5 alone.",
+      "hose_only": -2800,
+      "note": "ESTIMATE: May total = -19,400 bn. Weeks 1+2 = -10,342 bn. Week 4 ~ -3,000 bn. Balance ~ -6,000 bn for partial first week + other sessions."
+    },
+    "2026-06-05": {
+      "net_bn_vnd": -7192,
+      "source": "DNSE article: first week of June (01-05/6), toan thi truong ban rong 7,192 bn",
+      "hose_only": -7342,
+      "note": "HOSE -7,342 bn (VIC -4,820 bn via put-through), HNX +100 bn, UPCoM +51 bn"
+    }
+  },
+  "monthly": {
+    "2026-05": {
+      "net_bn_vnd": -19400,
+      "source": "Multiple articles: 'khoi ngoai ban rong manh gan 20,000 ty trong thang 5'",
+      "weekly_breakdown": "Week 1 (09-15/5): -3,965 bn | Week 2 (18-22/5): -6,377 bn | Week 3 (25-29/5): ~-3,000 bn (est) | Balance: ~-6,000 bn"
+    }
+  }
+}

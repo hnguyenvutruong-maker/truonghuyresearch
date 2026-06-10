@@ -90,6 +90,16 @@ const fmtVal = (val: number | null, decimals: number = 2) => val == null ? '—'
             ) : (
               <p class="font-headline-md text-headline-md text-terminal-muted">—<span class="font-body-md text-body-md text-on-surface-variant ml-1">tracking from Jun 2026</span></p>
             )}
+            {entry.data.foreign_buy_monthly_bn_vnd != null && entry.data.foreign_sell_monthly_bn_vnd != null ? (
+              <div class="flex items-center gap-3 mt-2 font-mono-data text-mono-data text-sm">
+                <span class="text-on-surface-variant">In</span>
+                <span class="text-tertiary">+{entry.data.foreign_buy_monthly_bn_vnd.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
+                <span class="text-on-surface-variant">/</span>
+                <span class="text-on-surface-variant">Out</span>
+                <span class="text-error">{entry.data.foreign_sell_monthly_bn_vnd.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
+                <span class="font-body-sm text-body-sm text-on-surface-variant">Bn VND</span>
+              </div>
+            ) : null}
           </div>
         </div>
         <!-- Row 3: TRADING DAYS | BEST SECTOR | WORST SECTOR -->
