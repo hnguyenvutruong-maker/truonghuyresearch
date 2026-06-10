@@ -83,7 +83,6 @@ const fmtVal = (val: number | null, decimals: number = 2) => val == null ? '—'
             {entry.data.foreign_net_weekly_bn_vnd != null ? (
               <p class:list={["font-headline-md text-headline-md", entry.data.foreign_net_weekly_bn_vnd >= 0 ? 'text-tertiary' : 'text-error']}>
                 {entry.data.foreign_net_weekly_bn_vnd >= 0 ? '+' : ''}{entry.data.foreign_net_weekly_bn_vnd.toLocaleString('en-US', { maximumFractionDigits: 0 })}<span class="font-body-md text-body-md text-on-surface-variant ml-1">Bn VND</span>
-                {entry.data.foreign_net_estimated ? <span class="font-body-sm text-body-sm text-terminal-muted ml-2">est.</span> : null}
               </p>
             ) : (
               <p class="font-headline-md text-headline-md text-terminal-muted">—<span class="font-body-md text-body-md text-on-surface-variant ml-1">tracking from Jun 2026</span></p>

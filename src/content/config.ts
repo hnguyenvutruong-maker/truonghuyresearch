@@ -18,7 +18,6 @@ const marketViews = defineCollection({
     vn_index_weekly_change_pct: z.number(),
     avg_daily_liquidity_bn_vnd: z.number(),
     foreign_net_weekly_bn_vnd: z.number().nullable(),
-    foreign_net_estimated: z.boolean().default(false),
     foreign_buy_weekly_bn_vnd: z.number().nullable().optional(),
     foreign_sell_weekly_bn_vnd: z.number().nullable().optional(),
 
@@ -58,7 +57,6 @@ const monthlyViews = defineCollection({
     vn_index_monthly_change_pct: z.number(),
     avg_daily_liquidity_bn_vnd: z.number(),
     foreign_net_monthly_bn_vnd: z.number().nullable(),
-    foreign_net_estimated: z.boolean().default(false),
     foreign_buy_monthly_bn_vnd: z.number().nullable().optional(),
     foreign_sell_monthly_bn_vnd: z.number().nullable().optional(),
     trading_days: z.number(),
