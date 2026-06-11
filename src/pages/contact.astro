@@ -1,0 +1,45 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const contactRows = [
+  {
+    label: 'Email',
+    value: 'hnguyenvutruong@gmail.com',
+  },
+  {
+    label: 'Phone',
+    value: '0962220094',
+  },
+];
+---
+
+<BaseLayout title="Contact - NVTH Capital Markets" description="Contact details for Nguyen Vu Truong Huy.">
+  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap">
+    <a href="/" class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors">
+      &larr; Back to Home
+    </a>
+
+    <header class="mt-6 mb-10 max-w-3xl border-b border-outline-variant pb-8">
+      <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest mb-3">Direct Contact</p>
+      <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-4">Contact</h1>
+      <p class="font-body-lg text-body-lg text-terminal-text">
+        Nguyen Vu Truong Huy
+      </p>
+    </header>
+
+    <article class="max-w-3xl border border-terminal-border border-t-2 border-t-terminal-accent bg-terminal-card">
+      <div class="divide-y divide-outline-variant">
+        {contactRows.map((row) => (
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-3 p-5 md:p-6">
+            <div class="md:col-span-3">
+              <p class="font-label-md uppercase text-label-md text-on-surface-variant">{row.label}</p>
+            </div>
+            <div class="md:col-span-9">
+              <p class="font-mono-data text-[18px] md:text-[22px] leading-tight text-terminal-accent break-all">{row.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </article>
+  </section>
+</BaseLayout>
