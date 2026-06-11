@@ -85,19 +85,4 @@ const monthlyViews = defineCollection({
   }),
 });
 
-const research = defineCollection({
-  type: 'content',
-  schema: z.object({
-    title: z.string(),
-    date: z.coerce.date(),
-    ticker: z.string(),
-    sector: z.string(),
-    recommendation: z.enum(['BUY', 'HOLD', 'SELL', 'NEUTRAL']),
-    target_price_vnd: z.number().optional(),
-    pdf_path: z.string().optional(),
-    xlsx_path: z.string().optional(),
-    summary: z.string().max(200),
-  }),
-});
-
-export const collections = { 'market-views': marketViews, 'monthly-views': monthlyViews, research };
+export const collections = { 'market-views': marketViews, 'monthly-views': monthlyViews };

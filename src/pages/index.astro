@@ -1,12 +1,12 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
+import { valuationModels } from '../data/valuation-models';
 
-const allResearch = await getCollection('research');
 const allMarketViews = await getCollection('market-views');
 const allMonthlyViews = await getCollection('monthly-views');
 
-const latestResearch = allResearch.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()).slice(0, 2);
+const featuredModels = valuationModels.slice(0, 2);
 const latestMarketViews = allMarketViews.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()).slice(0, 2);
 const latestMonthlyView = allMonthlyViews.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()).slice(0, 1);
 ---
@@ -88,39 +88,44 @@ const latestMonthlyView = allMonthlyViews.sort((a, b) => b.data.date.valueOf() -
     <hr class="border-t border-outline-variant" />
   </div>
 
-  <!-- Equity Research Section -->
+  <!-- Equity Valuation Section -->
   <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap" id="research">
     <div class="mb-10 flex justify-between items-end">
       <div>
-        <h2 class="font-display-lg text-display-lg text-terminal-accent mb-2">Equity Research</h2>
-        <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest">Latest Reports</p>
+        <h2 class="font-display-lg text-display-lg text-terminal-accent mb-2">Equity Valuation</h2>
+        <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest">Downloadable Models</p>
       </div>
       <a href="/research" class="hidden md:flex items-center gap-1 font-label-md uppercase text-label-md text-terminal-accent hover:text-on-primary transition-colors">
         View All <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
       </a>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
-      {latestResearch.map((entry) => (
-        <a href={`/research/${entry.slug}`} class="group block bg-terminal-card border border-terminal-border border-t-2 border-t-terminal-accent p-6 hover:border-terminal-accent transition-colors flex flex-col h-full relative overflow-hidden no-underline text-terminal-accent">
+      {featuredModels.map((model) => (
+        <a href="/research" class="group block bg-terminal-card border border-terminal-border border-t-2 border-t-terminal-accent p-6 hover:border-terminal-accent transition-colors flex flex-col h-full relative overflow-hidden no-underline text-terminal-accent">
           <div class="flex justify-between items-start mb-6">
-            <span class="inline-block px-2 py-1 bg-terminal-bg border border-outline-variant font-label-md uppercase text-label-md text-terminal-accent">{entry.data.ticker}</span>
-            <span class="font-mono-data text-mono-data text-terminal-text">{entry.data.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+            <span class="inline-block px-2 py-1 bg-terminal-bg border border-outline-variant font-label-md uppercase text-label-md text-terminal-accent">{model.ticker}</span>
+            <span class="font-mono-data text-mono-data text-terminal-text">{model.downloads.length} {model.downloads.length === 1 ? 'file' : 'files'}</span>
           </div>
           <h3 class="font-headline-md text-headline-md text-terminal-accent mb-4 group-hover:text-on-primary transition-colors">
-            {entry.data.title}
+            {model.company}
           </h3>
           <p class="font-body-sm text-body-sm text-terminal-text mb-6 flex-grow line-clamp-3">
-            {entry.data.summary}
+            {model.summary}
           </p>
+          <div class="flex flex-wrap gap-2 mb-6">
+            {model.methods.map((method) => (
+              <span class="inline-block bg-terminal-bg border border-outline-variant px-3 py-1 font-label-md uppercase text-label-md text-terminal-text">{method}</span>
+            ))}
+          </div>
           <div class="flex items-center gap-2 font-label-md uppercase text-label-md text-terminal-accent mt-auto">
-            Read Full Note <span class="material-symbols-outlined text-[16px]">north_east</span>
+            View Models <span class="material-symbols-outlined text-[16px]">north_east</span>
           </div>
         </a>
       ))}
     </div>
     <div class="mt-8 md:hidden">
       <a href="/research" class="inline-flex items-center justify-center w-full px-4 py-3 border border-outline-variant text-terminal-text font-label-md uppercase text-label-md">
-        View All Research
+        View All Models
       </a>
     </div>
   </section>
