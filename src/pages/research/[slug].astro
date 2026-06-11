@@ -1,0 +1,153 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { valuationGroups, valuationModels } from '../../data/valuation-models';
+
+export function getStaticPaths() {
+  return valuationModels.map((model) => ({
+    params: { slug: model.slug },
+    props: { model },
+  }));
+}
+
+const { model } = Astro.props;
+const activeGroups = valuationGroups.filter((group) => model.valuationNotes.some((note) => note.groups.includes(group.id)));
+---
+<BaseLayout title={`${model.ticker} Valuation Report - NVTH Capital Markets`}>
+  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap">
+    <a href="/research" class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors">
+      &larr; All Equity Reports
+    </a>
+
+    <header class="mt-6 border-b border-outline-variant pb-8">
+      <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+        <div class="max-w-4xl">
+          <div class="flex flex-wrap items-center gap-3 mb-4">
+            <span class="inline-block px-2 py-1 bg-terminal-card border border-terminal-accent font-label-md uppercase text-label-md text-terminal-accent">{model.ticker}</span>
+            <span class="font-label-md uppercase text-label-md text-on-surface-variant">{model.sector}</span>
+          </div>
+          <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-4">{model.company} Valuation Report</h1>
+          <p class="font-body-lg text-body-lg text-terminal-text max-w-3xl">{model.report.headline}</p>
+        </div>
+        <div class="lg:text-right">
+          <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-2">Stance</p>
+          <p class="font-headline-sm text-headline-sm text-terminal-accent max-w-md">{model.report.stance}</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter mt-10">
+      <aside class="lg:col-span-4">
+        <div class="lg:sticky lg:top-24 space-y-6">
+          <div class="border border-terminal-border border-t-2 border-t-terminal-accent bg-terminal-card p-5">
+            <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Methods Used</p>
+            <div class="flex flex-wrap gap-2">
+              {activeGroups.map((group) => (
+                <span class="inline-block bg-terminal-bg border border-outline-variant px-3 py-1 font-label-md uppercase text-label-md text-terminal-text">{group.title}</span>
+              ))}
+            </div>
+          </div>
+
+          <div class="border border-terminal-border bg-terminal-card p-5">
+            <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Key Outputs</p>
+            <div class="space-y-4">
+              {model.valuationNotes.map((note) => (
+                <div class="border-l-2 border-terminal-accent pl-4">
+                  <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">{note.method}</p>
+                  <p class="font-headline-sm text-headline-sm text-terminal-accent">{note.price}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div class="border border-terminal-border bg-terminal-card p-5">
+            <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Downloads</p>
+            <div class="space-y-3">
+              {model.downloads.map((download) => (
+                <a
+                  href={download.href}
+                  download
+                  class="group min-h-12 inline-flex w-full items-center justify-between gap-3 border border-outline-variant px-3 py-3 font-label-md uppercase text-label-md text-terminal-text hover:border-terminal-accent hover:text-terminal-accent transition-colors"
+                >
+                  <span class="inline-flex items-center gap-2 min-w-0">
+                    <span class="material-symbols-outlined text-[18px] shrink-0">download</span>
+                    <span class="truncate">{download.label}</span>
+                  </span>
+                  <span class="font-label-data text-label-data opacity-80 shrink-0">{download.format}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <article class="lg:col-span-8">
+        <section class="border-b border-outline-variant pb-8 mb-8">
+          <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Executive View</p>
+          <div class="space-y-4">
+            {model.report.thesis.map((paragraph) => (
+              <p class="font-body-md text-body-md text-terminal-text">{paragraph}</p>
+            ))}
+          </div>
+        </section>
+
+        <section class="border-b border-outline-variant pb-8 mb-8">
+          <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Assumptions</p>
+          <div class="divide-y divide-outline-variant border border-outline-variant">
+            {model.report.assumptions.map((item) => (
+              <div class="grid grid-cols-1 md:grid-cols-12 gap-3 p-4">
+                <div class="md:col-span-3">
+                  <p class="font-label-md uppercase text-label-md text-on-surface-variant">{item.label}</p>
+                </div>
+                <div class="md:col-span-4">
+                  <p class="font-mono-data text-mono-data text-terminal-accent">{item.value}</p>
+                </div>
+                <div class="md:col-span-5">
+                  <p class="font-body-sm text-body-sm text-terminal-text">{item.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section class="border-b border-outline-variant pb-8 mb-8">
+          <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Valuation Result</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+            {model.report.valuationResult.map((item) => (
+              <div class="border border-terminal-border border-t-2 border-t-terminal-accent bg-terminal-card p-5">
+                <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-2">{item.label}</p>
+                <p class="font-headline-md text-headline-md text-terminal-accent mb-3">{item.value}</p>
+                <p class="font-body-sm text-body-sm text-terminal-text">{item.detail}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section class="border-b border-outline-variant pb-8 mb-8">
+          <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Interpretation</p>
+          <div class="space-y-4">
+            {model.report.interpretation.map((paragraph) => (
+              <p class="font-body-md text-body-md text-terminal-text">{paragraph}</p>
+            ))}
+          </div>
+        </section>
+
+        <section class="border-b border-outline-variant pb-8 mb-8">
+          <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Risks And Checks</p>
+          <ul class="space-y-3">
+            {model.report.risks.map((risk) => (
+              <li class="flex gap-3 font-body-md text-body-md text-terminal-text">
+                <span class="mt-2 block h-2 w-2 shrink-0 bg-terminal-accent"></span>
+                <span>{risk}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section class="border border-terminal-border bg-terminal-card p-5">
+          <p class="font-label-md uppercase text-label-md text-terminal-accent mb-3">Disclaimer</p>
+          <p class="font-body-sm text-body-sm text-on-surface-variant">{model.report.disclaimer}</p>
+        </section>
+      </article>
+    </div>
+  </section>
+</BaseLayout>
