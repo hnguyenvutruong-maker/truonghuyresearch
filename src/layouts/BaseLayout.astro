@@ -7,7 +7,6 @@ interface Props {
 }
 const { title, description = 'Capital Markets Analyst — rigorous financial modeling & equity research' } = Astro.props;
 
-const currentPath = Astro.url.pathname;
 ---
 <!doctype html>
 <html lang="en" class="dark">
@@ -39,23 +38,18 @@ const currentPath = Astro.url.pathname;
         <nav class="hidden md:flex items-center gap-8">
           <ul class="flex gap-6">
             <li>
-              <a class:list={["font-label-md uppercase text-label-md block h-full flex flex-col justify-end pb-1", currentPath === "/" ? "text-terminal-accent border-b-2 border-terminal-accent" : "text-on-surface-variant hover:text-terminal-accent transition-colors"]} href="/">
-                Home
+              <a class="font-label-md uppercase text-label-md block h-full flex flex-col justify-end pb-1 text-on-surface-variant hover:text-terminal-accent transition-colors" href="/#about">
+                View Profile
               </a>
             </li>
             <li>
-              <a class:list={["font-label-md uppercase text-label-md block h-full flex flex-col justify-end pb-1", currentPath.startsWith("/monthly-views") ? "text-terminal-accent border-b-2 border-terminal-accent" : "text-on-surface-variant hover:text-terminal-accent transition-colors"]} href="/monthly-views">
-                Monthly Views
+              <a class="font-label-md uppercase text-label-md block h-full flex flex-col justify-end pb-1 text-on-surface-variant hover:text-terminal-accent transition-colors" href="/#research">
+                Latest Research
               </a>
             </li>
             <li>
-              <a class:list={["font-label-md uppercase text-label-md block h-full flex flex-col justify-end pb-1", currentPath.startsWith("/market-views") ? "text-terminal-accent border-b-2 border-terminal-accent" : "text-on-surface-variant hover:text-terminal-accent transition-colors"]} href="/market-views">
-                Weekly Views
-              </a>
-            </li>
-            <li>
-              <a class:list={["font-label-md uppercase text-label-md block h-full flex flex-col justify-end pb-1", currentPath.startsWith("/research") ? "text-terminal-accent border-b-2 border-terminal-accent" : "text-on-surface-variant hover:text-terminal-accent transition-colors"]} href="/research">
-                Equity Research
+              <a class="font-label-md uppercase text-label-md block h-full flex flex-col justify-end pb-1 text-on-surface-variant hover:text-terminal-accent transition-colors" href="/#market-views">
+                Market View
               </a>
             </li>
           </ul>
@@ -73,10 +67,9 @@ const currentPath = Astro.url.pathname;
       <!-- Mobile Nav -->
       <div id="mobile-menu" class="hidden md:hidden border-t border-outline-variant bg-terminal-bg">
         <ul class="flex flex-col px-margin-mobile py-4 gap-4">
-          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/">Home</a></li>
-          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/monthly-views">Monthly Views</a></li>
-          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/market-views">Weekly Views</a></li>
-          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/research">Equity Research</a></li>
+          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/#about">View Profile</a></li>
+          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/#research">Latest Research</a></li>
+          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/#market-views">Market View</a></li>
           <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="mailto:contact@truonghuyresearch.xyz">Contact</a></li>
           <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/disclaimer">Disclaimer</a></li>
         </ul>

@@ -38,6 +38,30 @@ const downloadCount = valuationModels.reduce((total, model) => total + model.dow
             ))}
           </div>
 
+          <div class="border-y border-outline-variant py-5 mb-6">
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <p class="font-label-md uppercase text-label-md text-terminal-accent">Valuation Snapshot</p>
+              <span class="font-label-data text-label-data text-on-surface-variant">Model output</span>
+            </div>
+            <div class="space-y-4">
+              {model.valuationNotes.map((note) => (
+                <div class="border-l-2 border-terminal-accent pl-4">
+                  <div class="flex flex-wrap items-baseline justify-between gap-2 mb-2">
+                    <span class="font-label-md uppercase text-label-md text-terminal-text">{note.method}</span>
+                    <span class="font-mono-data text-mono-data text-terminal-accent">{note.price}</span>
+                  </div>
+                  <p class="font-body-sm text-body-sm text-on-surface-variant mb-1">
+                    <span class="text-terminal-text font-semibold">Assumptions:</span> {note.assumptions}
+                  </p>
+                  <p class="font-body-sm text-body-sm text-on-surface-variant">
+                    <span class="text-terminal-text font-semibold">Result:</span> {note.result}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <p class="mt-4 font-body-sm text-body-sm text-terminal-text">{model.conclusion}</p>
+          </div>
+
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
             {model.downloads.map((download) => (
               <a
