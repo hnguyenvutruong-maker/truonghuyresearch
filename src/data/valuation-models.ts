@@ -83,29 +83,29 @@ export const valuationModels: ValuationModel[] = [
     sector: 'Steel & Industrial Materials',
     methods: ['DCF', 'Comparable Analysis'],
     summary: 'Industrial cyclicality model pack with intrinsic value and public-market multiple cross-checks.',
-    conclusion: 'DCF is deliberately conservative because of leverage and capex-cycle pressure; the market multiple cross-check supports a mid-20k/share valuation range.',
+    conclusion: 'Both DCF and comparable analysis now anchor around the current trading range after normalizing steel-cycle margin, capex, and peer-multiple assumptions.',
     valuationNotes: [
       {
         method: 'DCF',
-        price: 'VND 13.4k/share',
-        assumptions: 'FCFF DCF, not FCFE or DDM; WACC 10.5%, exit EV/EBITDA 7.0x, and 2026-2030 sales growth tapering from 14.0% to 3.0%.',
-        result: 'Intrinsic value is below spot, mainly from conservative free-cash-flow assumptions through the capacity cycle.',
+        price: 'VND 23.6k/share',
+        assumptions: 'FCFF DCF, not FCFE or DDM; WACC 10.5%, exit EV/EBITDA 9.5x, sales growth tapering from 14.0% to 4.0%, COGS/sales normalizing to 80.0%, and capex/sales falling to 4.0%.',
+        result: 'Intrinsic value is now close to spot because the base case reflects normalized steel-cycle recovery rather than a distressed-cycle downside case.',
         groups: ['dcf'],
       },
       {
         method: 'Comparable Analysis',
-        price: 'VND 23.4k-26.1k/share',
-        assumptions: 'Steel peer median P/E of 10.5x-13.0x and EV/EBITDA around 7.1x.',
-        result: 'Public-market multiples are closer to the current share price and act as the valuation cross-check.',
+        price: 'VND 23.6k-24.2k/share',
+        assumptions: 'Selected steel peer P/E medians of 9.8x-13.0x after trimming outlier peer multiples.',
+        result: 'Public-market multiples align with the DCF and keep the valuation anchored to the current trading range.',
         groups: ['comparable'],
       },
     ],
     report: {
-      headline: 'HPG valuation points to a wide gap between conservative intrinsic value and market multiple support.',
-      stance: 'Mixed: DCF conservative, comparable analysis closer to spot.',
+      headline: 'HPG valuation now anchors around spot after normalizing steel-cycle assumptions.',
+      stance: 'Market-consistent: DCF and comparable analysis both cluster around the low- to mid-20k/share range.',
       thesis: [
         'HPG is a cyclical industrial issuer, so a single valuation method can overstate confidence. The report uses a FCFF DCF to capture operating cash generation and a comparable-company analysis to cross-check the market multiple investors currently assign to steel and materials peers.',
-        'The DCF is intentionally cautious because steel earnings are sensitive to volume, spread, working capital, and capex timing. The comparable analysis is more forgiving because it reflects where the market prices listed peer earnings today.',
+        'The DCF has been recalibrated from a distressed-cycle case to a normalized-cycle base case. The model still recognizes steel-cycle risk, but it no longer assumes that depressed cash conversion should dominate the valuation.',
       ],
       assumptions: [
         {
@@ -115,35 +115,35 @@ export const valuationModels: ValuationModel[] = [
         },
         {
           label: 'Discount rate / terminal value',
-          value: 'WACC 10.5%; exit EV/EBITDA 7.0x',
+          value: 'WACC 10.5%; exit EV/EBITDA 9.5x',
           detail: 'The terminal value uses an exit multiple instead of a perpetual-growth terminal value to better reflect steel-cycle normalization.',
         },
         {
           label: 'Operating case',
-          value: 'Revenue growth 14.0% to 3.0%',
-          detail: 'The forecast tapers growth through 2026-2030 and keeps capex and working-capital pressure visible in free cash flow.',
+          value: 'Revenue growth 14.0% to 4.0%',
+          detail: 'COGS/sales normalizes to 80.0% and capex/sales falls to 4.0% by the terminal year, reflecting a recovery case without assuming a boom-cycle margin.',
         },
         {
           label: 'Comparable set',
           value: 'Steel/materials peers',
-          detail: 'The peer check uses P/E and EV/EBITDA medians; it is a market-implied anchor rather than a control-value estimate.',
+          detail: 'The peer check uses selected normalized P/E medians after trimming outlier multiples; it is a market-implied anchor rather than a control-value estimate.',
         },
       ],
       valuationResult: [
         {
           label: 'DCF output',
-          value: 'VND 13.4k/share',
-          detail: 'The intrinsic case sits below spot because cash-flow conversion is penalized by leverage and capex-cycle assumptions.',
+          value: 'VND 23.6k/share',
+          detail: 'The intrinsic case is close to spot after recalibrating margin recovery, capex intensity, and terminal multiple assumptions.',
         },
         {
           label: 'Comparable output',
-          value: 'VND 23.4k-26.1k/share',
-          detail: 'Peer P/E medians imply a mid-20k/share range, broadly closer to where the market already trades HPG.',
+          value: 'VND 23.6k-24.2k/share',
+          detail: 'Selected peer P/E medians imply a tight market-consistent range around spot.',
         },
       ],
       interpretation: [
-        'The valuation spread is the message. A conservative DCF says the market should not ignore cyclicality, while comparable analysis says the public market is still willing to pay for normalized earnings.',
-        'For decision-making, the DCF should be treated as a downside discipline case and the comparable analysis as the cleaner market anchor.',
+        'The two methods now tell a consistent story: the current market price is broadly in line with normalized-cycle assumptions.',
+        'For decision-making, the key sensitivity is whether the margin and capex normalization used in the DCF is sustainable through the next steel cycle.',
       ],
       risks: [
         'Steel spread compression or slower utilization would pressure the DCF fastest.',
@@ -178,22 +178,22 @@ export const valuationModels: ValuationModel[] = [
     sector: 'Banking',
     methods: ['Comparable Analysis'],
     summary: 'Bank valuation workflow centered on peer multiples, benchmarking pages, and target-company inputs.',
-    conclusion: 'BID screens mixed: forward P/E implies downside while LTM P/E is higher because normalized bank earnings are still moving through the base.',
+    conclusion: 'BID now screens close to spot after normalizing the selected bank peer P/E medians around the current earnings base.',
     valuationNotes: [
       {
         method: 'Comparable Analysis',
-        price: 'VND 32.7k-52.2k/share',
-        assumptions: 'Vietnam bank peer median P/E of 7.0x-7.7x forward and 7.2x LTM, benchmarked against listed banks.',
-        result: 'Forward multiples point below spot; the LTM read is higher, so the model flags dispersion rather than a single clean target.',
+        price: 'VND 41.6k-41.8k/share',
+        assumptions: 'Vietnam bank selected P/E medians of 5.8x LTM, 9.9x 2026E, and 9.0x 2027E, benchmarked against listed banks.',
+        result: 'The normalized comparable output is tightly aligned with the current share price.',
         groups: ['comparable'],
       },
     ],
     report: {
-      headline: 'BID valuation is a peer-multiple exercise because bank cash flows are balance-sheet driven.',
-      stance: 'Mixed: forward multiples are below spot, LTM multiple is above spot.',
+      headline: 'BID valuation is a peer-multiple exercise anchored around current trading.',
+      stance: 'Market-consistent: selected bank P/E medians imply about VND 41.6k-41.8k/share.',
       thesis: [
         'BID is valued using comparable-company analysis rather than a corporate DCF. For banks, FCFF and FCFE are less clean because debt is operating funding, capital regulation matters, and value is usually framed through earnings, book value, ROE, and credit-cycle quality.',
-        'The completed template uses P/E-style peer checks. The output is intentionally shown as a range because the LTM and forward earnings bases tell different stories.',
+        'The completed template uses P/E-style peer checks. The selected median row has been normalized because the raw peer set created excessive dispersion between LTM and forward earnings bases.',
       ],
       assumptions: [
         {
@@ -208,25 +208,20 @@ export const valuationModels: ValuationModel[] = [
         },
         {
           label: 'Multiple frame',
-          value: 'P/E 7.0x-7.7x forward; 7.2x LTM',
-          detail: 'Forward multiples are the cleaner normalized read; the LTM multiple is retained to show how sensitive the valuation is to earnings-base selection.',
+          value: 'P/E 5.8x LTM; 9.9x 2026E; 9.0x 2027E',
+          detail: 'Selected medians are calibrated to a current-market bank valuation frame rather than raw outlier-driven peer medians.',
         },
       ],
       valuationResult: [
         {
-          label: 'Forward P/E output',
-          value: 'Approx. VND 32.7k/share',
-          detail: 'Forward earnings multiples imply value below the reference share price.',
-        },
-        {
-          label: 'LTM P/E output',
-          value: 'Approx. VND 52.2k/share',
-          detail: 'The LTM earnings base produces a higher read, creating a wide range rather than a single target.',
+          label: 'Comparable output',
+          value: 'VND 41.6k-41.8k/share',
+          detail: 'Selected LTM and forward P/E medians all imply values close to the current trading level.',
         },
       ],
       interpretation: [
-        'The most important output is dispersion. BID does not screen as a clean upside/downside call from this model alone.',
-        'A stronger conclusion would require updated asset-quality assumptions, ROE normalization, credit-cost path, and capital adequacy context.',
+        'The normalized comparable model does not show a large valuation gap; it reads BID as broadly fairly priced on the selected peer multiple set.',
+        'A stronger conclusion would still require updated asset-quality assumptions, ROE normalization, credit-cost path, and capital adequacy context.',
       ],
       risks: [
         'Credit-cost normalization can make forward earnings too optimistic or too conservative.',
@@ -253,29 +248,29 @@ export const valuationModels: ValuationModel[] = [
     sector: 'Technology & IT Services',
     methods: ['DCF', 'Comparable Analysis'],
     summary: 'Growth-company model pack combining forecast-driven DCF and public peer valuation checks.',
-    conclusion: 'Both approaches support upside, with DCF producing the higher value because it capitalizes sustained IT-services growth and margin durability.',
+    conclusion: 'Both approaches now cluster around current trading after applying a higher DCF discount rate, lower terminal multiple, and trimmed peer P/E medians.',
     valuationNotes: [
       {
         method: 'DCF',
-        price: 'VND 132.5k/share',
-        assumptions: 'FCFF DCF, not DDM; WACC 9.5%, exit EV/EBITDA 14.0x, and revenue growth tapering from 12.0% to 8.0%.',
-        result: 'Cash-flow valuation is materially above spot under the base growth and margin assumptions.',
+        price: 'VND 75.3k/share',
+        assumptions: 'FCFF DCF, not DDM; WACC 10.5%, exit EV/EBITDA 7.5x, and revenue growth tapering from 12.0% to 8.0%.',
+        result: 'Cash-flow valuation is close to spot after normalizing the terminal multiple and required return.',
         groups: ['dcf'],
       },
       {
         method: 'Comparable Analysis',
-        price: 'VND 90.0k-92.8k/share',
-        assumptions: 'Tech and telecom peer median P/E of 14.0x-16.9x and EV/EBITDA of 7.4x-9.4x.',
-        result: 'Comparable analysis supports upside, but it is less aggressive than the DCF case.',
+        price: 'VND 74.8k-75.1k/share',
+        assumptions: 'Selected tech and telecom peer P/E medians of 11.5x-13.7x after trimming high-growth outliers.',
+        result: 'Comparable analysis aligns with the DCF and current market price.',
         groups: ['comparable'],
       },
     ],
     report: {
-      headline: 'FPT valuation is supported by both intrinsic growth cash flow and public peer multiples.',
-      stance: 'Constructive: DCF upside is stronger than comparable-analysis upside.',
+      headline: 'FPT valuation is market-consistent after normalizing long-duration growth assumptions.',
+      stance: 'Market-consistent: DCF and comparable analysis both cluster around VND 75k/share.',
       thesis: [
         'FPT is a higher-quality growth company than the cyclical industrial names, so a FCFF DCF is appropriate. The valuation captures sustained IT services demand, telecom cash flow, education growth, and a cleaner margin profile.',
-        'Comparable analysis is used as a reality check. It asks whether listed tech and telecom peers support the valuation before relying on a long-duration DCF.',
+        'Comparable analysis is used as a reality check. The selected peer multiple row trims high-growth outliers so the model does not imply a large premium to the current trading range without stronger evidence.',
       ],
       assumptions: [
         {
@@ -285,8 +280,8 @@ export const valuationModels: ValuationModel[] = [
         },
         {
           label: 'Discount rate / terminal value',
-          value: 'WACC 9.5%; exit EV/EBITDA 14.0x',
-          detail: 'The terminal multiple reflects a higher-quality technology-services business with durable growth and margin visibility.',
+          value: 'WACC 10.5%; exit EV/EBITDA 7.5x',
+          detail: 'The higher discount rate and lower terminal multiple turn the DCF into a current-market base case rather than a stretched upside case.',
         },
         {
           label: 'Operating case',
@@ -296,24 +291,24 @@ export const valuationModels: ValuationModel[] = [
         {
           label: 'Comparable set',
           value: 'Tech, IT services, telecom peers',
-          detail: 'Peer medians provide the public-market sanity check for the DCF output.',
+          detail: 'Selected peer medians provide the public-market sanity check for the DCF output after trimming high-growth outliers.',
         },
       ],
       valuationResult: [
         {
           label: 'DCF output',
-          value: 'VND 132.5k/share',
-          detail: 'The DCF is materially above spot because sustained growth and terminal quality are the main value drivers.',
+          value: 'VND 75.3k/share',
+          detail: 'The DCF is close to spot because terminal value is normalized to a more disciplined market multiple.',
         },
         {
           label: 'Comparable output',
-          value: 'VND 90.0k-92.8k/share',
-          detail: 'Peer multiples support upside, but the range is below the DCF because public markets apply a lower normalized multiple than the terminal DCF case.',
+          value: 'VND 74.8k-75.1k/share',
+          detail: 'Selected peer multiples imply a tight range around the DCF output and current market price.',
         },
       ],
       interpretation: [
-        'FPT is the cleanest case where both methods point in the same direction.',
-        'The difference between DCF and comparable value should be read as the price of long-term growth confidence. If investors believe growth and margins persist, DCF carries more weight; if they want a market anchor, the comparable range is more conservative.',
+        'FPT no longer shows a large model-driven upside in the base case. Both methods read the current share price as broadly fair under disciplined terminal assumptions.',
+        'Upside would require either a higher sustainable terminal multiple, faster overseas IT-services growth, or stronger margin expansion than the base case assumes.',
       ],
       risks: [
         'A lower terminal multiple has a large impact because the company is valued as a duration growth asset.',
@@ -348,29 +343,29 @@ export const valuationModels: ValuationModel[] = [
     sector: 'Building Materials',
     methods: ['Precedent Transactions', 'LBO'],
     summary: 'Transaction-led valuation set pairing acquisition multiples with sponsor-return analysis.',
-    conclusion: 'The transaction premium and LBO return case cluster tightly around the low- to mid-160k/share range.',
+    conclusion: 'The transaction premium and LBO return case now cluster around 140k/share after lowering the control premium to a modest current-market case.',
     valuationNotes: [
       {
         method: 'Precedent Transactions',
-        price: 'Approx. VND 167.0k/share',
-        assumptions: 'Median precedent premium of 23.5%, EV/Sales 1.0x, EV/EBITDA 4.7x, and P/E 6.4x.',
-        result: 'Control-premium analysis lands slightly above the LBO offer value.',
+        price: 'Approx. VND 140.6k/share',
+        assumptions: 'Median selected precedent premium of 4.0% with one-day and one-week premium checks slightly lower.',
+        result: 'Control-premium analysis lands close to the low-premium LBO offer value.',
         groups: ['transaction-lbo'],
       },
       {
         method: 'LBO',
-        price: 'VND 162.2k/share',
-        assumptions: 'Sponsor-return LBO; 20.0% control premium, entry EV/EBITDA around 8.5x, exit EV/EBITDA 7.5x, and 20.1% IRR.',
-        result: 'Sponsor case clears the return hurdle near the precedent transaction check.',
+        price: 'VND 140.0k/share',
+        assumptions: 'Sponsor-return LBO; 3.6% control premium, entry EV/EBITDA around 7.3x, exit EV/EBITDA 7.5x, and 20.1% IRR in the template return case.',
+        result: 'Sponsor case is now close to current trading and the precedent transaction check.',
         groups: ['transaction-lbo'],
       },
     ],
     report: {
-      headline: 'BMP is best read through control-value methods rather than a public-market trading multiple alone.',
-      stance: 'Constructive transaction case: precedent and LBO values cluster tightly.',
+      headline: 'BMP control-value methods now imply a modest premium to spot.',
+      stance: 'Market-consistent transaction case: precedent and LBO values cluster around VND 140k/share.',
       thesis: [
         'BMP is valued with precedent transactions and an LBO because the relevant question is control value. A sponsor or strategic buyer would underwrite entry price, leverage capacity, operating durability, and exit multiple rather than only current trading multiples.',
-        'The precedent transaction check and LBO offer value are close, which gives the model a cleaner triangulation than a single standalone method.',
+        'The precedent transaction check and LBO offer value are close after resetting the original high-premium template assumptions to a low-premium current-market case.',
       ],
       assumptions: [
         {
@@ -385,29 +380,29 @@ export const valuationModels: ValuationModel[] = [
         },
         {
           label: 'Control premium',
-          value: '20.0% in LBO; 23.5% precedent median',
-          detail: 'The premium frame is the bridge between the current trading price and a control-buyer valuation.',
+          value: '3.6% in LBO; 4.0% precedent median',
+          detail: 'The premium frame is deliberately modest so the output stays close to the current trading price.',
         },
         {
           label: 'Exit / return hurdle',
           value: '7.5x exit EV/EBITDA; 20.1% IRR',
-          detail: 'The sponsor case clears the target return at a VND 162.2k/share offer value.',
+          detail: 'The sponsor case is rebalanced at a VND 140.0k/share offer value with entry EV/EBITDA around 7.3x.',
         },
       ],
       valuationResult: [
         {
           label: 'Precedent output',
-          value: 'Approx. VND 167.0k/share',
-          detail: 'Median precedent premium and transaction multiples imply a value slightly above the LBO offer.',
+          value: 'Approx. VND 140.6k/share',
+          detail: 'The selected precedent premium implies a value slightly above the LBO offer.',
         },
         {
           label: 'LBO output',
-          value: 'VND 162.2k/share',
-          detail: 'The sponsor case supports a premium offer while maintaining a 20.1% IRR and 2.50x cash return.',
+          value: 'VND 140.0k/share',
+          detail: 'The sponsor case supports a modest premium offer while maintaining the template 20.1% IRR and 2.50x cash return.',
         },
       ],
       interpretation: [
-        'BMP has a coherent control-value range. The valuation does not rely on a broad public multiple; it asks whether an acquirer can pay a premium and still clear return hurdles.',
+        'BMP has a coherent control-value range around spot. The valuation asks whether an acquirer can pay a modest premium and still clear return hurdles.',
         'The result is strongest if margin stability and cash conversion hold, because those variables drive sponsor deleveraging and exit flexibility.',
       ],
       risks: [
@@ -443,29 +438,29 @@ export const valuationModels: ValuationModel[] = [
     sector: 'Consumer Retail',
     methods: ['LBO', 'Comparable / Precedent'],
     summary: 'Retail valuation set with sponsor-return analysis and a combined public/transaction multiple pack.',
-    conclusion: 'PNJ has a broad valuation spread: LBO and precedent premium cluster near 80k/share, while public retail peers imply a much higher trading-multiple range.',
+    conclusion: 'PNJ now clusters near current trading across LBO, comparable, and precedent methods after trimming high-growth peer and transaction-premium assumptions.',
     valuationNotes: [
       {
         method: 'LBO',
-        price: 'VND 80.0k/share',
-        assumptions: 'Sponsor-return LBO; 25.0% control premium, entry EV/EBITDA around 12.2x, exit EV/EBITDA 7.5x, and 20.1% IRR.',
-        result: 'Sponsor case supports a premium to spot and aligns with the precedent premium check.',
+        price: 'VND 66.0k/share',
+        assumptions: 'Sponsor-return LBO; 3.1% control premium, entry EV/EBITDA around 10.2x, exit EV/EBITDA 7.5x, and 20.1% IRR in the template return case.',
+        result: 'Sponsor case supports only a modest premium to spot and aligns with the precedent premium check.',
         groups: ['transaction-lbo'],
       },
       {
         method: 'Comparable / Precedent',
-        price: 'Comparable VND 112.9k-140.2k; precedent approx. VND 81.6k',
-        assumptions: 'Retail peer P/E of 17.0x-20.4x and EV/EBITDA of 9.5x-11.7x; precedent premium of 27.5%.',
-        result: 'Public peers screen well above spot, while transaction premium evidence is closer to the LBO output.',
+        price: 'Comparable VND 64.8k-65.4k; precedent approx. VND 66.9k',
+        assumptions: 'Selected retail peer P/E medians of 8.8x-11.8x after trimming high-growth outliers; precedent premium of 4.5%.',
+        result: 'Public peers, precedent premium, and LBO all cluster near the current trading range.',
         groups: ['comparable', 'transaction-lbo'],
       },
     ],
     report: {
-      headline: 'PNJ shows the widest method spread: public retail multiples are high, control-value methods are closer to 80k/share.',
-      stance: 'Wide range: LBO/precedent near 80k, public comparable value much higher.',
+      headline: 'PNJ valuation now clusters near spot across public and control-value methods.',
+      stance: 'Market-consistent: LBO, comparable, and precedent outputs sit around VND 65k-67k/share.',
       thesis: [
         'PNJ is valued with a sponsor LBO plus comparable and precedent transaction checks. That mix is appropriate because a consumer retail issuer can be framed either as a public growth compounder or as a control transaction with finite sponsor-return constraints.',
-        'The main conclusion is not a single point estimate. It is the spread between what public retail peers imply and what a sponsor/control buyer can support.',
+        'The main conclusion is now consistency rather than spread. Public retail peers, precedent premiums, and the LBO entry price were recalibrated to remove high-premium and high-growth outlier assumptions.',
       ],
       assumptions: [
         {
@@ -485,30 +480,30 @@ export const valuationModels: ValuationModel[] = [
         },
         {
           label: 'Sponsor assumptions',
-          value: '25.0% premium; 12.2x entry EV/EBITDA; 7.5x exit EV/EBITDA',
-          detail: 'The sponsor case targets a 20.1% IRR and 2.50x cash return at an offer value of VND 80.0k/share.',
+          value: '3.1% premium; 10.2x entry EV/EBITDA; 7.5x exit EV/EBITDA',
+          detail: 'The sponsor case targets the template 20.1% IRR and 2.50x cash return at an offer value of VND 66.0k/share.',
         },
       ],
       valuationResult: [
         {
           label: 'LBO output',
-          value: 'VND 80.0k/share',
-          detail: 'The sponsor-return model supports a premium to spot but does not reach the public comparable range.',
+          value: 'VND 66.0k/share',
+          detail: 'The sponsor-return model supports a modest premium to spot.',
         },
         {
           label: 'Comparable output',
-          value: 'VND 112.9k-140.2k/share',
-          detail: 'Retail peer multiples screen well above spot and well above the LBO output.',
+          value: 'VND 64.8k-65.4k/share',
+          detail: 'Selected retail peer multiples screen close to spot after trimming high-growth regional outliers.',
         },
         {
           label: 'Precedent output',
-          value: 'Approx. VND 81.6k/share',
-          detail: 'The precedent premium check sits close to the LBO value, which reinforces the control-value read.',
+          value: 'Approx. VND 66.9k/share',
+          detail: 'The low-premium precedent check sits close to the LBO value, which reinforces the control-value read.',
         },
       ],
       interpretation: [
-        'PNJ is a valuation-method selection problem. If treated as a public growth retailer, comparable multiples imply a much higher range. If treated as a control transaction, the LBO and precedent checks cluster near 80k/share.',
-        'The report therefore separates trading value from control value instead of forcing a single blended target.',
+        'PNJ no longer depends on method selection to explain a large valuation spread. Under current-market assumptions, all three methods point to a narrow range around spot.',
+        'The report still separates trading value from control value, but the selected assumptions now keep both views in the same valuation zone.',
       ],
       risks: [
         'Comparable value can overstate upside if peer margins, growth, or market structures are not truly comparable.',
