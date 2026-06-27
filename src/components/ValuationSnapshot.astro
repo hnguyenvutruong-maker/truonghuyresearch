@@ -1,0 +1,19 @@
+---
+import type { ValuationNote } from '../data/valuation-models';
+
+interface Props {
+  notes: ValuationNote[];
+}
+
+const { notes } = Astro.props;
+---
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+  {notes.map((note) => (
+    <div class="border border-terminal-border border-t-2 border-t-terminal-accent bg-terminal-card p-5">
+      <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-2">{note.method}</p>
+      <p class="font-headline-md text-headline-md text-terminal-accent mb-3">{note.price}</p>
+      <p class="font-body-sm text-body-sm text-terminal-text">{note.result}</p>
+    </div>
+  ))}
+</div>

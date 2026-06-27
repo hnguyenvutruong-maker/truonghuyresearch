@@ -26,6 +26,12 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Optional
 
+from market_memory import (
+    format_market_memory_for_llm,
+    load_market_memory,
+    save_weekly_market_memory,
+)
+
 # ── Reconfigure stdout/stderr to UTF-8 (Windows console default is cp1252/charmap,
 #    which breaks when vnstock or feedparser prints Vietnamese characters) ──
 for _stream_name in ("stdout", "stderr"):
@@ -84,10 +90,11 @@ CONTENT_DIR = PROJECT_ROOT / "src" / "content" / "market-views"
 QUARTERLY_FILE = CONTENT_DIR / "_quarterly_summary.json"
 FOREIGN_FLOW_CACHE = CONTENT_DIR / "_foreign_flow_cache.json"
 
-# LLM config
-LLM_API_KEY = os.getenv("OLLAMA_API_KEY") or os.getenv("LLM_API_KEY") or ""
-LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://ollama.com/api")
-LLM_MODEL = os.getenv("LLM_MODEL", "minimax-m3")
+# LLM config. Use an OpenAI-compatible endpoint by default; provider-specific
+# endpoints can still be supplied through LLM_BASE_URL.
+LLM_API_KEY = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY") or ""
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1")
+LLM_MODEL = os.getenv("LLM_MODEL", "gpt-5.2")
 
 # Ensure output dirs exist
 CONTENT_DIR.mkdir(parents=True, exist_ok=True)
@@ -115,8 +122,7 @@ def get_week_dates(friday_str: Optional[str] = None) -> tuple[date, date, date]:
         friday = date.fromisoformat(friday_str)
     else:
         today = today_ict()
-        # Most recent Friday (skip if today is Friday and not yet EOD, though we
-        # assume this runs on Saturday/Sunday)
+        # Most recent Friday. The scheduled workflow runs after market close.
         days_since_friday = (today.weekday() - 4) % 7
         friday = today - timedelta(days=days_since_friday)
         # If today IS Friday, use it
@@ -1186,46 +1192,28 @@ def call_llm(
     """
     if not LLM_API_KEY:
         raise RuntimeError(
-            "OLLAMA_API_KEY or LLM_API_KEY environment variable is required. "
-            "Set it before running: $env:OLLAMA_API_KEY='your-key' (PowerShell) "
-            "or export OLLAMA_API_KEY='your-key' (bash)"
+            "LLM_API_KEY environment variable is required. "
+            "Set it before running: $env:LLM_API_KEY='your-key' (PowerShell) "
+            "or export LLM_API_KEY='your-key' (bash)."
         )
 
-    # Choose endpoint based on base_url.
-    # - Ollama native (e.g. https://ollama.com/api) uses POST /api/chat with payload {"model", "messages", "stream": false}
-    #   and response shape: {"message": {"content": "..."}}
-    # - OpenAI-compatible (e.g. https://api.openai.com/v1) uses POST /v1/chat/completions with payload {"model", "messages", "temperature", "max_tokens"}
-    #   and response shape: {"choices": [{"message": {"content": "..."}}]}
     base_url = LLM_BASE_URL.rstrip("/")
-    use_ollama_native = base_url.endswith("/api") or "ollama.com" in base_url
-
-    if use_ollama_native:
-        endpoint = f"{base_url}/chat"
-        payload = {
-            "model": LLM_MODEL,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "stream": False,
-            "options": {
-                "temperature": temperature,
-                "num_predict": max_tokens,
-            },
-        }
-    else:
+    if base_url.endswith("/chat/completions"):
+        endpoint = base_url
+    elif base_url.endswith("/v1"):
         endpoint = f"{base_url}/chat/completions"
-        if not endpoint.endswith("/chat/completions") and "/v1" not in base_url:
-            endpoint = f"{base_url}/v1/chat/completions"
-        payload = {
-            "model": LLM_MODEL,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
+    else:
+        endpoint = f"{base_url}/v1/chat/completions"
+
+    payload = {
+        "model": LLM_MODEL,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
 
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
@@ -1241,10 +1229,7 @@ def call_llm(
     try:
         with urllib.request.urlopen(req, timeout=300) as resp:
             body = json.loads(resp.read().decode("utf-8"))
-        if use_ollama_native:
-            content = body.get("message", {}).get("content", "")
-        else:
-            content = body["choices"][0]["message"]["content"]
+        content = body["choices"][0]["message"]["content"]
         # Strip markdown code fences if model wrapped output
         content_stripped = content.strip()
         if content_stripped.startswith("```markdown"):
@@ -1298,6 +1283,7 @@ def generate_commentary(
     macro_data: dict[str, Any],
     news_headlines: str,
     quarterly_summary: dict[str, Any],
+    market_memory: Optional[dict[str, Any]] = None,
     estimated_fields: Optional[list[str]] = None,
 ) -> str:
     """
@@ -1306,6 +1292,7 @@ def generate_commentary(
     log("LLM", "Generating weekly commentary (LLM call #1)...")
 
     quarterly_text = format_summary_for_llm(quarterly_summary)
+    shared_memory_text = format_market_memory_for_llm(market_memory or {})
 
     # Build sector list text
     top_sectors = sorted(sectors, key=lambda x: x.get("change_pct", 0), reverse=True)[:10]
@@ -1385,9 +1372,14 @@ a number or ticker. Not a news aggregator — an analyst with a point of view.
 QUARTERLY MARKET STATE (your long-term memory — reference this for context):
 {quarterly_text}
 
+WEEKLY / MONTHLY / QUARTERLY LINKAGE STATE:
+{shared_memory_text}
+
 Use the quarterly summary to maintain a coherent long-term narrative. Reference prior
 weeks and evolving themes where relevant. Don't re-explain what was already covered —
-update and build upon it."""
+update and build upon it. Use the linkage state to keep weekly, monthly, and quarterly
+views consistent. If this week's data breaks a prior monthly or quarterly thesis,
+state that change explicitly and explain why."""
 
     user_msg = f"""Write this week's market commentary.{estimated_note}
 
@@ -1470,6 +1462,8 @@ RULES:
 - session_tone: EXACTLY "{tone}" (lowercase, no quotes around value).
 - Professional Bloomberg/FT tone. Every claim quantified.
 - Use quarterly summary for continuity. Reference prior weeks.
+- Use the linkage state to reconcile weekly, monthly, and quarterly narratives.
+- Explicitly distinguish continuation themes from thesis changes.
 - Use news headlines to explain catalysts. Cite sources where possible.
 - Never fabricate data. Say "data unavailable" if needed.
 - CRITICAL: foreign_net_weekly_bn_vnd, foreign_buy_weekly_bn_vnd, and foreign_sell_weekly_bn_vnd MUST be null when no real foreign flow data is available. Do NOT invent or estimate these values. If the provided data shows null, output null."""
@@ -1609,6 +1603,71 @@ Output ONLY valid JSON. No markdown fences, no explanation."""
 # ═══════════════════════════════════════════════════════════════════════════════
 # VALIDATION
 # ═══════════════════════════════════════════════════════════════════════════════
+
+def _inject_daily_data(markdown: str, daily_data: list[Any]) -> str:
+    """
+    Inject a `vn_index_daily:` YAML block into the markdown frontmatter.
+    Normalizes pandas Timestamps to ISO date strings and numpy floats to Python floats.
+    Skips rows that are missing required OHLC columns. No-ops if daily_data is empty.
+    """
+    if not daily_data:
+        return markdown
+
+    rows: list[dict[str, Any]] = []
+    for row in daily_data:
+        # Determine the date
+        time_val = (
+            row.get("time") or row.get("date") or row.get("Date") or
+            row.get("Datetime") or row.get("datetime")
+        )
+        if time_val is None:
+            continue
+        if hasattr(time_val, "isoformat"):
+            time_str = str(time_val.isoformat())[:10]
+        else:
+            time_str = str(time_val)[:10]
+
+        # Map column names (vnstock lowercase or yfinance capitalised)
+        def _f(row: dict, *keys: str) -> float | None:
+            for k in keys:
+                v = row.get(k)
+                if v is not None:
+                    try:
+                        return round(float(v), 2)
+                    except (TypeError, ValueError):
+                        pass
+            return None
+
+        o = _f(row, "open", "Open")
+        h = _f(row, "high", "High")
+        l = _f(row, "low", "Low")
+        c = _f(row, "close", "Close")
+        if None in (o, h, l, c):
+            continue
+        rows.append({"time": time_str, "open": o, "high": h, "low": l, "close": c})
+
+    if not rows:
+        return markdown
+
+    yaml_lines = ["vn_index_daily:"]
+    for r in rows:
+        yaml_lines.append(
+            f"  - time: \"{r['time']}\"\n"
+            f"    open: {r['open']}\n"
+            f"    high: {r['high']}\n"
+            f"    low: {r['low']}\n"
+            f"    close: {r['close']}"
+        )
+    daily_block = "\n".join(yaml_lines)
+
+    # Insert before the closing --- of frontmatter
+    return re.sub(
+        r"(\nsession_tone:[^\n]*\n)---",
+        lambda m: m.group(1) + daily_block + "\n---",
+        markdown,
+        count=1,
+    )
+
 
 def validate_frontmatter(markdown_text: str) -> list[str]:
     """
@@ -1760,13 +1819,13 @@ def main() -> None:
         "--collect-foreign-flow",
         action="store_true",
         help="Collect today's HOSE foreign flow from CafeF and save to cache. "
-             "Run this daily (Mon-Fri) via cron for complete weekly data.",
+             "Run this daily via cron for complete weekly data.",
     )
     parser.add_argument(
         "--deploy",
         action="store_true",
         help="After generation, git commit everything and push to GitHub. "
-             "GitHub Actions will auto-build and deploy to Cloudflare Pages.",
+             "GitHub Actions will auto-build and deploy to Vercel.",
     )
 
     args = parser.parse_args()
@@ -1891,6 +1950,8 @@ def main() -> None:
         quarterly = get_default_summary(current_quarter)
         save_quarterly_summary(quarterly)
 
+    market_memory = load_market_memory()
+
     # ── Fetch news ──────────────────────────────────────────────────────────
     if args.skip_news:
         news_text = "(News scraping skipped via --skip-news flag)"
@@ -1902,6 +1963,7 @@ def main() -> None:
     print()
     commentary = generate_commentary(
         monday, friday, vn_data, sectors, macro_data, news_text, quarterly,
+        market_memory=market_memory,
         estimated_fields=estimated_fields,
     )
 
@@ -1918,6 +1980,9 @@ def main() -> None:
     else:
         log("VAL", "  All required frontmatter fields present and valid.")
 
+    # ── Inject vn_index_daily into frontmatter ──────────────────────────────
+    commentary = _inject_daily_data(commentary, vn_data.get("daily_data", []))
+
     # ── Write .md file ──────────────────────────────────────────────────────
     output_md = CONTENT_DIR / f"{friday_str}.md"
     output_md.write_text(commentary, encoding="utf-8")
@@ -1929,8 +1994,12 @@ def main() -> None:
         print()
         updated_summary = update_quarterly_summary_via_llm(quarterly, commentary, friday)
         save_quarterly_summary(updated_summary)
+        quarterly = updated_summary
     else:
         log("Q", "Skipping quarterly summary update (--skip-summary)")
+
+    save_weekly_market_memory(friday, commentary, quarterly)
+    log("MEM", "Shared market memory updated")
 
     # ── Final report ────────────────────────────────────────────────────────
     print()
@@ -1952,13 +2021,13 @@ def main() -> None:
         log("DEPLOY", "Committing and pushing to GitHub...")
         deploy_result = _git_deploy(friday_str)
         if deploy_result:
-            log("DEPLOY", "  Done! GitHub Actions will auto-build and deploy to Cloudflare.")
+            log("DEPLOY", "  Done! GitHub Actions will auto-build and deploy to Vercel.")
 
 
 def _git_deploy(friday_str: str) -> bool:
     """
     Git add, commit, and push all changes. Relies on GitHub Actions workflow
-    (`.github/workflows/deploy.yml`) to build and deploy to Cloudflare Pages.
+    (`.github/workflows/deploy.yml`) to build and deploy to Vercel.
     """
     import subprocess
     import shutil

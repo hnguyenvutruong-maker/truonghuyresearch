@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import VnIndexChart from '../../components/VnIndexChart.astro';
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
@@ -38,8 +39,28 @@ const arrow = (val: number | null) => val == null ? '·' : val >= 0 ? '▲' : '�
 const arrowColor = (val: number | null) => val == null ? 'text-terminal-muted' : val >= 0 ? 'text-tertiary' : 'text-error';
 const sign = (val: number | null) => val == null ? '—' : (val >= 0 ? '+' : '') + val.toFixed(2) + '%';
 const fmtVal = (val: number | null, decimals: number = 2) => val == null ? '—' : val.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+
+const candleData = entry.data.vn_index_daily ?? [];
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": entry.data.title,
+  "datePublished": entry.data.date.toISOString(),
+  "author": {
+    "@type": "Person",
+    "name": "Nguyen Vu Truong Huy",
+    "url": "https://truonghuyresearch.xyz"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "Nguyen Vu Truong Huy"
+  },
+  "url": Astro.url.href,
+};
 ---
-<BaseLayout title={entry.data.title}>
+<BaseLayout title={`${entry.data.title} - ${monthLabel}`} type="article">
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap">
     <!-- Breadcrumb -->
     <a href="/monthly-views" class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors">
@@ -176,6 +197,13 @@ const fmtVal = (val: number | null, decimals: number = 2) => val == null ? '—'
         </div>
       </div>
     </div>
+
+    <!-- Daily candlestick chart (shown only when vn_index_daily is in frontmatter) -->
+    {candleData.length > 0 && (
+      <div class="mt-4">
+        <VnIndexChart candleData={candleData} label="VN-INDEX DAILY (THIS MONTH)" />
+      </div>
+    )}
 
     <!-- Divider -->
     <div class="mt-10">

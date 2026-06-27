@@ -1,0 +1,13 @@
+---
+import type { ProjectStatus } from '../data/valuation-models';
+
+interface Props {
+  status?: ProjectStatus | string;
+}
+
+const { status = 'Published' } = Astro.props;
+---
+
+<span class="inline-flex items-center border border-tertiary px-2 py-1 font-label-md uppercase text-label-md text-tertiary">
+  {status}
+</span>

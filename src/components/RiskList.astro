@@ -1,0 +1,16 @@
+---
+interface Props {
+  risks: string[];
+}
+
+const { risks } = Astro.props;
+---
+
+<ul class="space-y-3">
+  {risks.map((risk) => (
+    <li class="flex gap-3 font-body-md text-body-md text-terminal-text">
+      <span class="mt-2 block h-2 w-2 shrink-0 bg-terminal-accent"></span>
+      <span>{risk}</span>
+    </li>
+  ))}
+</ul>

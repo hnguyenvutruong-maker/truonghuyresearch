@@ -1,104 +1,136 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import DisclaimerBox from '../components/DisclaimerBox.astro';
+import ProjectCard from '../components/ProjectCard.astro';
 import { valuationGroups, valuationModels, type ValuationGroupId } from '../data/valuation-models';
 
 const downloadCount = valuationModels.reduce((total, model) => total + model.downloads.length, 0);
-const modelsForGroup = (groupId: ValuationGroupId) => valuationModels.filter((model) => model.valuationNotes.some((note) => note.groups.includes(groupId)));
-const notesForGroup = (model: (typeof valuationModels)[number], groupId: ValuationGroupId) => model.valuationNotes.filter((note) => note.groups.includes(groupId));
-const downloadsForGroup = (model: (typeof valuationModels)[number], groupId: ValuationGroupId) => model.downloads.filter((download) => download.groups.includes(groupId));
+const methodPageConfig: Array<{ id: ValuationGroupId; href: string }> = [
+  { id: 'dcf', href: '/research/dcf' },
+  { id: 'comparable', href: '/research/comparable-analysis' },
+  { id: 'transaction-lbo', href: '/research/precedent-transactions-lbo' },
+];
+const methodLinks = methodPageConfig.map((item) => {
+  const group = valuationGroups.find((valuationGroup) => valuationGroup.id === item.id);
+  const modelCount = valuationModels.filter((model) => model.valuationNotes.some((note) => note.groups.includes(item.id))).length;
+  return { ...item, group, modelCount };
+});
 ---
-<BaseLayout title="Equity Valuation Reports - NVTH Capital Markets">
+
+<BaseLayout
+  title="Valuation - Nguyen Vu Truong Huy"
+  description="Selected Vietnam equity valuation work, capital markets notes, and downloadable model files."
+>
   <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap">
     <header class="mb-section-gap max-w-4xl border-b border-outline-variant pb-8">
-      <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest mb-3">Equity Research</p>
-      <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-4">Equity Valuation Reports</h1>
+      <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest mb-3">Valuation portfolio</p>
+      <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-4">
+        Valuation
+      </h1>
       <p class="font-body-lg text-body-lg text-on-surface-variant">
-        Read the valuation logic directly on the site, then download the completed Excel models if you want the workbook detail.
+        Company valuation work, model assumptions, output ranges, and downloadable files prepared for academic portfolio demonstration.
       </p>
       <div class="mt-6 flex flex-wrap gap-3 font-label-data text-label-data text-on-surface-variant">
-        <span class="border border-outline-variant px-3 py-1">{valuationModels.length} issuers</span>
-        <span class="border border-outline-variant px-3 py-1">{downloadCount} model files</span>
-        <span class="border border-outline-variant px-3 py-1">{valuationGroups.length} method groups</span>
+        <span class="border border-outline-variant px-3 py-1">{valuationModels.length} published issuers</span>
+        <span class="border border-outline-variant px-3 py-1">{downloadCount} downloadable files</span>
       </div>
     </header>
 
-    <div class="space-y-16">
-      {valuationGroups.map((group) => {
-        const groupedModels = modelsForGroup(group.id);
-        return (
-          <section id={group.id} class="scroll-mt-24">
-            <div class="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4 border-b border-terminal-accent pb-3">
-              <div>
-                <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest mb-2">{group.eyebrow}</p>
-                <h2 class="font-display-lg text-display-lg text-terminal-accent">{group.title}</h2>
-              </div>
-              <p class="font-body-sm text-body-sm text-on-surface-variant max-w-2xl md:text-right">{group.description}</p>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
-              {groupedModels.map((model) => {
-                const groupNotes = notesForGroup(model, group.id);
-                const groupDownloads = downloadsForGroup(model, group.id);
-                return (
-                  <article class="bg-terminal-card border border-terminal-border border-t-2 border-t-terminal-accent p-6 hover:border-terminal-accent transition-colors flex flex-col h-full">
-                    <div class="flex justify-between items-start gap-4 mb-5">
-                      <div>
-                        <span class="inline-block px-2 py-1 bg-terminal-bg border border-outline-variant font-label-md uppercase text-label-md text-terminal-accent mb-3">{model.ticker}</span>
-                        <h3 class="font-headline-md text-headline-md text-terminal-accent">{model.company}</h3>
-                      </div>
-                      <span class="font-label-data text-label-data text-on-surface-variant whitespace-nowrap">{groupDownloads.length} {groupDownloads.length === 1 ? 'file' : 'files'}</span>
-                    </div>
-
-                    <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-3">{model.sector}</p>
-                    <p class="font-body-sm text-body-sm text-terminal-text mb-5">{model.summary}</p>
-
-                    <div class="border-y border-outline-variant py-5 mb-5">
-                      <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Valuation Snapshot</p>
-                      <div class="space-y-4">
-                        {groupNotes.map((note) => (
-                          <div class="border-l-2 border-terminal-accent pl-4">
-                            <div class="flex flex-wrap items-baseline justify-between gap-2 mb-2">
-                              <span class="font-label-md uppercase text-label-md text-terminal-text">{note.method}</span>
-                              <span class="font-mono-data text-mono-data text-terminal-accent">{note.price}</span>
-                            </div>
-                            <p class="font-body-sm text-body-sm text-on-surface-variant mb-1">
-                              <span class="text-terminal-text font-semibold">Assumptions:</span> {note.assumptions}
-                            </p>
-                            <p class="font-body-sm text-body-sm text-on-surface-variant">
-                              <span class="text-terminal-text font-semibold">Result:</span> {note.result}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <p class="font-body-sm text-body-sm text-terminal-text mb-5 flex-grow">{model.conclusion}</p>
-
-                    <div class="flex flex-col sm:flex-row gap-3 mt-auto">
-                      <a
-                        href={`/research/${model.slug}`}
-                        class="inline-flex min-h-12 items-center justify-center gap-2 border border-terminal-accent px-4 py-3 font-label-md uppercase text-label-md text-terminal-accent hover:bg-terminal-accent hover:text-terminal-bg transition-colors"
-                      >
-                        Read Report <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-                      </a>
-                      {groupDownloads.slice(0, 2).map((download) => (
-                        <a
-                          href={download.href}
-                          download
-                          class="inline-flex min-h-12 items-center justify-center gap-2 border border-outline-variant px-4 py-3 font-label-md uppercase text-label-md text-terminal-text hover:border-terminal-accent hover:text-terminal-accent transition-colors"
-                        >
-                          <span class="material-symbols-outlined text-[18px]">download</span>
-                          {download.label}
-                        </a>
-                      ))}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
+    <div class="mb-8 grid grid-cols-2 border border-outline-variant bg-terminal-card" role="tablist" aria-label="Valuation views">
+      <button
+        type="button"
+        data-valuation-tab="company"
+        class="min-h-12 border-r border-outline-variant bg-terminal-accent px-4 py-3 font-label-md uppercase text-label-md text-terminal-bg transition-colors"
+        aria-selected="true"
+      >
+        Company
+      </button>
+      <button
+        type="button"
+        data-valuation-tab="method"
+        class="min-h-12 bg-terminal-card px-4 py-3 font-label-md uppercase text-label-md text-terminal-text hover:text-terminal-accent transition-colors"
+        aria-selected="false"
+      >
+        Method
+      </button>
     </div>
+
+    <section data-valuation-view="company">
+      <div class="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4 border-b border-terminal-accent pb-3">
+        <div>
+          <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest mb-2">By ticker</p>
+          <h2 class="font-display-lg text-display-lg text-terminal-accent">Company Valuation Reports</h2>
+        </div>
+        <p class="font-body-sm text-body-sm text-on-surface-variant max-w-2xl md:text-right">
+          Use this view when you want to start from a company or ticker first.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
+        {valuationModels.map((model) => (
+          <ProjectCard project={model} />
+        ))}
+      </div>
+    </section>
+
+    <section data-valuation-view="method" class="hidden">
+      <div class="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4 border-b border-terminal-accent pb-3">
+        <div>
+          <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest mb-2">By valuation method</p>
+          <h2 class="font-display-lg text-display-lg text-terminal-accent">Method Pages</h2>
+        </div>
+        <p class="font-body-sm text-body-sm text-on-surface-variant max-w-2xl md:text-right">
+          Use this view when you want to compare workbooks and reports built with the same valuation method.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+        {methodLinks.map(({ group, href, modelCount }) => group && (
+          <a href={href} class="group border border-terminal-border border-t-2 border-t-terminal-accent bg-terminal-card p-5 hover:border-terminal-accent transition-colors">
+            <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-2">{group.eyebrow}</p>
+            <h3 class="font-headline-md text-headline-md text-terminal-accent mb-4 group-hover:text-on-primary transition-colors">{group.title}</h3>
+            <p class="font-body-sm text-body-sm text-terminal-text mb-5">{group.description}</p>
+            <div class="flex items-center justify-between border-t border-outline-variant pt-4">
+              <span class="font-label-data text-label-data text-on-surface-variant">{modelCount} reports</span>
+              <span class="inline-flex items-center gap-2 font-label-md uppercase text-label-md text-terminal-accent">
+                Open page <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
+              </span>
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
   </section>
+
+  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto pb-section-gap">
+    <DisclaimerBox />
+  </section>
+
+  <script>
+    const tabs = Array.from(document.querySelectorAll('[data-valuation-tab]'));
+    const panels = Array.from(document.querySelectorAll('[data-valuation-view]'));
+    const activeClasses = ['bg-terminal-accent', 'text-terminal-bg'];
+    const inactiveClasses = ['bg-terminal-card', 'text-terminal-text'];
+
+    const setValuationView = (view: string) => {
+      panels.forEach((panel) => {
+        panel.classList.toggle('hidden', panel.getAttribute('data-valuation-view') !== view);
+      });
+
+      tabs.forEach((tab) => {
+        const active = tab.getAttribute('data-valuation-tab') === view;
+        tab.setAttribute('aria-selected', String(active));
+        tab.classList.toggle('hover:text-terminal-accent', !active);
+        activeClasses.forEach((className) => tab.classList.toggle(className, active));
+        inactiveClasses.forEach((className) => tab.classList.toggle(className, !active));
+      });
+    };
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const view = tab.getAttribute('data-valuation-tab');
+        if (view) setValuationView(view);
+      });
+    });
+  </script>
 </BaseLayout>

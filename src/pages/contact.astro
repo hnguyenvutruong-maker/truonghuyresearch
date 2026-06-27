@@ -5,10 +5,17 @@ const contactRows = [
   {
     label: 'Email',
     value: 'hnguyenvutruong@gmail.com',
+    href: 'mailto:hnguyenvutruong@gmail.com',
   },
   {
     label: 'Phone',
     value: '0962220094',
+    href: 'tel:0962220094',
+  },
+  {
+    label: 'LinkedIn',
+    value: 'linkedin.com/in/trghuyy',
+    href: 'https://www.linkedin.com/in/trghuyy/',
   },
 ];
 ---
@@ -23,7 +30,7 @@ const contactRows = [
       <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest mb-3">Direct Contact</p>
       <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-4">Contact</h1>
       <p class="font-body-lg text-body-lg text-terminal-text">
-        Nguyen Vu Truong Huy
+        Nguyen Vu Truong Huy - open to Equity Research / Capital Markets / Investment Banking internship opportunities.
       </p>
     </header>
 
@@ -35,7 +42,9 @@ const contactRows = [
               <p class="font-label-md uppercase text-label-md text-on-surface-variant">{row.label}</p>
             </div>
             <div class="md:col-span-9">
-              <p class="font-mono-data text-[18px] md:text-[22px] leading-tight text-terminal-accent break-all">{row.value}</p>
+              <a href={row.href} class="font-mono-data text-[18px] md:text-[22px] leading-tight text-terminal-accent break-all hover:text-on-primary transition-colors">
+                {row.value}
+              </a>
             </div>
           </div>
         ))}

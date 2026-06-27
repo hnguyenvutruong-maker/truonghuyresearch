@@ -22,6 +22,12 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
+from market_memory import (
+    format_market_memory_for_llm,
+    load_market_memory,
+    save_monthly_market_memory,
+)
+
 # ── Reconfigure stdout/stderr to UTF-8 ──
 for _stream_name in ("stdout", "stderr"):
     _stream = getattr(sys, _stream_name, None)
@@ -68,9 +74,9 @@ MONTHLY_SUMMARY_FILE = CONTENT_DIR / "_monthly_summary.json"
 WEEKLY_CONTENT_DIR = PROJECT_ROOT / "src" / "content" / "market-views"
 FOREIGN_FLOW_CACHE = WEEKLY_CONTENT_DIR / "_foreign_flow_cache.json"
 
-LLM_API_KEY = os.getenv("OLLAMA_API_KEY") or os.getenv("LLM_API_KEY") or ""
-LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://ollama.com/api")
-LLM_MODEL = os.getenv("LLM_MODEL", "minimax-m3")
+LLM_API_KEY = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY") or ""
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1")
+LLM_MODEL = os.getenv("LLM_MODEL", "gpt-5.2")
 
 CONTENT_DIR.mkdir(parents=True, exist_ok=True)
 ICT_OFFSET = timedelta(hours=7)
@@ -450,33 +456,25 @@ def fetch_macro_monthly(
 def call_llm(system: str, user: str, temperature: float = 0.7, max_tokens: int = 4096) -> str:
     """Call LLM via OpenAI-compatible API (same pattern as weekly_bot)."""
     if not LLM_API_KEY:
-        raise RuntimeError("OLLAMA_API_KEY or LLM_API_KEY environment variable is required.")
+        raise RuntimeError("LLM_API_KEY environment variable is required.")
 
     base_url = LLM_BASE_URL.rstrip("/")
-    use_ollama_native = base_url.endswith("/api") or "ollama.com" in base_url
-
-    if use_ollama_native:
-        endpoint = f"{base_url}/chat"
-        payload = {
-            "model": LLM_MODEL,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "stream": False,
-            "options": {"temperature": temperature, "num_predict": max_tokens},
-        }
+    if base_url.endswith("/chat/completions"):
+        endpoint = base_url
+    elif base_url.endswith("/v1"):
+        endpoint = f"{base_url}/chat/completions"
     else:
-        endpoint = f"{base_url}/v1/chat/completions" if "/v1" not in base_url else f"{base_url}/chat/completions"
-        payload = {
-            "model": LLM_MODEL,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
+        endpoint = f"{base_url}/v1/chat/completions"
+
+    payload = {
+        "model": LLM_MODEL,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
 
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
@@ -488,10 +486,7 @@ def call_llm(system: str, user: str, temperature: float = 0.7, max_tokens: int =
     try:
         with urllib.request.urlopen(req, timeout=300) as resp:
             body = json.loads(resp.read().decode("utf-8"))
-        if use_ollama_native:
-            content = body.get("message", {}).get("content", "")
-        else:
-            content = body["choices"][0]["message"]["content"]
+        content = body["choices"][0]["message"]["content"]
         # Strip code fences
         content = content.strip()
         if content.startswith("```markdown"):
@@ -556,11 +551,13 @@ def generate_commentary(
     week_recap: list[dict[str, Any]],
     macro_data: dict[str, Any],
     monthly_summary: dict[str, Any],
+    market_memory: Optional[dict[str, Any]] = None,
 ) -> str:
     """LLM call: Generate the monthly market commentary markdown."""
     log("LLM", "Generating monthly commentary...")
 
     summary_text = format_summary_for_llm(monthly_summary)
+    shared_memory_text = format_market_memory_for_llm(market_memory or {})
 
     # Best/worst sectors
     best_sector = sectors[0] if sectors else None
@@ -652,6 +649,12 @@ def generate_commentary(
         - For negative flows, write "net selling of VND Xbn" or "foreign investors
           were net sellers of VND Xbn"; do not write "VND -Xbn net outflow".
 
+        NARRATIVE CONTINUITY (CRITICAL):
+        - Reconcile the month with the weekly notes and active quarterly thesis.
+        - Identify what continued, what changed, and what invalidated prior views.
+        - Do not contradict the shared memory unless the new monthly data clearly
+          breaks the old thesis; when that happens, explain the break explicitly.
+
         CRITICAL: Your output MUST be a valid Markdown document starting with a YAML
         frontmatter block (between --- delimiters). The frontmatter must contain exactly
         these fields with these types:
@@ -715,6 +718,9 @@ DO NOT wrap output in code fences. Output raw markdown.
 
         ## Prior Monthly Context
         {summary_text}
+
+        ## Shared Weekly / Monthly / Quarterly Memory
+        {shared_memory_text}
 
         ## VN-Index Data (Monthly)
         - Open: {n(fm['open'])}
@@ -851,6 +857,67 @@ def update_monthly_summary_via_llm(
         return updated
 
 
+def _inject_daily_data(markdown: str, daily_data: list[Any]) -> str:
+    """
+    Inject a `vn_index_daily:` YAML block into the markdown frontmatter.
+    Normalizes pandas Timestamps to ISO date strings and numpy floats to Python floats.
+    """
+    if not daily_data:
+        return markdown
+
+    rows: list[dict[str, Any]] = []
+    for row in daily_data:
+        time_val = (
+            row.get("time") or row.get("date") or row.get("Date") or
+            row.get("Datetime") or row.get("datetime")
+        )
+        if time_val is None:
+            continue
+        if hasattr(time_val, "isoformat"):
+            time_str = str(time_val.isoformat())[:10]
+        else:
+            time_str = str(time_val)[:10]
+
+        def _f(row: dict, *keys: str) -> float | None:
+            for k in keys:
+                v = row.get(k)
+                if v is not None:
+                    try:
+                        return round(float(v), 2)
+                    except (TypeError, ValueError):
+                        pass
+            return None
+
+        o = _f(row, "open", "Open")
+        h = _f(row, "high", "High")
+        l = _f(row, "low", "Low")
+        c = _f(row, "close", "Close")
+        if None in (o, h, l, c):
+            continue
+        rows.append({"time": time_str, "open": o, "high": h, "low": l, "close": c})
+
+    if not rows:
+        return markdown
+
+    yaml_lines = ["vn_index_daily:"]
+    for r in rows:
+        yaml_lines.append(
+            f"  - time: \"{r['time']}\"\n"
+            f"    open: {r['open']}\n"
+            f"    high: {r['high']}\n"
+            f"    low: {r['low']}\n"
+            f"    close: {r['close']}"
+        )
+    daily_block = "\n".join(yaml_lines)
+
+    return re.sub(
+        r"(\nsession_tone:[^\n]*\n)---",
+        lambda m: m.group(1) + daily_block + "\n---",
+        markdown,
+        count=1,
+    )
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # VALIDATION
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -940,11 +1007,13 @@ def main() -> None:
 
     # ── Load monthly summary ──
     monthly_summary = load_monthly_summary()
+    market_memory = load_market_memory()
 
     # ── Generate commentary ──
     print()
     commentary = generate_commentary(
         first_day, last_day, market_data, sectors, week_recap, macro_data, monthly_summary,
+        market_memory=market_memory,
     )
 
     # ── Validate ──
@@ -957,6 +1026,9 @@ def main() -> None:
     else:
         log("VAL", "  Frontmatter valid ✓")
 
+    # ── Inject vn_index_daily into frontmatter ──
+    commentary = _inject_daily_data(commentary, market_data.get("daily_data", []))
+
     # ── Write .md file ──
     output_path = CONTENT_DIR / f"{last_day.isoformat()}.md"
     output_path.write_text(commentary, encoding="utf-8")
@@ -967,7 +1039,11 @@ def main() -> None:
         print()
         updated = update_monthly_summary_via_llm(monthly_summary, commentary, m_label)
         save_monthly_summary(updated)
+        monthly_summary = updated
         log("SUM", f"  Monthly summary updated for {m_label}")
+
+    save_monthly_market_memory(m_label, commentary, monthly_summary)
+    log("MEM", "  Shared market memory updated")
 
     print()
     print("=" * 60)

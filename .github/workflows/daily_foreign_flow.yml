@@ -2,9 +2,13 @@
 
 on:
   schedule:
-    # 09:30 UTC Mon-Fri = 16:30 ICT (after HOSE close)
-    - cron: '30 9 * * 1-5'
+    # 10:00 UTC daily = 17:00 ICT
+    - cron: '0 10 * * *'
   workflow_dispatch:
+
+concurrency:
+  group: market-bot
+  cancel-in-progress: false
 
 jobs:
   collect:

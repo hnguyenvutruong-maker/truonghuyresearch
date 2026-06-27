@@ -2,8 +2,13 @@
 
 on:
   schedule:
-    - cron: '0 10 * * 6'
+    # 10:00 UTC Friday = 17:00 ICT Friday
+    - cron: '0 10 * * 5'
   workflow_dispatch:
+
+concurrency:
+  group: market-bot
+  cancel-in-progress: false
 
 jobs:
   collect-foreign-flow:
@@ -41,7 +46,9 @@ jobs:
         run: pip install -r requirements.txt
       - name: Generate weekly market view
         env:
-          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY || secrets.OPENAI_API_KEY }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL || 'https://api.openai.com/v1' }}
+          LLM_MODEL: ${{ vars.LLM_MODEL || 'gpt-5.2' }}
         run: python weekly_bot.py
       - name: Commit and push if new content
         run: |

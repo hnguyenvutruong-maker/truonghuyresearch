@@ -1,0 +1,25 @@
+---
+import type { ReportPoint } from '../data/valuation-models';
+
+interface Props {
+  items: ReportPoint[];
+}
+
+const { items } = Astro.props;
+---
+
+<div class="divide-y divide-outline-variant border border-outline-variant">
+  {items.map((item) => (
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 p-4">
+      <div class="md:col-span-3">
+        <p class="font-label-md uppercase text-label-md text-on-surface-variant">{item.label}</p>
+      </div>
+      <div class="md:col-span-4">
+        <p class="font-mono-data text-mono-data text-terminal-accent">{item.value}</p>
+      </div>
+      <div class="md:col-span-5">
+        <p class="font-body-sm text-body-sm text-terminal-text">{item.detail}</p>
+      </div>
+    </div>
+  ))}
+</div>

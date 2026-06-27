@@ -1,0 +1,67 @@
+name: Monthly Market View
+
+on:
+  schedule:
+    # 10:00 UTC on possible month-end dates = 17:00 ICT.
+    # A guard step below runs generation only when tomorrow is the 1st in Asia/Saigon.
+    - cron: '0 10 28-31 * *'
+  workflow_dispatch:
+
+concurrency:
+  group: market-bot
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check month-end in ICT
+        id: month_end
+        shell: bash
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          tomorrow_day="$(TZ=Asia/Ho_Chi_Minh date -d 'tomorrow' +%d)"
+          if [ "$tomorrow_day" = "01" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.month_end.outputs.run == 'true'
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        if: steps.month_end.outputs.run == 'true'
+        run: pip install -r requirements.txt
+
+      - name: Collect month-end foreign flow
+        if: steps.month_end.outputs.run == 'true'
+        timeout-minutes: 5
+        run: python weekly_bot.py --collect-foreign-flow
+
+      - name: Generate monthly market view
+        if: steps.month_end.outputs.run == 'true'
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY || secrets.OPENAI_API_KEY }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL || 'https://api.openai.com/v1' }}
+          LLM_MODEL: ${{ vars.LLM_MODEL || 'gpt-5.2' }}
+        run: python monthly_bot.py
+
+      - name: Commit and push if new content
+        if: steps.month_end.outputs.run == 'true'
+        run: |
+          git config user.name "Market Bot"
+          git config user.email "bot@truonghuyresearch.xyz"
+          git add -A
+          git diff --staged --quiet || git commit -m "monthly: market view"
+          git push

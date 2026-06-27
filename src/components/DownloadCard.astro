@@ -1,0 +1,59 @@
+---
+import type { ValuationDownload } from '../data/valuation-models';
+
+interface Props {
+  download: ValuationDownload;
+  fallbackUpdated?: string;
+}
+
+const { download, fallbackUpdated = '2026-06-11' } = Astro.props;
+const modelType = download.modelType ?? download.label;
+const contains = download.contains ?? download.sheets;
+const description =
+  download.description ??
+  `Downloadable ${download.format} workbook built from ${download.sourceTemplate}.`;
+const lastUpdated = download.lastUpdated ?? fallbackUpdated;
+---
+
+<article class="border border-terminal-border bg-terminal-card p-5">
+  <div class="flex flex-col gap-4">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-2">{modelType}</p>
+        <h3 class="font-headline-sm text-headline-sm text-terminal-accent">{download.label}</h3>
+      </div>
+      <span class="border border-outline-variant px-2 py-1 font-label-data text-label-data text-terminal-text">
+        {download.format}
+      </span>
+    </div>
+    <p class="font-body-sm text-body-sm text-terminal-text">{description}</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 border-y border-outline-variant py-3">
+      <div>
+        <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">Last updated</p>
+        <p class="font-mono-data text-mono-data text-terminal-text">{lastUpdated}</p>
+      </div>
+      <div>
+        <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">File type</p>
+        <p class="font-mono-data text-mono-data text-terminal-text">{download.format}</p>
+      </div>
+    </div>
+    <div>
+      <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-2">Contains</p>
+      <div class="flex flex-wrap gap-2">
+        {contains.map((item) => (
+          <span class="border border-outline-variant bg-terminal-bg px-2 py-1 font-label-md uppercase text-label-md text-terminal-text">
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
+    <a
+      href={download.href}
+      download
+      class="inline-flex min-h-12 w-full items-center justify-center gap-2 border border-terminal-accent px-4 py-3 font-label-md uppercase text-label-md text-terminal-accent hover:bg-terminal-accent hover:text-terminal-bg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terminal-accent transition-colors"
+    >
+      <span class="material-symbols-outlined text-[18px]" aria-hidden="true">download</span>
+      Download {modelType}
+    </a>
+  </div>
+</article>

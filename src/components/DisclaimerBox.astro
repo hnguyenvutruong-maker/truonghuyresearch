@@ -1,0 +1,15 @@
+---
+import { portfolioDisclaimer } from '../data/valuation-models';
+
+interface Props {
+  label?: string;
+  text?: string;
+}
+
+const { label = 'Academic research / not investment advice', text = portfolioDisclaimer } = Astro.props;
+---
+
+<section class="border border-terminal-border bg-terminal-card p-5 md:p-6">
+  <p class="font-label-md uppercase text-label-md text-terminal-accent mb-3">{label}</p>
+  <p class="font-body-sm md:font-body-md text-body-sm md:text-body-md text-on-surface-variant">{text}</p>
+</section>

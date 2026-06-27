@@ -36,6 +36,15 @@ const marketViews = defineCollection({
     gold_weekly_change_pct: z.number().nullable(),
     wti_close: z.number().nullable(),
     wti_weekly_change_pct: z.number().nullable(),
+
+    // Daily OHLCV for candlestick chart (optional — emitted by bot when data available)
+    vn_index_daily: z.array(z.object({
+      time: z.string(),
+      open: z.number(),
+      high: z.number(),
+      low: z.number(),
+      close: z.number(),
+    })).optional(),
   }),
 });
 
@@ -82,6 +91,15 @@ const monthlyViews = defineCollection({
     gold_monthly_change_pct: z.number().nullable(),
     wti_close: z.number().nullable(),
     wti_monthly_change_pct: z.number().nullable(),
+
+    // Daily OHLCV for candlestick chart (optional — emitted by bot when data available)
+    vn_index_daily: z.array(z.object({
+      time: z.string(),
+      open: z.number(),
+      high: z.number(),
+      low: z.number(),
+      close: z.number(),
+    })).optional(),
   }),
 });
 

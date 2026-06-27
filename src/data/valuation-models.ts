@@ -1,5 +1,10 @@
 export type ValuationGroupId = 'dcf' | 'comparable' | 'transaction-lbo';
 
+export type ProjectStatus = 'Published';
+
+export const portfolioDisclaimer =
+  'This website is for academic and portfolio demonstration purposes only. It does not constitute investment advice, a recommendation, or a solicitation to buy or sell securities. Valuation outputs may be incomplete, stale, or based on simplified assumptions.';
+
 export type ValuationGroup = {
   id: ValuationGroupId;
   title: string;
@@ -14,6 +19,10 @@ export type ValuationDownload = {
   sourceTemplate: string;
   sheets: string[];
   groups: ValuationGroupId[];
+  modelType?: string;
+  description?: string;
+  contains?: string[];
+  lastUpdated?: string;
 };
 
 export type ValuationNote = {
@@ -46,6 +55,18 @@ export type ValuationModel = {
   ticker: string;
   company: string;
   sector: string;
+  status?: ProjectStatus;
+  lastUpdated?: string;
+  outputRange?: string;
+  projectPoints?: string[];
+  disclaimerLabel?: string;
+  investmentQuestion?: string;
+  keyAssumptions?: ReportPoint[];
+  modelImprovementNotes?: string[];
+  sensitivityNeeded?: string[];
+  limitation?: string;
+  futureUpgrade?: string[];
+  metricsNeeded?: string[];
   methods: string[];
   summary: string;
   conclusion: string;
@@ -81,9 +102,59 @@ export const valuationModels: ValuationModel[] = [
     ticker: 'HPG',
     company: 'Hoa Phat Group',
     sector: 'Steel & Industrial Materials',
+    status: 'Published',
+    lastUpdated: '2026-06-11',
+    outputRange: 'DCF: VND 22.3k/share; Comparable Analysis: VND 25.5k-25.9k/share',
+    disclaimerLabel: 'Academic research / not investment advice',
+    investmentQuestion: 'Is the market pricing HPG as a normalized steel-cycle recovery story, or should cash-flow risk keep the valuation discounted?',
+    projectPoints: [
+      'Built an FCFF DCF and a public peer P/E cross-check for HPG.',
+      'Separated conservative cash-flow value from market-implied normalized earnings.',
+      'Packaged the DCF and comparable workbooks for download and review.',
+    ],
+    keyAssumptions: [
+      {
+        label: 'Revenue growth path',
+        value: '14.0% to 4.0%',
+        detail: 'Growth steps down through the forecast period instead of assuming a full-cycle boom case.',
+      },
+      {
+        label: 'COGS/sales normalization',
+        value: '80.0%',
+        detail: 'Margin recovery is included, but the model does not assume peak steel-cycle profitability.',
+      },
+      {
+        label: 'Capex/sales',
+        value: 'Falls to 4.0%',
+        detail: 'Capital intensity moderates as the operating case normalizes.',
+      },
+      {
+        label: 'WACC',
+        value: '10.5%',
+        detail: 'Used to discount unlevered free cash flow to firm.',
+      },
+      {
+        label: 'Exit EV/EBITDA',
+        value: '9.0x',
+        detail: 'Terminal value uses an exit multiple rather than a perpetual-growth terminal value.',
+      },
+      {
+        label: 'Peer P/E medians',
+        value: '14.0x LTM; 11.4x 2026E; 10.5x 2027E',
+        detail: 'Selected medians are used after trimming outlier peer multiples.',
+      },
+    ],
+    modelImprovementNotes: [
+      'Full 3-statement integration',
+      'Working capital schedule',
+      'WACC bridge',
+      'Sensitivity table',
+      'EV/EBITDA peer cross-check',
+    ],
+    sensitivityNeeded: ['WACC vs Exit Multiple', 'Revenue Growth vs EBITDA Margin'],
     methods: ['DCF', 'Comparable Analysis'],
     summary: 'Industrial cyclicality model pack with intrinsic value and public-market multiple cross-checks.',
-    conclusion: 'HPG now has an intentional valuation spread: DCF is the intrinsic discipline case below spot, while comparable analysis reflects a stronger normalized-cycle public-market case.',
+    conclusion: 'HPG should be read as a valuation range, not a single target price. DCF is the conservative intrinsic anchor; comparable analysis is the market-implied normalized earnings case.',
     valuationNotes: [
       {
         method: 'DCF',
@@ -166,13 +237,17 @@ export const valuationModels: ValuationModel[] = [
         'A higher terminal multiple would lift DCF value disproportionately because terminal value is a large share of enterprise value.',
         'A prolonged property or construction slowdown would make the comparable case less defensible even if peer multiples remain elevated.',
       ],
-      disclaimer: 'This report is an academic valuation exercise prepared from the completed workbook outputs and selected public market data. It is not investment advice, a recommendation, or a solicitation to buy or sell securities.',
+      disclaimer: portfolioDisclaimer,
     },
     downloads: [
       {
         label: 'DCF',
         href: '/research/valuation-models/hpg-dcf-analysis.xlsx',
         format: 'XLSX',
+        modelType: 'FCFF DCF',
+        description: 'Workbook with the HPG FCFF DCF, operating assumptions, working capital schedule, WACC inputs, and terminal value framework.',
+        contains: ['DCF', 'NWC', 'WACC', 'Operating assumptions', 'Terminal value'],
+        lastUpdated: '2026-06-11',
         sourceTemplate: 'SV- DCF Analysis_Template.xlsx',
         sheets: ['DCF', 'NWC', 'WACC', 'A1', 'A2'],
         groups: ['dcf'],
@@ -181,6 +256,10 @@ export const valuationModels: ValuationModel[] = [
         label: 'Comparable Analysis',
         href: '/research/valuation-models/hpg-comparable-analysis.xlsx',
         format: 'XLSX',
+        modelType: 'Comparable Company Analysis',
+        description: 'Peer valuation workbook using selected steel/materials P/E medians to cross-check the DCF output.',
+        contains: ['Peer list', 'Benchmarking pages', 'Target company inputs', 'Output range'],
+        lastUpdated: '2026-06-11',
         sourceTemplate: 'SV- Comparable Companies_Template.xlsx',
         sheets: ['List', 'Benchmarking 1', 'Benchmarking 2', 'Ouput', 'TargetCo', 'CompCo 1-15'],
         groups: ['comparable'],
@@ -192,9 +271,56 @@ export const valuationModels: ValuationModel[] = [
     ticker: 'BID',
     company: 'BIDV',
     sector: 'Banking',
+    status: 'Published',
+    lastUpdated: '2026-06-11',
+    outputRange: 'Comparable range: VND 39.7k-44.3k/share',
+    disclaimerLabel: 'Academic research / not investment advice',
+    investmentQuestion: 'Is BID fairly valued inside the listed-bank peer range, or should asset quality, ROE, and provisioning risk shift the stock toward the low end?',
+    projectPoints: [
+      'Built a listed-bank comparable framework for BID.',
+      'Compared LTM and forward earnings bases to show a valuation band.',
+      'Flagged the limits of a P/E-only bank valuation.',
+    ],
+    keyAssumptions: [
+      {
+        label: 'Peer set',
+        value: 'Vietnam listed banks',
+        detail: 'The model benchmarks BID against banks with comparable market liquidity and banking exposure.',
+      },
+      {
+        label: 'Multiple framework',
+        value: 'P/E medians',
+        detail: 'The output is based on listed-bank P/E multiples, not a corporate DCF.',
+      },
+      {
+        label: 'LTM earnings',
+        value: '6.1x selected P/E',
+        detail: 'LTM earnings anchor the normalized-support case.',
+      },
+      {
+        label: 'Forward earnings',
+        value: '9.4x 2026E; 9.1x 2027E',
+        detail: 'Forward periods show how valuation shifts with earnings normalization.',
+      },
+      {
+        label: 'Output framing',
+        value: 'Range, not point estimate',
+        detail: 'The model avoids false precision because bank valuation depends on asset quality, ROE, credit cost, and capital.',
+      },
+    ],
+    limitation: 'The current BID model is a peer sanity check. It is useful for seeing where BID sits versus listed banks, but it is not yet a full bank valuation model. A stronger version should connect P/B, ROE, credit cost, NPLs, provisioning, funding cost, and capital adequacy.',
+    futureUpgrade: [
+      'P/B-ROE framework',
+      'Residual Income model',
+      'NIM assumptions',
+      'Credit cost scenarios',
+      'NPL and provisioning analysis',
+      'CAR/capital adequacy tracking',
+    ],
+    metricsNeeded: ['ROE', 'P/B', 'NIM', 'NPL ratio', 'Credit cost', 'Loan growth', 'CASA / funding cost', 'CAR'],
     methods: ['Comparable Analysis'],
     summary: 'Bank valuation workflow centered on peer multiples, benchmarking pages, and target-company inputs.',
-    conclusion: 'BID is a comparable-only bank valuation, so the key output is a deliberately wide P/E range around spot rather than a single precise target.',
+    conclusion: 'BID should be read as a peer-based valuation range. The current model checks whether BID sits inside the listed-bank multiple frame; it does not yet replace a full bank valuation model.',
     valuationNotes: [
       {
         method: 'Comparable Analysis',
@@ -265,13 +391,17 @@ export const valuationModels: ValuationModel[] = [
         'Funding-cost pressure or deposit competition would reduce the usefulness of simple P/E comparisons.',
         'A capital raise, regulatory change, or foreign ownership limit change could move the appropriate trading multiple quickly.',
       ],
-      disclaimer: 'This report is an academic valuation exercise prepared from the completed workbook outputs and selected public market data. It is not investment advice, a recommendation, or a solicitation to buy or sell securities.',
+      disclaimer: portfolioDisclaimer,
     },
     downloads: [
       {
         label: 'Comparable Analysis',
         href: '/research/valuation-models/bid-comparable-analysis.xlsx',
         format: 'XLSX',
+        modelType: 'Bank Comparable Analysis',
+        description: 'Workbook benchmarking BID against listed Vietnam banks using P/E multiples and LTM/forward earnings bases.',
+        contains: ['Peer list', 'Benchmarking pages', 'Target company inputs', 'Comparable output range'],
+        lastUpdated: '2026-06-11',
         sourceTemplate: 'SV- Comparable Companies_Template.xlsx',
         sheets: ['List', 'Benchmarking 1', 'Benchmarking 2', 'Ouput', 'TargetCo', 'CompCo 1-15'],
         groups: ['comparable'],
@@ -283,6 +413,9 @@ export const valuationModels: ValuationModel[] = [
     ticker: 'FPT',
     company: 'FPT Corporation',
     sector: 'Technology & IT Services',
+    status: 'Published',
+    lastUpdated: '2026-06-11',
+    disclaimerLabel: 'Academic research / not investment advice',
     methods: ['DCF', 'Comparable Analysis'],
     summary: 'Growth-company model pack combining forecast-driven DCF and public peer valuation checks.',
     conclusion: 'FPT now shows the intended split: DCF is the growth-upside case, while comparable analysis is the tighter public-market multiple check.',
@@ -368,7 +501,7 @@ export const valuationModels: ValuationModel[] = [
         'If education or telecom cash flow underperforms, the DCF premium over comparable analysis would narrow.',
         'A higher WACC would reduce the value of later-year cash flows and pull DCF closer to the comparable range.',
       ],
-      disclaimer: 'This report is an academic valuation exercise prepared from the completed workbook outputs and selected public market data. It is not investment advice, a recommendation, or a solicitation to buy or sell securities.',
+      disclaimer: portfolioDisclaimer,
     },
     downloads: [
       {
@@ -394,6 +527,9 @@ export const valuationModels: ValuationModel[] = [
     ticker: 'BMP',
     company: 'Binh Minh Plastics',
     sector: 'Building Materials',
+    status: 'Published',
+    lastUpdated: '2026-06-11',
+    disclaimerLabel: 'Academic research / not investment advice',
     methods: ['Precedent Transactions', 'LBO'],
     summary: 'Transaction-led valuation set pairing acquisition multiples with sponsor-return analysis.',
     conclusion: 'BMP now shows a clear control-value spread: LBO is the financial-sponsor case at VND 142.0k/share, while precedent transactions imply a higher strategic/control value around VND 152.8k/share.',
@@ -479,7 +615,7 @@ export const valuationModels: ValuationModel[] = [
         'A strategic premium is only defensible if the acquirer can realize synergies or strategic benefits; otherwise the precedent value may overstate clearing price.',
         'PVC resin costs, construction demand, and margin stability are the operating variables that matter most for both transaction methods.',
       ],
-      disclaimer: 'This report is an academic valuation exercise prepared from the completed workbook outputs and selected public market data. It is not investment advice, a recommendation, or a solicitation to buy or sell securities.',
+      disclaimer: portfolioDisclaimer,
     },
     downloads: [
       {
@@ -505,6 +641,9 @@ export const valuationModels: ValuationModel[] = [
     ticker: 'PNJ',
     company: 'Phu Nhuan Jewelry',
     sector: 'Consumer Retail',
+    status: 'Published',
+    lastUpdated: '2026-06-11',
+    disclaimerLabel: 'Academic research / not investment advice',
     methods: ['LBO', 'Comparable / Precedent'],
     summary: 'Retail valuation set with sponsor-return analysis and a combined public/transaction multiple pack.',
     conclusion: 'PNJ now has a three-step valuation ladder: LBO is the sponsor floor, precedent is the middle control-value check, and comparable analysis is the higher public-growth case.',
@@ -596,7 +735,7 @@ export const valuationModels: ValuationModel[] = [
         'A weaker discretionary-spending cycle would hit the comparable case first because public multiples would compress.',
         'Inventory and working-capital pressure can reduce sponsor debt paydown and make the LBO floor less reliable.',
       ],
-      disclaimer: 'This report is an academic valuation exercise prepared from the completed workbook outputs and selected public market data. It is not investment advice, a recommendation, or a solicitation to buy or sell securities.',
+      disclaimer: portfolioDisclaimer,
     },
     downloads: [
       {

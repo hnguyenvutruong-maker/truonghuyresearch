@@ -1,5 +1,11 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import AssumptionTable from '../../components/AssumptionTable.astro';
+import DisclaimerBox from '../../components/DisclaimerBox.astro';
+import DownloadCard from '../../components/DownloadCard.astro';
+import RiskList from '../../components/RiskList.astro';
+import StatusBadge from '../../components/StatusBadge.astro';
+import ValuationSnapshot from '../../components/ValuationSnapshot.astro';
 import { valuationGroups, valuationModels } from '../../data/valuation-models';
 
 export function getStaticPaths() {
@@ -11,11 +17,17 @@ export function getStaticPaths() {
 
 const { model } = Astro.props;
 const activeGroups = valuationGroups.filter((group) => model.valuationNotes.some((note) => note.groups.includes(group.id)));
+const assumptionItems = model.keyAssumptions ?? model.report.assumptions;
+const upgradeItems = model.futureUpgrade ?? model.modelImprovementNotes;
 ---
-<BaseLayout title={`${model.ticker} Valuation Report - NVTH Capital Markets`}>
+
+<BaseLayout
+  title={`${model.ticker} Valuation Report - Nguyen Vu Truong Huy`}
+  description={`${model.company} valuation report with methods, assumptions, output range, risks, and downloadable model files.`}
+>
   <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap">
     <a href="/research" class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors">
-      &larr; All Equity Reports
+      &larr; All Valuation
     </a>
 
     <header class="mt-6 border-b border-outline-variant pb-8">
@@ -23,14 +35,19 @@ const activeGroups = valuationGroups.filter((group) => model.valuationNotes.some
         <div class="max-w-4xl">
           <div class="flex flex-wrap items-center gap-3 mb-4">
             <span class="inline-block px-2 py-1 bg-terminal-card border border-terminal-accent font-label-md uppercase text-label-md text-terminal-accent">{model.ticker}</span>
+            <StatusBadge status={model.status} />
             <span class="font-label-md uppercase text-label-md text-on-surface-variant">{model.sector}</span>
           </div>
-          <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-4">{model.company} Valuation Report</h1>
+          <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-4">
+            {model.company} Valuation Report
+          </h1>
           <p class="font-body-lg text-body-lg text-terminal-text max-w-3xl">{model.report.headline}</p>
         </div>
-        <div class="lg:text-right">
-          <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-2">Stance</p>
-          <p class="font-headline-sm text-headline-sm text-terminal-accent max-w-md">{model.report.stance}</p>
+        <div class="lg:text-right max-w-md">
+          <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-2">Output range</p>
+          <p class="font-headline-sm text-headline-sm text-terminal-accent">{model.outputRange ?? model.report.stance}</p>
+          <p class="font-label-md uppercase text-label-md text-on-surface-variant mt-4">Last updated</p>
+          <p class="font-mono-data text-mono-data text-terminal-text">{model.lastUpdated ?? '2026-06-11'}</p>
         </div>
       </div>
     </header>
@@ -66,11 +83,11 @@ const activeGroups = valuationGroups.filter((group) => model.valuationNotes.some
                 <a
                   href={download.href}
                   download
-                  class="group min-h-12 inline-flex w-full items-center justify-between gap-3 border border-outline-variant px-3 py-3 font-label-md uppercase text-label-md text-terminal-text hover:border-terminal-accent hover:text-terminal-accent transition-colors"
+                  class="group min-h-12 inline-flex w-full items-center justify-between gap-3 border border-outline-variant px-3 py-3 font-label-md uppercase text-label-md text-terminal-text hover:border-terminal-accent hover:text-terminal-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terminal-accent transition-colors"
                 >
                   <span class="inline-flex items-center gap-2 min-w-0">
-                    <span class="material-symbols-outlined text-[18px] shrink-0">download</span>
-                    <span class="truncate">{download.label}</span>
+                    <span class="material-symbols-outlined text-[18px] shrink-0" aria-hidden="true">download</span>
+                    <span class="truncate">{download.modelType ?? download.label}</span>
                   </span>
                   <span class="font-label-data text-label-data opacity-80 shrink-0">{download.format}</span>
                 </a>
@@ -81,6 +98,13 @@ const activeGroups = valuationGroups.filter((group) => model.valuationNotes.some
       </aside>
 
       <article class="lg:col-span-8">
+        {model.investmentQuestion && (
+          <section class="border-b border-outline-variant pb-8 mb-8">
+            <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Investment Question</p>
+            <p class="font-headline-sm text-headline-sm text-terminal-text">{model.investmentQuestion}</p>
+          </section>
+        )}
+
         <section class="border-b border-outline-variant pb-8 mb-8">
           <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Executive View</p>
           <div class="space-y-4">
@@ -91,39 +115,76 @@ const activeGroups = valuationGroups.filter((group) => model.valuationNotes.some
         </section>
 
         <section class="border-b border-outline-variant pb-8 mb-8">
-          <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Assumptions</p>
-          <div class="divide-y divide-outline-variant border border-outline-variant">
-            {model.report.assumptions.map((item) => (
-              <div class="grid grid-cols-1 md:grid-cols-12 gap-3 p-4">
-                <div class="md:col-span-3">
-                  <p class="font-label-md uppercase text-label-md text-on-surface-variant">{item.label}</p>
-                </div>
-                <div class="md:col-span-4">
-                  <p class="font-mono-data text-mono-data text-terminal-accent">{item.value}</p>
-                </div>
-                <div class="md:col-span-5">
-                  <p class="font-body-sm text-body-sm text-terminal-text">{item.detail}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Key Assumptions</p>
+          <AssumptionTable items={assumptionItems} />
         </section>
 
         <section class="border-b border-outline-variant pb-8 mb-8">
-          <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Valuation Result</p>
+          <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Current Results</p>
+          <ValuationSnapshot notes={model.valuationNotes} />
+        </section>
+
+        {model.limitation && (
+          <section class="border-b border-outline-variant pb-8 mb-8">
+            <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Bank Valuation Limitation</p>
+            <div class="border border-terminal-border bg-terminal-card p-5">
+              <p class="font-body-md text-body-md text-terminal-text">{model.limitation}</p>
+            </div>
+          </section>
+        )}
+
+        <section class="border-b border-outline-variant pb-8 mb-8">
+          <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Downloadable Models</p>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
-            {model.report.valuationResult.map((item) => (
-              <div class="border border-terminal-border border-t-2 border-t-terminal-accent bg-terminal-card p-5">
-                <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-2">{item.label}</p>
-                <p class="font-headline-md text-headline-md text-terminal-accent mb-3">{item.value}</p>
-                <p class="font-body-sm text-body-sm text-terminal-text">{item.detail}</p>
-              </div>
+            {model.downloads.map((download) => (
+              <DownloadCard download={download} fallbackUpdated={model.lastUpdated} />
             ))}
           </div>
         </section>
 
+        {upgradeItems && (
+          <section class="border-b border-outline-variant pb-8 mb-8">
+            <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">
+              {model.futureUpgrade ? 'Future Model Upgrade' : 'Model Improvement Notes'}
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {upgradeItems.map((item) => (
+                <div class="border border-terminal-border bg-terminal-card p-4">
+                  <p class="font-body-sm text-body-sm text-terminal-text">{item}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {model.sensitivityNeeded && (
+          <section class="border-b border-outline-variant pb-8 mb-8">
+            <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Sensitivity Needed</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {model.sensitivityNeeded.map((item) => (
+                <div class="border border-dashed border-outline-variant bg-terminal-bg p-5">
+                  <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-2">Placeholder</p>
+                  <p class="font-headline-sm text-headline-sm text-terminal-accent">{item}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {model.metricsNeeded && (
+          <section class="border-b border-outline-variant pb-8 mb-8">
+            <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Bank-Specific Metrics Needed</p>
+            <div class="flex flex-wrap gap-2">
+              {model.metricsNeeded.map((metric) => (
+                <span class="border border-outline-variant bg-terminal-card px-3 py-2 font-label-md uppercase text-label-md text-terminal-text">{metric}</span>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section class="border-b border-outline-variant pb-8 mb-8">
-          <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Interpretation</p>
+          <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Conclusion</p>
+          <p class="font-body-md text-body-md text-terminal-text mb-5">{model.conclusion}</p>
           <div class="space-y-4">
             {model.report.interpretation.map((paragraph) => (
               <p class="font-body-md text-body-md text-terminal-text">{paragraph}</p>
@@ -133,20 +194,10 @@ const activeGroups = valuationGroups.filter((group) => model.valuationNotes.some
 
         <section class="border-b border-outline-variant pb-8 mb-8">
           <p class="font-label-md uppercase text-label-md text-terminal-accent mb-4">Risks And Checks</p>
-          <ul class="space-y-3">
-            {model.report.risks.map((risk) => (
-              <li class="flex gap-3 font-body-md text-body-md text-terminal-text">
-                <span class="mt-2 block h-2 w-2 shrink-0 bg-terminal-accent"></span>
-                <span>{risk}</span>
-              </li>
-            ))}
-          </ul>
+          <RiskList risks={model.report.risks} />
         </section>
 
-        <section class="border border-terminal-border bg-terminal-card p-6">
-          <p class="font-label-md uppercase text-label-md text-terminal-accent mb-3">Disclaimer</p>
-          <p class="font-body-md text-body-md text-on-surface-variant">{model.report.disclaimer}</p>
-        </section>
+        <DisclaimerBox label={model.disclaimerLabel} text={model.report.disclaimer} />
       </article>
     </div>
   </section>

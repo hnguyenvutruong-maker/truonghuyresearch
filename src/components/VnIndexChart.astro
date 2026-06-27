@@ -1,0 +1,96 @@
+---
+export interface TrendPoint {
+  time: string;   // YYYY-MM-DD
+  value: number;  // vn_index_close
+}
+
+export interface CandlePoint {
+  time: string;   // YYYY-MM-DD
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+}
+
+interface Props {
+  trendData?: TrendPoint[];
+  candleData?: CandlePoint[];
+  label?: string;
+}
+
+const { trendData = [], candleData = [], label = 'VN-INDEX TREND' } = Astro.props;
+
+const hasTrend = trendData.length > 0;
+const hasCandle = candleData.length > 0;
+const hasData = hasTrend || hasCandle;
+---
+
+{hasData && (
+  <div class="bg-terminal-bg border border-terminal-border border-t-2 border-t-terminal-accent p-4">
+    <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-3">{label}</p>
+    <div
+      id="vni-chart"
+      class="w-full"
+      style="height: 200px;"
+      data-trend={JSON.stringify(trendData)}
+      data-candle={JSON.stringify(candleData)}
+    ></div>
+  </div>
+)}
+
+<script>
+  import { createChart, CrosshairMode } from 'lightweight-charts';
+
+  const container = document.getElementById('vni-chart');
+  if (container) {
+    const trendRaw = container.getAttribute('data-trend') ?? '[]';
+    const candleRaw = container.getAttribute('data-candle') ?? '[]';
+    const trendData: { time: string; value: number }[] = JSON.parse(trendRaw);
+    const candleData: { time: string; open: number; high: number; low: number; close: number }[] = JSON.parse(candleRaw);
+
+    const chart = createChart(container, {
+      width: container.clientWidth,
+      height: 200,
+      layout: {
+        background: { color: '#0d1117' },
+        textColor: '#8b949e',
+      },
+      grid: {
+        vertLines: { color: '#30363d' },
+        horzLines: { color: '#30363d' },
+      },
+      crosshair: { mode: CrosshairMode.Normal },
+      rightPriceScale: { borderColor: '#30363d' },
+      timeScale: { borderColor: '#30363d', timeVisible: true },
+      handleScroll: false,
+      handleScale: false,
+    });
+
+    if (candleData.length > 0) {
+      const candleSeries = chart.addCandlestickSeries({
+        upColor: '#84e588',
+        downColor: '#ffb4ab',
+        borderUpColor: '#84e588',
+        borderDownColor: '#ffb4ab',
+        wickUpColor: '#84e588',
+        wickDownColor: '#ffb4ab',
+      });
+      candleSeries.setData(candleData);
+    } else if (trendData.length > 0) {
+      const lineSeries = chart.addLineSeries({
+        color: '#f0a500',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: true,
+        crosshairMarkerVisible: true,
+      });
+      lineSeries.setData(trendData);
+    }
+
+    chart.timeScale().fitContent();
+
+    new ResizeObserver(() => {
+      chart.applyOptions({ width: container.clientWidth });
+    }).observe(container);
+  }
+</script>

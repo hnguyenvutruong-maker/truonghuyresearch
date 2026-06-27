@@ -1,0 +1,127 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import DisclaimerBox from './DisclaimerBox.astro';
+import { valuationGroups, valuationModels, type ValuationGroupId } from '../data/valuation-models';
+
+interface Props {
+  groupId: ValuationGroupId;
+}
+
+const { groupId } = Astro.props;
+const group = valuationGroups.find((item) => item.id === groupId);
+if (!group) {
+  throw new Error(`Unknown valuation group: ${groupId}`);
+}
+
+const methodPages: Array<{ id: ValuationGroupId; href: string }> = [
+  { id: 'dcf', href: '/research/dcf' },
+  { id: 'comparable', href: '/research/comparable-analysis' },
+  { id: 'transaction-lbo', href: '/research/precedent-transactions-lbo' },
+];
+
+const reports = valuationModels
+  .map((model) => ({
+    model,
+    notes: model.valuationNotes.filter((note) => note.groups.includes(groupId)),
+    downloads: model.downloads.filter((download) => download.groups.includes(groupId)),
+  }))
+  .filter((item) => item.notes.length > 0);
+---
+
+<BaseLayout
+  title={`${group.title} - Valuation Method`}
+  description={`${group.title} valuation reports, workbook outputs, assumptions, and downloadable model files.`}
+>
+  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap">
+    <a href="/research" class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors">
+      &larr; All Valuation
+    </a>
+
+    <header class="mt-6 mb-section-gap max-w-4xl border-b border-outline-variant pb-8">
+      <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest mb-3">Valuation method</p>
+      <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-4">
+        {group.title}
+      </h1>
+      <p class="font-body-lg text-body-lg text-on-surface-variant">{group.description}</p>
+      <div class="mt-6 flex flex-wrap gap-3 font-label-data text-label-data text-on-surface-variant">
+        <span class="border border-outline-variant px-3 py-1">{reports.length} reports</span>
+        <span class="border border-outline-variant px-3 py-1">{group.eyebrow}</span>
+      </div>
+    </header>
+
+    <nav class="mb-10 grid grid-cols-1 md:grid-cols-3 gap-3" aria-label="Valuation method pages">
+      {methodPages.map((methodPage) => {
+        const methodGroup = valuationGroups.find((item) => item.id === methodPage.id);
+        const active = methodPage.id === groupId;
+        return methodGroup && (
+          <a
+            href={methodPage.href}
+            class:list={[
+              'border px-4 py-3 font-label-md uppercase text-label-md transition-colors',
+              active
+                ? 'border-terminal-accent bg-terminal-accent text-terminal-bg'
+                : 'border-outline-variant bg-terminal-card text-terminal-text hover:border-terminal-accent hover:text-terminal-accent',
+            ]}
+          >
+            {methodGroup.title}
+          </a>
+        );
+      })}
+    </nav>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
+      {reports.map(({ model, notes, downloads }) => (
+        <article class="border border-terminal-border border-t-2 border-t-terminal-accent bg-terminal-card p-5 md:p-6">
+          <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <span class="inline-block bg-terminal-bg border border-outline-variant px-2 py-1 font-label-md uppercase text-label-md text-terminal-accent mb-3">
+                {model.ticker}
+              </span>
+              <h2 class="font-headline-md text-headline-md text-terminal-accent">{model.company}</h2>
+            </div>
+            <span class="font-label-data text-label-data text-on-surface-variant">{model.lastUpdated ?? '2026-06-11'}</span>
+          </div>
+
+          <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-3">{model.sector}</p>
+          <p class="font-body-sm text-body-sm text-terminal-text mb-5">{model.summary}</p>
+
+          <div class="space-y-4 border-y border-outline-variant py-5 mb-5">
+            {notes.map((note) => (
+              <div class="border-l-2 border-terminal-accent pl-4">
+                <div class="flex flex-wrap items-baseline justify-between gap-3 mb-2">
+                  <p class="font-label-md uppercase text-label-md text-terminal-text">{note.method}</p>
+                  <p class="font-mono-data text-mono-data text-terminal-accent">{note.price}</p>
+                </div>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mb-2">{note.assumptions}</p>
+                <p class="font-body-sm text-body-sm text-terminal-text">{note.result}</p>
+              </div>
+            ))}
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-3">
+            <a
+              href={`/research/${model.slug}`}
+              class="inline-flex min-h-12 items-center justify-center gap-2 border border-terminal-accent px-4 py-3 font-label-md uppercase text-label-md text-terminal-accent hover:bg-terminal-accent hover:text-terminal-bg transition-colors"
+            >
+              View Company Report <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
+            </a>
+            {downloads.slice(0, 2).map((download) => (
+              <a
+                href={download.href}
+                download
+                class="inline-flex min-h-12 items-center justify-center gap-2 border border-outline-variant px-4 py-3 font-label-md uppercase text-label-md text-terminal-text hover:border-terminal-accent hover:text-terminal-accent transition-colors"
+              >
+                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">download</span>
+                Download {download.modelType ?? download.label}
+              </a>
+            ))}
+          </div>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto pb-section-gap">
+    <DisclaimerBox />
+  </section>
+</BaseLayout>

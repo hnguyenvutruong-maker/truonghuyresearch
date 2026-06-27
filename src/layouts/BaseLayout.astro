@@ -1,102 +1,124 @@
 ---
 import '../styles/stichui.css';
+import { portfolioDisclaimer } from '../data/valuation-models';
+import Analytics from '@vercel/analytics/astro';
 
 interface Props {
   title: string;
   description?: string;
+  image?: string;
+  type?: string;
 }
-const { title, description = 'Capital Markets Analyst — rigorous financial modeling & equity research' } = Astro.props;
 
+const {
+  title,
+  description = 'Vietnam equity research, valuation models, and market notes by Nguyen Vu Truong Huy.',
+  image = '/og-image.png',
+  type = 'website',
+} = Astro.props;
+
+const canonicalURL = Astro.url.href;
+const ogImageURL = new URL(image, Astro.site).toString();
+const currentYear = new Date().getFullYear();
 ---
+
 <!doctype html>
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="canonical" href={Astro.url.href} />
+    <link rel="canonical" href={canonicalURL} />
+    <link rel="alternate" type="application/rss+xml" title="Truong Huy Research — Market Views" href="/rss.xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_downward,arrow_forward,calendar_month,download,menu,north_east,view_week&display=swap" rel="stylesheet" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <meta name="author" content="Nguyen Vu Truong Huy" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content="/og-image.png" />
-    <meta property="og:type" content="website" />
+    <meta property="og:image" content={ogImageURL} />
+    <meta property="og:type" content={type} />
+    <meta property="og:site_name" content="Truong Huy Research" />
+    <meta property="og:locale" content="en" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:creator" content="@trghuyy" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageURL} />
   </head>
   <body class="bg-terminal-bg text-terminal-text min-h-screen flex flex-col font-body-md antialiased">
-    <!-- Top Navigation — Bloomberg dark terminal: 2px amber top border, sticky -->
     <header class="bg-terminal-bg border-t-2 border-t-terminal-accent border-b border-outline-variant sticky top-0 z-50 w-full">
       <div class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto h-16">
-        <!-- Brand — JetBrains Mono, amber accent -->
         <a class="font-headline-md text-headline-md font-bold tracking-tight text-terminal-accent" href="/">
-          Truong Huy.
+          Home
         </a>
-        <!-- Desktop Nav — uppercase label-md, amber on active -->
         <nav class="hidden md:flex items-center gap-8">
           <ul class="flex gap-6">
             <li>
               <a class="font-label-md uppercase text-label-md block h-full flex flex-col justify-end pb-1 text-on-surface-variant hover:text-terminal-accent transition-colors" href="/#about">
-                View Profile
+                Profile
               </a>
             </li>
             <li>
-              <a class="font-label-md uppercase text-label-md block h-full flex flex-col justify-end pb-1 text-on-surface-variant hover:text-terminal-accent transition-colors" href="/#research">
-                Latest Research
+              <a class="font-label-md uppercase text-label-md block h-full flex flex-col justify-end pb-1 text-on-surface-variant hover:text-terminal-accent transition-colors" href="/#valuation">
+                Valuation
               </a>
             </li>
             <li>
               <a class="font-label-md uppercase text-label-md block h-full flex flex-col justify-end pb-1 text-on-surface-variant hover:text-terminal-accent transition-colors" href="/#market-views">
-                Market View
+                Market Views
               </a>
             </li>
           </ul>
         </nav>
-        <!-- Trailing Action — amber border button, hover inverts -->
         <div class="flex items-center gap-4">
-          <a href="/contact" class="hidden md:inline-flex items-center justify-center px-4 py-2 border border-terminal-accent text-terminal-accent font-label-md uppercase text-label-md hover:bg-terminal-accent hover:text-terminal-bg transition-colors">
+          <a href="/contact" class="hidden md:inline-flex items-center justify-center px-4 py-2 border border-terminal-accent text-terminal-accent font-label-md uppercase text-label-md hover:bg-terminal-accent hover:text-terminal-bg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terminal-accent transition-colors">
             Contact
           </a>
-          <button class="md:hidden text-terminal-accent p-2" id="mobile-menu-btn" aria-label="Menu">
-            <span class="material-symbols-outlined">menu</span>
+          <button
+            class="md:hidden text-terminal-accent p-2"
+            id="mobile-menu-btn"
+            aria-label="Menu"
+            aria-expanded="false"
+            aria-controls="mobile-menu"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">menu</span>
           </button>
         </div>
       </div>
-      <!-- Mobile Nav -->
       <div id="mobile-menu" class="hidden md:hidden border-t border-outline-variant bg-terminal-bg">
         <ul class="flex flex-col px-margin-mobile py-4 gap-4">
-          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/#about">View Profile</a></li>
-          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/#research">Latest Research</a></li>
-          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/#market-views">Market View</a></li>
+          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/#about">Profile</a></li>
+          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/#valuation">Valuation</a></li>
+          <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/#market-views">Market Views</a></li>
           <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/contact">Contact</a></li>
           <li><a class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors" href="/disclaimer">Disclaimer</a></li>
         </ul>
       </div>
     </header>
 
-    <!-- Main Content -->
     <main class="flex-grow w-full">
       <slot />
     </main>
 
-    <!-- Footer — dark terminal: tonal surface, border-top divider, compact links -->
     <footer class="bg-terminal-bg border-t border-outline-variant w-full mt-auto">
       <div class="w-full py-section-gap px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-start gap-gutter">
-        <!-- Brand + bio + copyright (compact) -->
-        <div class="flex flex-col gap-4 max-w-sm">
+        <div class="flex flex-col gap-4 max-w-2xl">
           <span class="font-headline-sm text-headline-sm font-semibold text-terminal-accent">
             Truong Huy.
           </span>
           <p class="font-body-sm text-body-sm text-on-surface-variant">
-            Capital Markets Analyst focused on rigorous financial modeling and macroeconomic synthesis.
+            Vietnam equity research, valuation modeling, market notes, and downloadable Excel models.
+          </p>
+          <p class="font-body-sm text-body-sm text-on-surface-variant">
+            {portfolioDisclaimer}
           </p>
           <p class="font-body-sm text-body-sm text-on-surface-variant opacity-70 mt-2">
-            © 2024 Nguyen Vu Truong Huy. All rights reserved. Financial data for analytical purposes only.
+            &copy; {currentYear} Nguyen Vu Truong Huy. All rights reserved.
           </p>
         </div>
-        <!-- Compact right-aligned links -->
         <div class="flex flex-col gap-1 md:items-end">
           <ul class="flex flex-col md:items-end gap-1">
             <li>
@@ -124,10 +146,14 @@ const { title, description = 'Capital Markets Analyst — rigorous financial mod
       </div>
     </footer>
 
+    <Analytics />
+
     <script>
       const btn = document.getElementById('mobile-menu-btn');
       const menu = document.getElementById('mobile-menu');
       btn?.addEventListener('click', () => {
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!expanded));
         menu?.classList.toggle('hidden');
       });
     </script>
