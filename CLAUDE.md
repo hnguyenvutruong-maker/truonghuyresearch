@@ -275,12 +275,10 @@ switched to Ollama/MiniMax) is probably not an OpenAI key → HTTP 401.
 
 ## 11. Deployment & security
 
-- **Vercel** static hosting (project `portfolio`, team in `.vercel/project.json` on the owner's PC).
-  ⚠️ **The Vercel project is not connected to this GitHub repo** — no commit has ever received a
-  Vercel status/check, and pushing `master` on 2026-10-01 did not change the live site. Deploys
-  so far were made manually with the Vercel CLI from the owner's PC (its CLI token has since
-  expired). Until the owner connects the repo in Vercel (Project → Settings → Git, production
-  branch `master`), **a push does not deploy**. Domain `truonghuyresearch.xyz` (A → 76.76.21.21);
+- **Vercel** static hosting (project `portfolio`). The Vercel project was connected to this GitHub
+  repo on **2026-10-02**: a push to `master` deploys production and other branches get preview
+  deployments (the bots' cache commits deploy too). Before that date, deploys were made by hand
+  with the Vercel CLI from the owner's PC. Domain `truonghuyresearch.xyz` (A → 76.76.21.21);
   `www` currently serves 200 instead of redirecting.
 - Some `weekly_bot.py` comments mention Cloudflare Pages — stale.
 - Never commit credentials. The owner's local `_run_env.sh` holds a plaintext key → rotate it.
