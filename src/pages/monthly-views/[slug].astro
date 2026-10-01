@@ -4,14 +4,16 @@ import VnIndexChart from '../../components/VnIndexChart.astro';
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const views = await getCollection('monthly-views');
-  return views.map((entry) => ({
+  const views = (await getCollection('monthly-views')).sort(
+    (a, b) => a.data.date.valueOf() - b.data.date.valueOf()
+  );
+  return views.map((entry, i) => ({
     params: { slug: entry.slug },
-    props: { entry },
+    props: { entry, prev: views[i - 1] ?? null, next: views[i + 1] ?? null },
   }));
 }
 
-const { entry } = Astro.props;
+const { entry, prev, next } = Astro.props;
 const { Content } = await entry.render();
 
 // Month label "May 2026"
@@ -213,7 +215,7 @@ const jsonLd = {
     <!-- Article Content -->
     <article class="mt-10">
       <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-6">{entry.data.title}</h1>
-      <div class="prose max-w-none font-body-md text-body-md text-terminal-text mt-6
+      <div class="prose max-w-[75ch] font-body-md text-body-md text-terminal-text mt-6
         prose-headings:text-terminal-accent
         prose-a:text-terminal-accent
         prose-code:bg-terminal-card
@@ -226,5 +228,21 @@ const jsonLd = {
         <Content />
       </div>
     </article>
+
+    <!-- Prev / Next chronological navigation -->
+    <nav class="mt-section-gap grid grid-cols-1 sm:grid-cols-2 gap-gutter border-t border-outline-variant pt-8" aria-label="Monthly view navigation">
+      {prev ? (
+        <a href={`/monthly-views/${prev.slug}`} class="group block bg-terminal-card border border-terminal-border border-t-2 border-t-terminal-accent p-5 hover:border-terminal-accent transition-colors">
+          <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-2">&larr; Older Month</p>
+          <p class="font-headline-md text-headline-md text-terminal-text group-hover:text-terminal-accent transition-colors line-clamp-2">{prev.data.title}</p>
+        </a>
+      ) : <div></div>}
+      {next ? (
+        <a href={`/monthly-views/${next.slug}`} class="group block bg-terminal-card border border-terminal-border border-t-2 border-t-terminal-accent p-5 hover:border-terminal-accent transition-colors text-right">
+          <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-2">Newer Month &rarr;</p>
+          <p class="font-headline-md text-headline-md text-terminal-text group-hover:text-terminal-accent transition-colors line-clamp-2">{next.data.title}</p>
+        </a>
+      ) : <div></div>}
+    </nav>
   </section>
 </BaseLayout>

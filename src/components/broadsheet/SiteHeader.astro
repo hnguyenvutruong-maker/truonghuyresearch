@@ -1,0 +1,98 @@
+---
+const links = [
+  { label: 'Profile', href: '/#about', match: null },
+  { label: 'Valuation', href: '/research', match: '/research' },
+  { label: 'Market Views', href: '/market-views', match: '/market-views' },
+];
+
+const path = Astro.url.pathname;
+const isHome = path === '/';
+const isCurrent = (match: string | null) => match !== null && path.startsWith(match);
+---
+
+<!-- On the homepage the wordmark stays hidden until the masthead scrolls away -->
+<header
+  id="site-header"
+  data-compact={isHome ? 'false' : 'true'}
+  class="group sticky top-0 z-50 w-full border-b border-ink bg-paper/95 backdrop-blur-sm"
+>
+  <div class="mx-auto flex h-14 w-full max-w-container-max items-center justify-between gap-6 px-margin-mobile md:px-margin-desktop">
+    <a
+      href="/"
+      class="font-news text-[1.375rem] font-semibold tracking-[-0.02em] text-ink transition-all duration-500 hover:text-ink group-data-[compact=false]:pointer-events-none group-data-[compact=false]:-translate-y-1 group-data-[compact=false]:opacity-0"
+      tabindex={isHome ? '-1' : undefined}
+    >
+      Truong Huy <em class="font-normal italic text-oxblood">Research</em>
+    </a>
+
+    <nav class="hidden md:block" aria-label="Primary">
+      <ul class="flex items-center gap-7">
+        {links.map((link) => (
+          <li>
+            <a
+              href={link.href}
+              aria-current={isCurrent(link.match) ? 'page' : undefined}
+              class:list={[
+                'news-link font-news-mono text-news-label uppercase transition-colors hover:text-oxblood',
+                isCurrent(link.match) ? 'text-oxblood' : 'text-ink-soft',
+              ]}
+            >
+              {link.label}
+            </a>
+          </li>
+        ))}
+        <li>
+          <a href="/contact" class="inline-flex min-h-9 items-center border border-ink px-3 py-1.5 font-news-mono text-news-label uppercase text-ink transition-colors hover:bg-ink hover:text-paper">
+            Contact
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <button
+      class="p-2 text-ink hover:text-oxblood md:hidden"
+      id="mobile-menu-btn"
+      aria-label="Menu"
+      aria-expanded="false"
+      aria-controls="mobile-menu"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">menu</span>
+    </button>
+  </div>
+
+  <div id="mobile-menu" class="hidden border-t border-ink/20 bg-paper md:hidden">
+    <ul class="flex flex-col px-margin-mobile py-3">
+      {[...links, { label: 'Contact', href: '/contact', match: '/contact' }, { label: 'Disclaimer', href: '/disclaimer', match: '/disclaimer' }].map((link) => (
+        <li class="border-b border-ink/10 last:border-b-0">
+          <a
+            href={link.href}
+            aria-current={isCurrent(link.match) ? 'page' : undefined}
+            class="block py-3 font-news-mono text-news-label uppercase text-ink-soft transition-colors hover:text-oxblood"
+          >
+            {link.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</header>
+
+<script>
+  const header = document.getElementById('site-header');
+  const masthead = document.querySelector<HTMLElement>('[data-masthead]');
+  const wordmark = header?.querySelector<HTMLAnchorElement>('a[href="/"]');
+  if (header && masthead && 'IntersectionObserver' in window) {
+    new IntersectionObserver(
+      ([entry]) => {
+        const compact = !entry.isIntersecting;
+        header.dataset.compact = String(compact);
+        if (compact) wordmark?.removeAttribute('tabindex');
+        else wordmark?.setAttribute('tabindex', '-1');
+      },
+      { rootMargin: '-56px 0px 0px 0px' }
+    ).observe(masthead);
+  } else if (header) {
+    header.dataset.compact = 'true';
+    wordmark?.removeAttribute('tabindex');
+  }
+</script>

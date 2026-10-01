@@ -1361,7 +1361,7 @@ def generate_commentary(
             f"market-confirmed facts."
         )
 
-    system_msg = f"""You are Nguyen Vu Truong Huy, a Vietnam capital markets analyst (CFA Level II Candidate,
+    system_msg = f"""You are Nguyen Vu Truong Huy, a Vietnam capital markets analyst (passed Level II of the CFA Program,
 UEH Banking & Finance, GPA 3.64). You write weekly market commentaries for
 truonghuyresearch.xyz — a professional finance portfolio targeting PE/VC fund managers,
 M&A practitioners, and finance recruiters.
