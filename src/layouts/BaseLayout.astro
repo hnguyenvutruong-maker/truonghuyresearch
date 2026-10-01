@@ -2,12 +2,16 @@
 import '../styles/stichui.css';
 import { portfolioDisclaimer } from '../data/valuation-models';
 import Analytics from '@vercel/analytics/astro';
+import BroadsheetHeader from '../components/broadsheet/SiteHeader.astro';
+import BroadsheetFooter from '../components/broadsheet/SiteFooter.astro';
+import BroadsheetMotion from '../components/broadsheet/Motion.astro';
 
 interface Props {
   title: string;
   description?: string;
   image?: string;
   type?: string;
+  theme?: 'terminal' | 'broadsheet';
 }
 
 const {
@@ -15,7 +19,10 @@ const {
   description = 'Vietnam equity research, valuation models, and market notes by Nguyen Vu Truong Huy.',
   image = '/og-image.png',
   type = 'website',
+  theme = 'terminal',
 } = Astro.props;
+
+const isBroadsheet = theme === 'broadsheet';
 
 const canonicalURL = Astro.url.href;
 const ogImageURL = new URL(image, Astro.site).toString();
@@ -23,7 +30,7 @@ const currentYear = new Date().getFullYear();
 ---
 
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en" class:list={[{ dark: !isBroadsheet }]} data-theme={theme}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -31,7 +38,15 @@ const currentYear = new Date().getFullYear();
     <link rel="alternate" type="application/rss+xml" title="Truong Huy Research — Market Views" href="/rss.xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    {isBroadsheet ? (
+      <>
+        <script is:inline>document.documentElement.classList.add('js');</script>
+        <meta name="theme-color" content="#F2E8DA" />
+        <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+      </>
+    ) : (
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    )}
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_downward,arrow_forward,calendar_month,download,menu,north_east,view_week&display=swap" rel="stylesheet" />
     <title>{title}</title>
     <meta name="description" content={description} />
@@ -48,7 +63,13 @@ const currentYear = new Date().getFullYear();
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageURL} />
   </head>
-  <body class="bg-terminal-bg text-terminal-text min-h-screen flex flex-col font-body-md antialiased">
+  <body
+    class:list={[
+      'min-h-screen flex flex-col antialiased',
+      isBroadsheet ? 'text-ink font-news' : 'bg-terminal-bg text-terminal-text font-body-md',
+    ]}
+  >
+    {isBroadsheet ? <BroadsheetHeader /> : (
     <header class="bg-terminal-bg border-t-2 border-t-terminal-accent border-b border-outline-variant sticky top-0 z-50 w-full">
       <div class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto h-16">
         <a class="font-headline-md text-headline-md font-bold tracking-tight text-terminal-accent" href="/">
@@ -98,11 +119,13 @@ const currentYear = new Date().getFullYear();
         </ul>
       </div>
     </header>
+    )}
 
     <main class="flex-grow w-full">
       <slot />
     </main>
 
+    {isBroadsheet ? <BroadsheetFooter /> : (
     <footer class="bg-terminal-bg border-t border-outline-variant w-full mt-auto">
       <div class="w-full py-section-gap px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-start gap-gutter">
         <div class="flex flex-col gap-4 max-w-2xl">
@@ -145,8 +168,10 @@ const currentYear = new Date().getFullYear();
         </div>
       </div>
     </footer>
+    )}
 
     <Analytics />
+    {isBroadsheet && <BroadsheetMotion />}
 
     <script>
       const btn = document.getElementById('mobile-menu-btn');

@@ -1,0 +1,35 @@
+---
+// Square cinnabar seal (con dấu / triện) pressed onto the newsprint — tickers and the site mark.
+interface Props {
+  label: string;
+  size?: 'sm' | 'md' | 'lg';
+  motion?: 'none' | 'load' | 'hover';
+  decorative?: boolean;
+}
+
+const { label, size = 'md', motion = 'none', decorative = false } = Astro.props;
+
+const sizeClasses = {
+  sm: 'h-8 w-8 text-[10px]',
+  md: 'h-11 w-11 text-[12px]',
+  lg: 'h-14 w-14 text-[14px]',
+} as const;
+
+const motionClasses = {
+  none: '',
+  load: 'animate-stamp [animation-delay:900ms]',
+  hover: 'group-hover:animate-stamp',
+} as const;
+---
+
+<span
+  class:list={[
+    'inline-flex shrink-0 -rotate-[5deg] items-center justify-center bg-seal font-news-mono font-medium uppercase text-paper opacity-95',
+    'shadow-[inset_0_0_0_2px_#F2E8DA,inset_0_0_0_3px_#B8321C]',
+    sizeClasses[size],
+    motionClasses[motion],
+  ]}
+  aria-hidden={decorative ? 'true' : undefined}
+>
+  {label}
+</span>
