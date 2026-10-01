@@ -2,15 +2,20 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import DisclaimerBox from '../components/DisclaimerBox.astro';
 import VnIndexChart from '../components/VnIndexChart.astro';
+import EggshellInlay from '../components/lacquer/EggshellInlay.astro';
+import Ornament from '../components/lacquer/Ornament.astro';
+import Seal from '../components/lacquer/Seal.astro';
 import { getCollection } from 'astro:content';
 import { valuationModels } from '../data/valuation-models';
 
 const allMarketViews = await getCollection('market-views');
 const allMonthlyViews = await getCollection('monthly-views');
 
-const sortedMarketViews = allMarketViews.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+const sortedMarketViews = [...allMarketViews].sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+const sortedMonthlyViews = [...allMonthlyViews].sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+const latestWeekly = sortedMarketViews[0];
 const latestMarketViews = sortedMarketViews.slice(0, 2);
-const latestMonthlyView = allMonthlyViews.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()).slice(0, 1);
+const latestMonthlyView = sortedMonthlyViews[0];
 
 const trendData = sortedMarketViews
   .slice()
@@ -19,7 +24,56 @@ const trendData = sortedMarketViews
     time: entry.data.week_end.toISOString().slice(0, 10),
     value: entry.data.vn_index_close,
   }));
-const featuredValuations = valuationModels.filter((model) => ['hpg', 'bid'].includes(model.slug));
+
+const downloadCount = valuationModels.reduce((total, model) => total + model.downloads.length, 0);
+const glance = [
+  { value: valuationModels.length, label: 'Issuers valued' },
+  { value: downloadCount, label: 'Model workbooks' },
+  { value: allMarketViews.length + allMonthlyViews.length, label: 'Market notes' },
+];
+
+// "Comparable output" -> "Comps"; "Approx. VND 152.8k/share" -> "≈152.8k"
+const methodLabel = (label: string) => label.replace(/\s*output$/i, '').replace(/^Comparable$/, 'Comps');
+const compactValue = (value: string) =>
+  value.replace(/^Approx\.\s*/i, '≈').replace(/VND\s*/g, '').replace(/\/share$/, '').replace(/-/g, '–');
+
+const coverage = valuationModels.map((model) => ({
+  slug: model.slug,
+  ticker: model.ticker,
+  company: model.company,
+  sector: model.sector,
+  outputs: model.report.valuationResult
+    .filter((point) => /output$/i.test(point.label))
+    .map((point) => ({ method: methodLabel(point.label), value: compactValue(point.value) })),
+}));
+
+// Literal class strings so Tailwind's JIT can see them
+const revealDelays = ['[--reveal-delay:0ms]', '[--reveal-delay:80ms]', '[--reveal-delay:160ms]', '[--reveal-delay:240ms]', '[--reveal-delay:320ms]'];
+
+const capabilities = [
+  {
+    numeral: 'I',
+    title: 'Financial modeling',
+    detail: 'FCFF DCF, LBO, and precedent-transaction workbooks built from scratch and shared for review.',
+  },
+  {
+    numeral: 'II',
+    title: 'Equity valuation',
+    detail: 'Peer multiples, bank P/B checks, and method cross-checks that explain why outputs differ.',
+  },
+  {
+    numeral: 'III',
+    title: 'Market research',
+    detail: 'Weekly and monthly VN-Index notes covering liquidity, foreign flow, sectors, and macro.',
+  },
+];
+
+const credentials = [
+  { label: 'Education', value: 'University of Economics Ho Chi Minh City (UEH), Finance and Banking · GPA 3.64/4.00' },
+  { label: 'CFA Program', value: 'Passed Level II' },
+  { label: 'Experience', value: 'Hoan Loc Viet: financial data, reporting, and analysis workflows' },
+  { label: 'Toolkit', value: 'Excel · Power BI · Stata' },
+];
 
 const formatDate = (date: Date) =>
   date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -30,240 +84,265 @@ const formatWeek = (start: Date, end: Date) => {
   const eDay = end.toLocaleDateString('en-GB', { day: '2-digit' });
   const eMon = end.toLocaleDateString('en-GB', { month: 'short' });
   const eYear = end.toLocaleDateString('en-GB', { year: 'numeric' });
-  return sMon === eMon ? `${sDay}-${eDay} ${eMon} ${eYear}` : `${sDay} ${sMon}-${eDay} ${eMon} ${eYear}`;
+  return sMon === eMon ? `${sDay}–${eDay} ${eMon} ${eYear}` : `${sDay} ${sMon}–${eDay} ${eMon} ${eYear}`;
 };
 
-const signedPct = (value: number | null | undefined) =>
-  value == null ? 'N/A' : `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+const formatIndex = (value: number) => value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const signedPct = (value: number) => `${value >= 0 ? '▲ +' : '▼ −'}${Math.abs(value).toFixed(2)}%`;
+const toneClass = (value: number) => (value >= 0 ? 'text-jade' : 'text-cinnabar-soft');
 ---
 
 <BaseLayout
+  theme="lacquer"
   title="Nguyen Vu Truong Huy | Vietnam Equity Research Portfolio"
-  description="Vietnam equity research, valuation modeling, capital markets notes, and downloadable Excel models by Nguyen Vu Truong Huy."
+  description="Vietnam equity research, valuation modeling, capital markets notes, and downloadable Excel models by Nguyen Vu Truong Huy, who has passed Level II of the CFA Program."
 >
-  <script type="application/ld+json" set:html={JSON.stringify({
+  <script type="application/ld+json" is:inline set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "Person",
     "name": "Nguyen Vu Truong Huy",
+    "alternateName": "Nguyễn Vũ Trường Huy",
     "url": "https://truonghuyresearch.xyz",
     "image": "https://truonghuyresearch.xyz/og-image.png",
-    "jobTitle": "Finance & Banking Student; Passed Level II of the CFA Program",
+    "jobTitle": "Finance & Banking Student",
     "alumniOf": {
       "@type": "CollegeOrUniversity",
       "name": "University of Economics Ho Chi Minh City",
       "alternateName": "UEH"
     },
+    "hasCredential": {
+      "@type": "EducationalOccupationalCredential",
+      "name": "CFA Program Level II (passed)",
+      "recognizedBy": { "@type": "Organization", "name": "CFA Institute" }
+    },
     "knowsAbout": ["Equity Research", "Valuation Modeling", "Vietnam Capital Markets", "DCF Analysis", "Financial Modeling"],
     "sameAs": ["https://www.linkedin.com/in/trghuyy/"]
   })} />
-  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap">
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-end">
-      <div class="lg:col-span-8">
-        <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest mb-4">
-          Vietnam Equity Research Portfolio
+
+  <!-- Hero -->
+  <section class="relative overflow-hidden border-b border-gold/20">
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_90%_at_88%_0%,rgba(184,50,28,0.22)_0%,rgba(26,13,11,0)_60%)]"></div>
+    <EggshellInlay class="pointer-events-none absolute right-0 top-0 hidden h-[34rem] w-[46rem] text-eggshell opacity-[0.12] [mask-image:radial-gradient(ellipse_75%_70%_at_100%_0%,#000_25%,transparent_75%)] md:block" seed={7} cols={34} rows={22} />
+    <div aria-hidden="true" class="absolute inset-y-0 left-0 hidden w-8 items-center justify-center bg-cinnabar lg:flex">
+      <span class="rotate-180 font-lacquer-body text-lacquer-eyebrow uppercase text-eggshell [writing-mode:vertical-rl]">Trường Huy · Vietnam Equity Research</span>
+    </div>
+
+    <div class="relative mx-auto grid w-full max-w-container-max grid-cols-1 gap-12 px-margin-mobile py-20 md:px-margin-desktop lg:grid-cols-12 lg:items-end lg:py-28">
+      <div class="lg:col-span-7">
+        <p class="animate-rise font-lacquer-body text-lacquer-eyebrow uppercase text-gold">
+          Vietnam equity research · CFA Program Level II passed
         </p>
-        <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-6">
-          Nguyen Vu Truong Huy
+        <h1 class="mt-5 animate-rise font-lacquer-display text-lacquer-hero text-eggshell [animation-delay:120ms]">
+          Nguyễn Vũ <em class="font-medium italic text-gold">Trường Huy</em>
         </h1>
-        <p class="font-body-lg text-body-lg text-terminal-text mb-5 max-w-3xl border-l-4 border-terminal-accent pl-6">
-          Finance & Banking student at UEH who has passed Level II of the CFA Program, focused on Vietnam equity research, valuation modeling, capital markets analysis, and downloadable research/models.
+        <p class="mt-7 max-w-xl animate-rise font-lacquer-body text-lacquer-lead text-eggshell-muted [animation-delay:240ms]">
+          Finance and Banking student at UEH who has passed Level II of the CFA Program. I build valuation models and
+          write market notes on Vietnam-listed companies, showing the assumptions, not just the answer.
         </p>
-        <p class="font-headline-sm text-headline-sm text-terminal-accent mb-8 max-w-3xl">
-          Open to Equity Research / Capital Markets / Investment Banking internship opportunities.
+        <p class="mt-4 max-w-xl animate-rise font-lacquer-display text-[1.375rem] italic leading-snug text-gold [animation-delay:300ms]">
+          Open to Equity Research, Capital Markets, and Investment Banking internships.
         </p>
-        <div class="flex flex-wrap gap-4">
-          <a href="#valuation" class="inline-flex min-h-12 items-center justify-center gap-2 px-6 py-3 bg-terminal-accent text-terminal-bg font-label-md uppercase text-label-md hover:bg-on-primary hover:text-terminal-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terminal-accent transition-colors">
-            View Valuation <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_downward</span>
+        <div class="mt-10 flex animate-rise flex-wrap items-center gap-4 [animation-delay:380ms]">
+          <a href="#valuation" class="inline-flex min-h-12 items-center gap-2 bg-cinnabar px-6 py-3 font-lacquer-body text-lacquer-small font-medium text-eggshell transition-colors hover:bg-cinnabar-deep hover:text-eggshell">
+            View valuation work <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_downward</span>
           </a>
-          <a href="/cv.pdf" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-12 items-center justify-center gap-2 px-6 py-3 border border-terminal-accent text-terminal-accent font-label-md uppercase text-label-md hover:bg-terminal-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terminal-accent transition-colors">
+          <a href="/cv.pdf" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-12 items-center gap-2 border border-gold px-6 py-3 font-lacquer-body text-lacquer-small font-medium text-gold transition-colors hover:bg-gold hover:text-lacquer">
             Download CV <span class="material-symbols-outlined text-[18px]" aria-hidden="true">download</span>
           </a>
-          <a href="https://www.linkedin.com/in/trghuyy/" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-12 items-center justify-center gap-2 px-6 py-3 border border-outline-variant text-terminal-text font-label-md uppercase text-label-md hover:border-terminal-accent hover:text-terminal-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terminal-accent transition-colors">
-            Contact / LinkedIn <span class="material-symbols-outlined text-[18px]" aria-hidden="true">north_east</span>
+          <a href="https://www.linkedin.com/in/trghuyy/" target="_blank" rel="noopener noreferrer" class="lacquer-link inline-flex items-center gap-1 font-lacquer-body text-lacquer-small font-medium text-eggshell-muted transition-colors hover:text-gold">
+            LinkedIn <span class="material-symbols-outlined text-[16px]" aria-hidden="true">north_east</span>
           </a>
         </div>
       </div>
 
-      <div class="lg:col-span-4 border border-terminal-border border-t-2 border-t-terminal-accent bg-terminal-card p-5">
-        <div class="space-y-5">
-          <div>
-            <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">Who</p>
-            <p class="font-body-sm text-body-sm text-terminal-text">UEH Finance & Banking student, GPA 3.64/4.00, passed Level II of the CFA Program.</p>
-          </div>
-          <div>
-            <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">Analyze</p>
-            <p class="font-body-sm text-body-sm text-terminal-text">Vietnam equities, banks, industrial issuers, market flows, and valuation scenarios.</p>
-          </div>
-          <div>
-            <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">Current focus</p>
-            <p class="font-body-sm text-body-sm text-terminal-text">DCF ranges, peer benchmarking, bank multiples, and assumption checks for Vietnam-listed companies.</p>
-          </div>
+      <aside class="animate-rise [animation-delay:500ms] lg:col-span-5" aria-label="At a glance">
+        <div class="border border-gold/70 bg-lacquer-deep/70 p-6 outline outline-1 outline-offset-4 outline-gold/25 md:p-8">
+          <p class="font-lacquer-body text-lacquer-eyebrow uppercase text-gold">At a glance</p>
+          <dl class="mt-6 grid grid-cols-3 gap-4 border-b border-gold/20 pb-6" data-reveal>
+            {glance.map((item) => (
+              <div class="flex flex-col-reverse gap-2">
+                <dt class="font-lacquer-body text-[0.75rem] leading-snug text-ash">{item.label}</dt>
+                <dd class="font-lacquer-display text-lacquer-figure lining-nums tabular-nums text-gold" data-countup={item.value}>{item.value}</dd>
+              </div>
+            ))}
+          </dl>
+
+          {latestWeekly && (
+            <a href={`/market-views/${latestWeekly.slug}`} class="group mt-6 flex items-end justify-between gap-4 text-eggshell hover:text-eggshell">
+              <div>
+                <p class="font-lacquer-body text-lacquer-eyebrow uppercase text-ash">VN-Index · week ending {formatDate(latestWeekly.data.week_end)}</p>
+                <p class="mt-2 font-lacquer-body text-2xl font-semibold tabular-nums">
+                  {formatIndex(latestWeekly.data.vn_index_close)}
+                  <span class:list={['ml-2 text-base font-medium', toneClass(latestWeekly.data.vn_index_weekly_change_pct)]}>
+                    {signedPct(latestWeekly.data.vn_index_weekly_change_pct)}
+                  </span>
+                </p>
+              </div>
+              <span class="material-symbols-outlined text-gold transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true">arrow_forward</span>
+            </a>
+          )}
         </div>
-      </div>
+      </aside>
     </div>
   </section>
 
-  <div class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
-    <hr class="border-t border-outline-variant" />
-  </div>
+  <!-- I · Profile -->
+  <section id="about" class="mx-auto w-full max-w-container-max scroll-mt-20 px-margin-mobile py-24 md:px-margin-desktop">
+    <div class="grid grid-cols-1 gap-12 lg:grid-cols-12">
+      <header class="lg:col-span-4" data-reveal>
+        <p class="font-lacquer-body text-lacquer-eyebrow uppercase text-cinnabar-soft">I · Profile</p>
+        <h2 class="mt-4 font-lacquer-display text-lacquer-h2 text-eggshell">Background</h2>
+        <span class="mt-6 block h-px w-24 bg-gold" aria-hidden="true"></span>
+      </header>
 
-  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap" id="about">
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
-      <div class="md:col-span-4">
-        <h2 class="font-display-lg text-display-lg text-terminal-accent mb-2">Background</h2>
-        <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest">Profile</p>
-      </div>
-      <div class="md:col-span-8">
-        <div class="space-y-5 max-w-3xl">
-          <p class="font-body-md text-body-md text-terminal-text">
-            I am a Finance & Banking student at the University of Economics Ho Chi Minh City (UEH), have passed Level II of the CFA Program, and currently hold a GPA of 3.64/4.00.
+      <div class="space-y-12 lg:col-span-8">
+        <div class="max-w-2xl space-y-5 font-lacquer-body text-lacquer-body text-eggshell-muted" data-reveal>
+          <p>
+            I study Finance and Banking at the University of Economics Ho Chi Minh City (UEH), have passed Level II of the
+            CFA Program, and hold a GPA of 3.64/4.00.
           </p>
-          <p class="font-body-md text-body-md text-terminal-text">
-            My work focuses on Vietnam equity research, valuation modeling, and capital markets analysis. I use Excel, Power BI, and Stata to organize data, test assumptions, and present valuation ranges clearly.
+          <p>
+            My work focuses on Vietnam equity research, valuation modeling, and capital markets analysis. I use Excel,
+            Power BI, and Stata to organize data, test assumptions, and present valuation ranges clearly.
           </p>
-          <p class="font-body-md text-body-md text-terminal-text">
-            At Hoan Loc Viet, I worked with financial data, reporting, and analysis workflows. This portfolio collects the research notes and model files I am using to build a clearer analyst track record.
+          <p>
+            At Hoan Loc Viet, I worked with financial data, reporting, and analysis workflows. This portfolio collects the
+            research notes and model files I am using to build a clearer analyst track record.
           </p>
         </div>
 
-        <div class="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {['Financial Modeling', 'Equity Valuation', 'Market Research', 'Data Analytics'].map((skill) => (
-            <div class="border border-terminal-border bg-terminal-card p-4">
-              <p class="font-label-md uppercase text-label-md text-terminal-accent">{skill}</p>
+        <dl class="border-t border-gold/25" data-reveal>
+          {credentials.map((row) => (
+            <div class="grid grid-cols-1 gap-1 border-b border-gold/15 py-4 md:grid-cols-[180px_minmax(0,1fr)] md:gap-6">
+              <dt class="font-lacquer-body text-lacquer-eyebrow uppercase text-ash">{row.label}</dt>
+              <dd class="font-lacquer-body text-lacquer-small text-eggshell">{row.value}</dd>
             </div>
           ))}
-        </div>
+        </dl>
 
-        <div class="mt-8 flex flex-wrap gap-2">
-          <span class="inline-block bg-terminal-card border border-outline-variant px-3 py-1 font-label-md uppercase text-label-md text-terminal-text">Passed Level II, CFA Program</span>
-          <span class="inline-block bg-terminal-card border border-outline-variant px-3 py-1 font-label-md uppercase text-label-md text-terminal-text">Finance & Banking, UEH</span>
-          <span class="inline-block bg-terminal-card border border-outline-variant px-3 py-1 font-label-md uppercase text-label-md text-terminal-text">GPA 3.64/4.00</span>
-          <span class="inline-block bg-terminal-card border border-outline-variant px-3 py-1 font-label-md uppercase text-label-md text-terminal-text">Excel</span>
-          <span class="inline-block bg-terminal-card border border-outline-variant px-3 py-1 font-label-md uppercase text-label-md text-terminal-text">Power BI</span>
-          <span class="inline-block bg-terminal-card border border-outline-variant px-3 py-1 font-label-md uppercase text-label-md text-terminal-text">Stata</span>
-        </div>
+        <ol class="grid grid-cols-1 gap-px border border-gold/15 bg-gold/15 sm:grid-cols-3" data-reveal>
+          {capabilities.map((item) => (
+            <li class="bg-lacquer p-6">
+              <p class="font-lacquer-display text-3xl italic text-gold">{item.numeral}</p>
+              <p class="mt-4 font-lacquer-display text-[1.375rem] font-semibold leading-tight text-eggshell">{item.title}</p>
+              <p class="mt-3 font-lacquer-body text-lacquer-small text-ash">{item.detail}</p>
+            </li>
+          ))}
+        </ol>
       </div>
     </div>
   </section>
 
-  <div class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
-    <hr class="border-t border-outline-variant" />
-  </div>
+  <Ornament />
 
-  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap" id="valuation">
-    <div class="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+  <!-- II · Valuation -->
+  <section id="valuation" class="mx-auto w-full max-w-container-max scroll-mt-20 px-margin-mobile py-24 md:px-margin-desktop">
+    <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between" data-reveal>
       <div>
-        <h2 class="font-display-lg text-display-lg text-terminal-accent mb-2">Valuation</h2>
-        <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest">Company models and downloadable workbooks</p>
-      </div>
-      <a href="/research" class="inline-flex min-h-12 items-center justify-center gap-2 border border-terminal-accent px-5 py-3 font-label-md uppercase text-label-md text-terminal-accent hover:bg-terminal-accent hover:text-terminal-bg transition-colors">
-        Open Valuation Page <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
-      </a>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
-      <a href="/research" class="group border border-terminal-accent border-t-4 border-t-terminal-accent bg-terminal-card p-5 hover:bg-terminal-bg transition-colors">
-        <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-3">Valuation hub</p>
-        <h3 class="font-headline-md text-headline-md text-terminal-accent mb-4 group-hover:text-on-primary transition-colors">All published valuation work</h3>
-        <p class="font-body-sm text-body-sm text-terminal-text mb-5">
-          Review DCF outputs, comparable analysis, transaction work, assumptions, download cards, and model limitations in one place.
+        <p class="font-lacquer-body text-lacquer-eyebrow uppercase text-cinnabar-soft">II · Valuation</p>
+        <h2 class="mt-4 font-lacquer-display text-lacquer-h2 text-eggshell">Coverage</h2>
+        <p class="mt-4 max-w-xl font-lacquer-body text-lacquer-body text-eggshell-muted">
+          Vietnam-listed issuers valued with DCF, trading comparables, precedent transactions, and LBO, each shipped with
+          the workbook behind it.
         </p>
-        <span class="inline-flex items-center gap-2 font-label-md uppercase text-label-md text-terminal-accent">
-          Go to valuation <span class="material-symbols-outlined text-[16px]" aria-hidden="true">north_east</span>
-        </span>
+      </div>
+      <a href="/research" class="lacquer-link inline-flex items-center gap-2 self-start font-lacquer-body text-lacquer-eyebrow uppercase text-gold transition-colors hover:text-gold-soft md:self-auto">
+        All valuation work <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
       </a>
+    </div>
 
-      {featuredValuations.map((model) => (
-        <a href={`/research/${model.slug}`} class="group border border-terminal-border border-t-2 border-t-terminal-accent bg-terminal-card p-5 hover:border-terminal-accent transition-colors">
-          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <span class="border border-outline-variant bg-terminal-bg px-2 py-1 font-label-md uppercase text-label-md text-terminal-accent">{model.ticker}</span>
-            <span class="font-label-data text-label-data text-on-surface-variant">{model.downloads.length} files</span>
-          </div>
-          <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-2">{model.sector}</p>
-          <h3 class="font-headline-sm text-headline-sm text-terminal-accent mb-3 group-hover:text-on-primary transition-colors">{model.company}</h3>
-          <p class="font-body-sm text-body-sm text-terminal-text mb-4">{model.outputRange ?? model.report.stance}</p>
-          <div class="flex flex-wrap gap-2">
-            {model.methods.map((method) => (
-              <span class="border border-outline-variant bg-terminal-bg px-2 py-1 font-label-md uppercase text-label-md text-terminal-text">{method}</span>
-            ))}
-          </div>
-        </a>
+    <ul class="mt-12 border-t border-gold/30">
+      {coverage.map((item, index) => (
+        <li data-reveal class={revealDelays[index % revealDelays.length]}>
+          <a
+            href={`/research/${item.slug}`}
+            class="group relative grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-5 gap-y-4 border-b border-gold/20 px-2 py-6 text-eggshell transition-colors hover:bg-lacquer-raised hover:text-eggshell md:grid-cols-[auto_minmax(0,1.1fr)_minmax(0,1fr)_auto] md:gap-x-8 md:px-4"
+          >
+            <span aria-hidden="true" class="absolute inset-y-0 left-0 w-0.5 origin-top scale-y-0 bg-gold transition-transform duration-500 group-hover:scale-y-100"></span>
+            <Seal label={item.ticker} motion="hover" />
+            <div class="min-w-0">
+              <p class="font-lacquer-display text-lacquer-h3 text-eggshell transition-colors group-hover:text-gold-soft">{item.company}</p>
+              <p class="mt-1 font-lacquer-body text-lacquer-eyebrow uppercase text-ash">{item.sector}</p>
+            </div>
+            <dl class="col-span-2 flex flex-wrap gap-x-8 gap-y-3 md:col-span-1">
+              {item.outputs.map((output) => (
+                <div>
+                  <dt class="font-lacquer-body text-lacquer-eyebrow uppercase text-ash">{output.method}</dt>
+                  <dd class="font-lacquer-display text-2xl font-semibold lining-nums tabular-nums text-gold">{output.value}</dd>
+                </div>
+              ))}
+            </dl>
+            <span class="material-symbols-outlined hidden text-gold transition-transform duration-300 group-hover:translate-x-1 md:inline" aria-hidden="true">arrow_forward</span>
+          </a>
+        </li>
       ))}
+    </ul>
+    <p class="mt-4 font-lacquer-body text-[0.75rem] text-ash">Values in VND per share. ≈ marks approximate precedent-transaction outputs.</p>
+  </section>
+
+  <!-- III · Market Views -->
+  <section id="market-views" class="relative scroll-mt-20 overflow-hidden border-y border-gold/15 bg-lacquer-deep">
+    <EggshellInlay class="pointer-events-none absolute left-0 bottom-0 hidden h-80 w-[34rem] rotate-180 text-eggshell opacity-[0.07] [mask-image:radial-gradient(ellipse_75%_70%_at_100%_0%,#000_25%,transparent_75%)] md:block" seed={23} cols={30} rows={18} />
+    <div class="relative mx-auto w-full max-w-container-max px-margin-mobile py-24 md:px-margin-desktop">
+      <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between" data-reveal>
+        <div>
+          <p class="font-lacquer-body text-lacquer-eyebrow uppercase text-cinnabar-soft">III · Market Views</p>
+          <h2 class="mt-4 font-lacquer-display text-lacquer-h2 text-eggshell">Market notes</h2>
+          <p class="mt-4 max-w-xl font-lacquer-body text-lacquer-body text-eggshell-muted">
+            Weekly and monthly reads on the VN-Index: levels, liquidity, foreign flow, and cross-asset context.
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <a href="/market-views" class="inline-flex min-h-11 items-center gap-2 border border-gold/60 px-4 py-2 font-lacquer-body text-lacquer-eyebrow uppercase text-gold transition-colors hover:border-gold hover:bg-gold hover:text-lacquer">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">view_week</span> Weekly notes
+          </a>
+          <a href="/monthly-views" class="inline-flex min-h-11 items-center gap-2 bg-cinnabar px-4 py-2 font-lacquer-body text-lacquer-eyebrow uppercase text-eggshell transition-colors hover:bg-cinnabar-deep hover:text-eggshell">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">calendar_month</span> Monthly notes
+          </a>
+        </div>
+      </div>
+
+      <div class="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {trendData.length > 0 && (
+          <div class="lg:col-span-7" data-reveal>
+            <VnIndexChart theme="lacquer" trendData={trendData} label="VN-Index · weekly close" />
+          </div>
+        )}
+
+        <div class="flex flex-col gap-4 lg:col-span-5">
+          {latestMonthlyView && (
+            <a href={`/monthly-views/${latestMonthlyView.slug}`} class="group block border border-gold/40 bg-lacquer p-5 text-eggshell transition-colors hover:border-gold hover:text-eggshell" data-reveal>
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <span class="bg-cinnabar px-2 py-1 font-lacquer-body text-lacquer-eyebrow uppercase text-eggshell">Monthly</span>
+                <span class="font-lacquer-body text-lacquer-eyebrow uppercase text-ash">{formatDate(latestMonthlyView.data.date)}</span>
+              </div>
+              <p class="mt-4 line-clamp-2 font-lacquer-display text-[1.375rem] font-semibold leading-tight transition-colors group-hover:text-gold-soft">{latestMonthlyView.data.title}</p>
+              <p class="mt-3 font-lacquer-body text-lacquer-small tabular-nums text-ash">
+                VN-Index {formatIndex(latestMonthlyView.data.vn_index_close)}
+                <span class:list={['ml-2 font-medium', toneClass(latestMonthlyView.data.vn_index_monthly_change_pct)]}>{signedPct(latestMonthlyView.data.vn_index_monthly_change_pct)}</span>
+              </p>
+            </a>
+          )}
+
+          {latestMarketViews.map((entry) => (
+            <a href={`/market-views/${entry.slug}`} class="group block border border-gold/20 bg-lacquer p-5 text-eggshell transition-colors hover:border-gold hover:text-eggshell" data-reveal>
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <span class="font-lacquer-body text-lacquer-eyebrow uppercase text-gold">Weekly</span>
+                <span class="font-lacquer-body text-lacquer-eyebrow uppercase text-ash">{formatWeek(entry.data.week_start, entry.data.week_end)}</span>
+              </div>
+              <p class="mt-4 line-clamp-2 font-lacquer-display text-[1.375rem] font-semibold leading-tight transition-colors group-hover:text-gold-soft">{entry.data.title}</p>
+              <p class="mt-3 font-lacquer-body text-lacquer-small tabular-nums text-ash">
+                VN-Index {formatIndex(entry.data.vn_index_close)}
+                <span class:list={['ml-2 font-medium', toneClass(entry.data.vn_index_weekly_change_pct)]}>{signedPct(entry.data.vn_index_weekly_change_pct)}</span>
+              </p>
+            </a>
+          ))}
+        </div>
+      </div>
     </div>
   </section>
 
-  <div class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
-    <hr class="border-t border-outline-variant" />
-  </div>
-
-  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap" id="market-views">
-    <div class="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-      <div>
-        <h2 class="font-display-lg text-display-lg text-terminal-accent mb-2">Market Views</h2>
-        <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest">Weekly and monthly notes</p>
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full md:w-auto">
-        <a href="/market-views" class="inline-flex min-h-12 items-center justify-center gap-2 border border-terminal-accent bg-terminal-bg px-4 py-3 font-label-md uppercase text-label-md text-terminal-accent hover:bg-terminal-card transition-colors">
-          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">view_week</span>
-          Weekly Notes
-        </a>
-        <a href="/monthly-views" class="inline-flex min-h-12 items-center justify-center gap-2 bg-terminal-accent px-4 py-3 font-label-md uppercase text-label-md text-terminal-bg hover:bg-on-primary hover:text-terminal-accent transition-colors">
-          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">calendar_month</span>
-          Monthly Notes
-        </a>
-      </div>
-    </div>
-
-    {trendData.length > 0 && (
-      <div class="mb-8">
-        <VnIndexChart trendData={trendData} label="VN-INDEX WEEKLY TREND" />
-      </div>
-    )}
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
-      {latestMarketViews.map((entry) => (
-        <a href={`/market-views/${entry.slug}`} class="group bg-terminal-card border border-terminal-border border-t-2 border-t-terminal-accent p-5 hover:border-terminal-accent transition-colors">
-          <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
-            <span class="border border-terminal-accent bg-terminal-bg px-3 py-2 font-label-md uppercase text-label-md text-terminal-accent">Weekly Market View</span>
-            <span class="font-mono-data text-mono-data text-on-surface-variant">{formatWeek(entry.data.week_start, entry.data.week_end)}</span>
-          </div>
-          <h3 class="font-headline-sm text-headline-sm text-terminal-accent mb-4 group-hover:text-on-primary transition-colors">{entry.data.title}</h3>
-          <div class="grid grid-cols-2 gap-3 border-t border-outline-variant pt-4">
-            <div>
-              <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">VN-Index</p>
-              <p class="font-mono-data text-mono-data text-terminal-text">{entry.data.vn_index_close.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-            </div>
-            <div>
-              <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">Weekly change</p>
-              <p class:list={['font-mono-data text-mono-data', entry.data.vn_index_weekly_change_pct >= 0 ? 'text-tertiary' : 'text-error']}>{signedPct(entry.data.vn_index_weekly_change_pct)}</p>
-            </div>
-          </div>
-        </a>
-      ))}
-
-      {latestMonthlyView.map((entry) => (
-        <a href={`/monthly-views/${entry.slug}`} class="group bg-terminal-card border border-terminal-accent border-t-4 border-t-terminal-accent p-5 hover:border-terminal-accent transition-colors">
-          <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
-            <span class="bg-terminal-accent px-3 py-2 font-label-md uppercase text-label-md text-terminal-bg">Monthly Market View</span>
-            <span class="font-mono-data text-mono-data text-on-surface-variant">{formatDate(entry.data.date)}</span>
-          </div>
-          <h3 class="font-headline-sm text-headline-sm text-terminal-accent mb-4 group-hover:text-on-primary transition-colors">{entry.data.title}</h3>
-          <div class="grid grid-cols-2 gap-3 border-t border-outline-variant pt-4">
-            <div>
-              <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">VN-Index</p>
-              <p class="font-mono-data text-mono-data text-terminal-text">{entry.data.vn_index_close.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-            </div>
-            <div>
-              <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">Monthly change</p>
-              <p class:list={['font-mono-data text-mono-data', entry.data.vn_index_monthly_change_pct >= 0 ? 'text-tertiary' : 'text-error']}>{signedPct(entry.data.vn_index_monthly_change_pct)}</p>
-            </div>
-          </div>
-        </a>
-      ))}
-    </div>
-  </section>
-
-  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto pb-section-gap">
-    <DisclaimerBox />
+  <section class="mx-auto w-full max-w-container-max px-margin-mobile py-16 md:px-margin-desktop">
+    <DisclaimerBox variant="lacquer" />
   </section>
 </BaseLayout>

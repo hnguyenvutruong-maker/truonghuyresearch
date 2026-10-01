@@ -9,6 +9,12 @@
 *::before,
 *::after {
   border-radius: 0 !important;
+}
+
+/* The terminal theme locks tracking; the lacquer theme relies on tracked small caps. */
+:root:not([data-theme="lacquer"]) *,
+:root:not([data-theme="lacquer"]) *::before,
+:root:not([data-theme="lacquer"]) *::after {
   letter-spacing: 0 !important;
 }
 
@@ -270,5 +276,82 @@ hr {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+}
+
+/*
+ * Sơn mài (Vietnamese lacquer) theme — <html data-theme="lacquer">
+ * Lacquer black, cinnabar, gold leaf, eggshell. Cormorant Garamond + Be Vietnam Pro.
+ * Base-element resets use :where() so they never outrank Tailwind utilities.
+ */
+html[data-theme="lacquer"],
+html[data-theme="lacquer"] body {
+  background-color: #1A0D0B;
+  color: #EFE6D6;
+}
+
+:where([data-theme="lacquer"]) :is(h1, h2, h3, h4, h5, h6) {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+:where([data-theme="lacquer"]) p {
+  font-family: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+:where([data-theme="lacquer"]) a,
+:where([data-theme="lacquer"]) a:hover {
+  color: inherit;
+}
+
+[data-theme="lacquer"] a:focus-visible,
+[data-theme="lacquer"] button:focus-visible {
+  outline-color: #C8A15A;
+}
+
+[data-theme="lacquer"] ::selection {
+  background-color: #B8321C;
+  color: #EFE6D6;
+}
+
+/* Gold underline that draws in from the left on hover */
+.lacquer-link {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  padding-bottom: 2px;
+  transition: background-size 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.2s ease;
+}
+
+.lacquer-link:hover,
+.lacquer-link:focus-visible,
+.lacquer-link[aria-current="page"] {
+  background-size: 100% 1px;
+}
+
+/* Scroll reveal — only hidden once JS has marked <html class="js"> */
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) var(--reveal-delay, 0ms),
+    transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) var(--reveal-delay, 0ms);
+}
+
+.js [data-reveal].is-revealed {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js [data-reveal] {
+    opacity: 1;
+    transform: none;
   }
 }

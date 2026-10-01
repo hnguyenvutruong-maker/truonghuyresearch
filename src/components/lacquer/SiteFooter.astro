@@ -1,0 +1,48 @@
+---
+import EggshellInlay from './EggshellInlay.astro';
+import Seal from './Seal.astro';
+import { portfolioDisclaimer } from '../../data/valuation-models';
+
+const currentYear = new Date().getFullYear();
+
+const links = [
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/trghuyy/', external: true },
+  { label: 'CV', href: '/cv.pdf', external: true },
+  { label: 'Contact', href: '/contact', external: false },
+  { label: 'Disclaimer', href: '/disclaimer', external: false },
+  { label: 'RSS', href: '/rss.xml', external: false },
+];
+---
+
+<footer class="relative mt-auto w-full overflow-hidden border-t border-gold/25 bg-lacquer-deep">
+  <EggshellInlay class="pointer-events-none absolute right-0 top-0 h-56 w-[30rem] text-eggshell opacity-[0.08] [mask-image:radial-gradient(ellipse_75%_70%_at_100%_0%,#000_25%,transparent_75%)]" seed={11} cols={28} rows={14} />
+  <div class="relative mx-auto grid w-full max-w-container-max grid-cols-1 gap-10 px-margin-mobile py-16 md:grid-cols-12 md:px-margin-desktop">
+    <div class="space-y-4 md:col-span-8">
+      <div class="flex items-center gap-3">
+        <Seal label="TH" size="sm" decorative />
+        <span class="font-lacquer-display text-2xl font-semibold text-eggshell">Trường Huy Research</span>
+      </div>
+      <p class="max-w-xl font-lacquer-body text-lacquer-small text-eggshell-muted">
+        Vietnam equity research, valuation models, and market notes by Nguyen Vu Truong Huy.
+      </p>
+      <p class="max-w-xl font-lacquer-body text-lacquer-small text-ash">{portfolioDisclaimer}</p>
+      <p class="font-lacquer-body text-lacquer-small text-ash">&copy; {currentYear} Nguyen Vu Truong Huy. All rights reserved.</p>
+    </div>
+    <nav class="md:col-span-4 md:justify-self-end" aria-label="Footer">
+      <ul class="flex flex-wrap gap-x-6 gap-y-3 md:flex-col md:items-end">
+        {links.map((link) => (
+          <li>
+            <a
+              href={link.href}
+              target={link.external ? '_blank' : undefined}
+              rel={link.external ? 'noopener noreferrer' : undefined}
+              class="lacquer-link font-lacquer-body text-lacquer-eyebrow uppercase text-eggshell-muted transition-colors hover:text-gold"
+            >
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  </div>
+</footer>

@@ -1,0 +1,35 @@
+---
+// Square cinnabar seal (con dấu / triện) used for tickers and the site mark.
+interface Props {
+  label: string;
+  size?: 'sm' | 'md' | 'lg';
+  motion?: 'none' | 'load' | 'hover';
+  decorative?: boolean;
+}
+
+const { label, size = 'md', motion = 'none', decorative = false } = Astro.props;
+
+const sizeClasses = {
+  sm: 'h-9 w-9 text-[11px]',
+  md: 'h-12 w-12 text-[13px]',
+  lg: 'h-16 w-16 text-base',
+} as const;
+
+const motionClasses = {
+  none: '',
+  load: 'animate-stamp [animation-delay:650ms]',
+  hover: 'group-hover:animate-stamp',
+} as const;
+---
+
+<span
+  class:list={[
+    'inline-flex shrink-0 -rotate-[5deg] items-center justify-center bg-cinnabar font-lacquer-body font-bold uppercase text-eggshell',
+    'shadow-[inset_0_0_0_2px_#1A0D0B,inset_0_0_0_3px_rgba(239,230,214,0.7)]',
+    sizeClasses[size],
+    motionClasses[motion],
+  ]}
+  aria-hidden={decorative ? 'true' : undefined}
+>
+  {label}
+</span>

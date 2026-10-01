@@ -16,9 +16,11 @@ interface Props {
   trendData?: TrendPoint[];
   candleData?: CandlePoint[];
   label?: string;
+  theme?: 'terminal' | 'lacquer';
 }
 
-const { trendData = [], candleData = [], label = 'VN-INDEX TREND' } = Astro.props;
+const { trendData = [], candleData = [], label = 'VN-INDEX TREND', theme = 'terminal' } = Astro.props;
+const isLacquer = theme === 'lacquer';
 
 const hasTrend = trendData.length > 0;
 const hasCandle = candleData.length > 0;
@@ -26,12 +28,21 @@ const hasData = hasTrend || hasCandle;
 ---
 
 {hasData && (
-  <div class="bg-terminal-bg border border-terminal-border border-t-2 border-t-terminal-accent p-4">
-    <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-3">{label}</p>
+  <div class:list={[
+    isLacquer
+      ? 'border border-gold/30 bg-lacquer-deep p-4 md:p-5'
+      : 'bg-terminal-bg border border-terminal-border border-t-2 border-t-terminal-accent p-4',
+  ]}>
+    <p class:list={[
+      'mb-3',
+      isLacquer
+        ? 'font-lacquer-body text-lacquer-eyebrow uppercase text-ash'
+        : 'font-label-md uppercase text-label-md text-on-surface-variant',
+    ]}>{label}</p>
     <div
       id="vni-chart"
-      class="w-full"
-      style="height: 200px;"
+      class:list={['w-full', isLacquer ? 'h-[260px]' : 'h-[200px]']}
+      data-theme={theme}
       data-trend={JSON.stringify(trendData)}
       data-candle={JSON.stringify(candleData)}
     ></div>
@@ -48,34 +59,53 @@ const hasData = hasTrend || hasCandle;
     const trendData: { time: string; value: number }[] = JSON.parse(trendRaw);
     const candleData: { time: string; open: number; high: number; low: number; close: number }[] = JSON.parse(candleRaw);
 
+    const palettes = {
+      terminal: { bg: '#0d1117', text: '#8b949e', grid: '#30363d', line: '#f0a500', up: '#84e588', down: '#ffb4ab', font: 'JetBrains Mono, monospace' },
+      lacquer: { bg: '#120807', text: '#A08C78', grid: 'rgba(200, 161, 90, 0.12)', line: '#C8A15A', up: '#8DBF9F', down: '#E07A5F', font: 'Be Vietnam Pro, sans-serif' },
+    } as const;
+    const isLacquer = container.dataset.theme === 'lacquer';
+    const palette = isLacquer ? palettes.lacquer : palettes.terminal;
+
     const chart = createChart(container, {
       width: container.clientWidth,
-      height: 200,
+      height: container.clientHeight || 200,
       layout: {
-        background: { color: '#0d1117' },
-        textColor: '#8b949e',
+        background: { color: palette.bg },
+        textColor: palette.text,
+        fontFamily: palette.font,
       },
       grid: {
-        vertLines: { color: '#30363d' },
-        horzLines: { color: '#30363d' },
+        vertLines: { color: palette.grid },
+        horzLines: { color: palette.grid },
       },
       crosshair: { mode: CrosshairMode.Normal },
-      rightPriceScale: { borderColor: '#30363d' },
-      timeScale: { borderColor: '#30363d', timeVisible: true },
+      rightPriceScale: { borderColor: palette.grid },
+      timeScale: { borderColor: palette.grid, timeVisible: true },
       handleScroll: false,
       handleScale: false,
     });
 
     if (candleData.length > 0) {
       const candleSeries = chart.addCandlestickSeries({
-        upColor: '#84e588',
-        downColor: '#ffb4ab',
-        borderUpColor: '#84e588',
-        borderDownColor: '#ffb4ab',
-        wickUpColor: '#84e588',
-        wickDownColor: '#ffb4ab',
+        upColor: palette.up,
+        downColor: palette.down,
+        borderUpColor: palette.up,
+        borderDownColor: palette.down,
+        wickUpColor: palette.up,
+        wickDownColor: palette.down,
       });
       candleSeries.setData(candleData);
+    } else if (trendData.length > 0 && isLacquer) {
+      const areaSeries = chart.addAreaSeries({
+        lineColor: palette.line,
+        topColor: 'rgba(200, 161, 90, 0.28)',
+        bottomColor: 'rgba(200, 161, 90, 0)',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: true,
+        crosshairMarkerVisible: true,
+      });
+      areaSeries.setData(trendData);
     } else if (trendData.length > 0) {
       const lineSeries = chart.addLineSeries({
         color: '#f0a500',

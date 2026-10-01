@@ -1,0 +1,87 @@
+---
+// Decorative eggshell inlay (khảm vỏ trứng): cracked shards that thin out away
+// from the top-right corner. Generated deterministically at build time.
+interface Props {
+  class?: string;
+  seed?: number;
+  cols?: number;
+  rows?: number;
+}
+
+const { class: className, seed = 7, cols = 18, rows = 12 } = Astro.props;
+
+const mulberry32 = (initial: number) => {
+  let a = initial;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
+const rand = mulberry32(seed);
+const cell = 20;
+const jitter = 6.5;
+const width = cols * cell;
+const height = rows * cell;
+
+type Point = { x: number; y: number };
+
+const grid: Point[][] = Array.from({ length: rows + 1 }, (_, r) =>
+  Array.from({ length: cols + 1 }, (_, c) => {
+    const edge = r === 0 || c === 0 || r === rows || c === cols;
+    return {
+      x: c * cell + (edge ? 0 : (rand() - 0.5) * 2 * jitter),
+      y: r * cell + (edge ? 0 : (rand() - 0.5) * 2 * jitter),
+    };
+  })
+);
+
+// Shrink each shard toward its centroid so hairline cracks show between pieces.
+const inset = (points: Point[], factor: number): string => {
+  const cx = points.reduce((sum, p) => sum + p.x, 0) / points.length;
+  const cy = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+  return points
+    .map((p) => `${(cx + (p.x - cx) * factor).toFixed(1)},${(cy + (p.y - cy) * factor).toFixed(1)}`)
+    .join(' ');
+};
+
+const shards: Array<{ points: string; opacity: string }> = [];
+const maxDistance = Math.hypot(cols, rows);
+
+for (let r = 0; r < rows; r++) {
+  for (let c = 0; c < cols; c++) {
+    const distance = Math.hypot(cols - 1 - c, r) / maxDistance;
+    const keep = 1.15 - distance * 1.6 + (rand() - 0.5) * 0.5;
+    if (keep < 0.15) continue;
+
+    const a = grid[r][c];
+    const b = grid[r][c + 1];
+    const d = grid[r + 1][c];
+    const e = grid[r + 1][c + 1];
+    const factor = 0.8 + rand() * 0.1;
+    const opacity = (0.35 + Math.min(keep, 1) * 0.65).toFixed(2);
+
+    if (rand() < 0.35) {
+      shards.push({ points: inset([a, b, e], factor), opacity });
+      shards.push({ points: inset([a, e, d], factor), opacity });
+    } else {
+      shards.push({ points: inset([a, b, e, d], factor), opacity });
+    }
+  }
+}
+---
+
+<svg
+  viewBox={`0 0 ${width} ${height}`}
+  preserveAspectRatio="xMaxYMin slice"
+  class={className}
+  aria-hidden="true"
+  focusable="false"
+>
+  <g fill="currentColor">
+    {shards.map((shard) => <polygon points={shard.points} fill-opacity={shard.opacity} />)}
+  </g>
+</svg>

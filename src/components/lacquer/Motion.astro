@@ -1,0 +1,44 @@
+---
+// Scroll reveal for [data-reveal] blocks and count-up for [data-countup] figures.
+// Content stays fully visible without JS; the `js` class on <html> opts into hiding.
+---
+
+<script>
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const revealEls = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
+
+  const countUp = (el: HTMLElement) => {
+    const target = Number(el.dataset.countup);
+    if (!Number.isFinite(target) || reduceMotion) return;
+    const start = performance.now();
+    const duration = 1200;
+    const tick = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = String(Math.round(target * eased));
+      if (progress < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
+
+  const reveal = (el: HTMLElement) => {
+    el.classList.add('is-revealed');
+    el.querySelectorAll<HTMLElement>('[data-countup]').forEach(countUp);
+  };
+
+  if (!('IntersectionObserver' in window)) {
+    revealEls.forEach((el) => el.classList.add('is-revealed'));
+  } else {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          reveal(entry.target as HTMLElement);
+          observer.unobserve(entry.target);
+        });
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -40px 0px' }
+    );
+    revealEls.forEach((el) => observer.observe(el));
+  }
+</script>

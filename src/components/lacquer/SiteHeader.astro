@@ -1,0 +1,77 @@
+---
+import Seal from './Seal.astro';
+
+const links = [
+  { label: 'Profile', href: '/#about', match: null },
+  { label: 'Valuation', href: '/research', match: '/research' },
+  { label: 'Market Views', href: '/market-views', match: '/market-views' },
+];
+
+const path = Astro.url.pathname;
+const isCurrent = (match: string | null) => match !== null && path.startsWith(match);
+---
+
+<header class="sticky top-0 z-50 w-full border-b border-gold/25 bg-lacquer/90 backdrop-blur-md">
+  <div class="mx-auto flex h-16 w-full max-w-container-max items-center justify-between px-margin-mobile md:px-margin-desktop">
+    <a href="/" class="flex items-center gap-3 text-eggshell hover:text-eggshell">
+      <Seal label="TH" size="sm" motion="load" decorative />
+      <span class="flex flex-col">
+        <span class="font-lacquer-display text-[22px] font-semibold leading-none">Trường Huy</span>
+        <span class="mt-1 font-lacquer-body text-lacquer-eyebrow uppercase leading-none text-gold">Research</span>
+      </span>
+    </a>
+
+    <nav class="hidden md:block" aria-label="Primary">
+      <ul class="flex items-center gap-8">
+        {links.map((link) => (
+          <li>
+            <a
+              href={link.href}
+              aria-current={isCurrent(link.match) ? 'page' : undefined}
+              class:list={[
+                'lacquer-link font-lacquer-body text-lacquer-eyebrow uppercase transition-colors hover:text-gold',
+                isCurrent(link.match) ? 'text-gold' : 'text-eggshell-muted',
+              ]}
+            >
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <div class="flex items-center gap-3">
+      <a
+        href="/contact"
+        class="hidden min-h-10 items-center border border-gold px-4 py-2 font-lacquer-body text-lacquer-eyebrow uppercase text-gold transition-colors hover:bg-gold hover:text-lacquer md:inline-flex"
+      >
+        Contact
+      </a>
+      <button
+        class="p-2 text-gold hover:text-gold-soft md:hidden"
+        id="mobile-menu-btn"
+        aria-label="Menu"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">menu</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="mobile-menu" class="hidden border-t border-gold/20 bg-lacquer md:hidden">
+    <ul class="flex flex-col gap-1 px-margin-mobile py-4">
+      {[...links, { label: 'Contact', href: '/contact', match: '/contact' }, { label: 'Disclaimer', href: '/disclaimer', match: '/disclaimer' }].map((link) => (
+        <li>
+          <a
+            href={link.href}
+            aria-current={isCurrent(link.match) ? 'page' : undefined}
+            class="block py-3 font-lacquer-body text-lacquer-eyebrow uppercase text-eggshell-muted transition-colors hover:text-gold"
+          >
+            {link.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</header>

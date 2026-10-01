@@ -2,12 +2,16 @@
 import '../styles/stichui.css';
 import { portfolioDisclaimer } from '../data/valuation-models';
 import Analytics from '@vercel/analytics/astro';
+import LacquerHeader from '../components/lacquer/SiteHeader.astro';
+import LacquerFooter from '../components/lacquer/SiteFooter.astro';
+import LacquerMotion from '../components/lacquer/Motion.astro';
 
 interface Props {
   title: string;
   description?: string;
   image?: string;
   type?: string;
+  theme?: 'terminal' | 'lacquer';
 }
 
 const {
@@ -15,7 +19,10 @@ const {
   description = 'Vietnam equity research, valuation models, and market notes by Nguyen Vu Truong Huy.',
   image = '/og-image.png',
   type = 'website',
+  theme = 'terminal',
 } = Astro.props;
+
+const isLacquer = theme === 'lacquer';
 
 const canonicalURL = Astro.url.href;
 const ogImageURL = new URL(image, Astro.site).toString();
@@ -23,7 +30,7 @@ const currentYear = new Date().getFullYear();
 ---
 
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en" class="dark" data-theme={theme}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -31,7 +38,15 @@ const currentYear = new Date().getFullYear();
     <link rel="alternate" type="application/rss+xml" title="Truong Huy Research — Market Views" href="/rss.xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    {isLacquer ? (
+      <>
+        <script is:inline>document.documentElement.classList.add('js');</script>
+        <meta name="theme-color" content="#1A0D0B" />
+        <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet" />
+      </>
+    ) : (
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    )}
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_downward,arrow_forward,calendar_month,download,menu,north_east,view_week&display=swap" rel="stylesheet" />
     <title>{title}</title>
     <meta name="description" content={description} />
@@ -48,7 +63,13 @@ const currentYear = new Date().getFullYear();
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageURL} />
   </head>
-  <body class="bg-terminal-bg text-terminal-text min-h-screen flex flex-col font-body-md antialiased">
+  <body
+    class:list={[
+      'min-h-screen flex flex-col antialiased',
+      isLacquer ? 'bg-lacquer text-eggshell font-lacquer-body' : 'bg-terminal-bg text-terminal-text font-body-md',
+    ]}
+  >
+    {isLacquer ? <LacquerHeader /> : (
     <header class="bg-terminal-bg border-t-2 border-t-terminal-accent border-b border-outline-variant sticky top-0 z-50 w-full">
       <div class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto h-16">
         <a class="font-headline-md text-headline-md font-bold tracking-tight text-terminal-accent" href="/">
@@ -98,11 +119,13 @@ const currentYear = new Date().getFullYear();
         </ul>
       </div>
     </header>
+    )}
 
     <main class="flex-grow w-full">
       <slot />
     </main>
 
+    {isLacquer ? <LacquerFooter /> : (
     <footer class="bg-terminal-bg border-t border-outline-variant w-full mt-auto">
       <div class="w-full py-section-gap px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-start gap-gutter">
         <div class="flex flex-col gap-4 max-w-2xl">
@@ -145,8 +168,10 @@ const currentYear = new Date().getFullYear();
         </div>
       </div>
     </footer>
+    )}
 
     <Analytics />
+    {isLacquer && <LacquerMotion />}
 
     <script>
       const btn = document.getElementById('mobile-menu-btn');

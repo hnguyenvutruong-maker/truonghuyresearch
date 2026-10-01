@@ -65,6 +65,44 @@ export default {
         'market-down': '#ffb4ab',
         'gain': '#84e588',
         'loss': '#ffb4ab',
+        // Sơn mài (Vietnamese lacquer) theme — opt in via BaseLayout theme="lacquer"
+        'lacquer': {
+          DEFAULT: '#1A0D0B',
+          deep: '#120807',
+          raised: '#26130F',
+        },
+        'cinnabar': {
+          DEFAULT: '#B8321C',
+          deep: '#962615',
+          soft: '#E07A5F',
+        },
+        'gold': {
+          DEFAULT: '#C8A15A',
+          soft: '#E0C285',
+          dim: '#8C7140',
+        },
+        'eggshell': {
+          DEFAULT: '#EFE6D6',
+          muted: '#BFAF9A',
+        },
+        'ash': '#A08C78',
+        'jade': '#8DBF9F',
+      },
+      keyframes: {
+        rise: {
+          '0%': { opacity: '0', transform: 'translateY(16px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        // Seal pressed onto the page; ends on the seal's resting -5deg tilt
+        stamp: {
+          '0%': { opacity: '0', transform: 'scale(1.4) rotate(-16deg)' },
+          '55%': { opacity: '1', transform: 'scale(0.92) rotate(-3deg)' },
+          '100%': { opacity: '1', transform: 'scale(1) rotate(-5deg)' },
+        },
+      },
+      animation: {
+        rise: 'rise 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both',
+        stamp: 'stamp 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both',
       },
       // Sharp corners — 0px everywhere except full
       borderRadius: {
@@ -110,6 +148,8 @@ export default {
         'body-md': ['Inter', 'ui-sans-serif', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
         sans: ['Inter', 'ui-sans-serif', 'sans-serif'],
+        'lacquer-display': ['"Cormorant Garamond"', 'Georgia', 'serif'],
+        'lacquer-body': ['"Be Vietnam Pro"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         'headline-lg': ['32px', { lineHeight: '1.3', fontWeight: '600' }],
@@ -126,6 +166,14 @@ export default {
         'mono-data': ['14px', { lineHeight: '1.2', fontWeight: '400' }],
         'body-sm': ['12px', { lineHeight: '1.4', fontWeight: '400' }],
         'body-md': ['14px', { lineHeight: '1.5', fontWeight: '400' }],
+        'lacquer-hero': ['clamp(3rem, 8vw, 6.5rem)', { lineHeight: '0.95', fontWeight: '600' }],
+        'lacquer-h2': ['clamp(2.5rem, 5vw, 3.75rem)', { lineHeight: '1', fontWeight: '600' }],
+        'lacquer-h3': ['1.625rem', { lineHeight: '1.15', fontWeight: '600' }],
+        'lacquer-figure': ['3rem', { lineHeight: '1', fontWeight: '600' }],
+        'lacquer-lead': ['1.125rem', { lineHeight: '1.7', fontWeight: '400' }],
+        'lacquer-body': ['1rem', { lineHeight: '1.75', fontWeight: '400' }],
+        'lacquer-small': ['0.875rem', { lineHeight: '1.6', fontWeight: '400' }],
+        'lacquer-eyebrow': ['0.6875rem', { lineHeight: '1.4', letterSpacing: '0.2em', fontWeight: '500' }],
       },
     },
   },
