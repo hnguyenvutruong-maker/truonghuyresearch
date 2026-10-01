@@ -23,6 +23,17 @@ code works, this file for where things stand.
       (CI was down). On the 21 overlapping days the PC and CI values disagree; CI values were kept.
       The PC's original file is backed up locally at `D:\Work\Web\_backup\`.
 
+## ⚠️ The live site is still the old version
+
+Everything above is on `master` in GitHub, but **truonghuyresearch.xyz has not been redeployed**.
+The Vercel project isn't connected to this repo (no Vercel checks on any commit), and earlier
+deploys were made by hand with the Vercel CLI from the owner's PC, whose token has expired.
+
+- [ ] **Owner:** Vercel dashboard → project `portfolio` → Settings → Git → connect
+      `hnguyenvutruong-maker/truonghuyresearch`, production branch `master`. After that every push
+      deploys, including the bots' cache commits. (Alternative: `vercel login` then `vercel --prod`.)
+- [ ] Once connected, check that the homepage shows the broadsheet masthead, then tick this.
+
 ## Recommended next steps (in order)
 
 1. **Roll the Broadsheet theme out** to `/research`, `/research/[slug]`, the three method pages,
