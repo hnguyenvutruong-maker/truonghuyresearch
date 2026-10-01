@@ -1,0 +1,5 @@
+# The Python content bots run in GitHub Actions, not on Vercel; keep them out of the static build.
+*.py
+requirements.txt
+__pycache__/
+data/
