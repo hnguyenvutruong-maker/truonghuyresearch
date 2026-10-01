@@ -22,7 +22,7 @@ export async function GET(context) {
 
   return rss({
     title: 'Truong Huy Research — Market Views',
-    description: 'Weekly and monthly Vietnam equity market notes by Nguyen Vu Truong Huy, CFA Level II Candidate.',
+    description: 'Weekly and monthly Vietnam equity market notes by Nguyen Vu Truong Huy.',
     site: context.site,
     items: allItems,
     customData: '<language>en</language>',
