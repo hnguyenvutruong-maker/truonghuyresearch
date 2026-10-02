@@ -4,6 +4,7 @@ import Analytics from '@vercel/analytics/astro';
 import SiteHeader from '../components/broadsheet/SiteHeader.astro';
 import SiteFooter from '../components/broadsheet/SiteFooter.astro';
 import Motion from '../components/broadsheet/Motion.astro';
+import CommandPalette from '../components/broadsheet/CommandPalette.astro';
 
 interface Props {
   title: string;
@@ -35,7 +36,7 @@ const ogImageURL = new URL(image, Astro.site).toString();
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_downward,arrow_forward,calendar_month,download,menu,north_east,view_week&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_downward,arrow_forward,calendar_month,download,menu,north_east,search,view_week&display=swap" rel="stylesheet" />
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="author" content="Nguyen Vu Truong Huy" />
@@ -62,6 +63,7 @@ const ogImageURL = new URL(image, Astro.site).toString();
 
     <Analytics />
     <Motion />
+    <CommandPalette />
 
     <script>
       const btn = document.getElementById('mobile-menu-btn');

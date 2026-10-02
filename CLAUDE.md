@@ -116,8 +116,10 @@ adds `<html class="js">`, and mounts `broadsheet/Motion` (scroll reveal + count-
   Label" + h2, `aside` slot), `SiteHeader` (wordmark hidden on `/` until `data-masthead` scrolls
   away), `SiteFooter`, `Motion`, `FootballField` (method ranges vs the model's reference price,
   inline SVG), `SensitivityTable` (two-way DCF grid, diverging shading around the reference
-  price), `MarketNote` (weekly/monthly detail body), `NoteList` (notes by year, optional
-  All/Weekly/Monthly filter synced to `?kind=`).
+  price), `MarketNote` (weekly/monthly detail body + reading-progress hairline), `NoteList` (notes by
+  year, optional All/Weekly/Monthly filter synced to `?kind=`), `CommandPalette` (mounted by
+  `BaseLayout`; `<dialog>` combobox over pages, reports, methods and notes, opened by Ctrl/⌘+K,
+  `/`, or any `[data-palette-open]` button; the index is built at compile time).
 - **Motion:** `animate-rise` (+ `[animation-delay:…]`) for above-the-fold load stagger,
   `animate-rule` for rules drawing in, `animate-stamp` for seals, `data-reveal` for scroll reveal,
   `data-countup="N"` on figures inside a revealed block. Content is fully visible without JS;

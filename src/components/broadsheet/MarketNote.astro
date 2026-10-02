@@ -35,6 +35,9 @@ const figures = [
 ];
 ---
 
+<!-- Reading progress: a hairline under the sticky header that fills as the note body is read -->
+<div class="pointer-events-none fixed inset-x-0 top-14 z-40 h-[2px] origin-left scale-x-0 bg-oxblood" data-reading-progress aria-hidden="true"></div>
+
 <article class="mx-auto w-full max-w-container-max px-margin-mobile pb-16 pt-8 md:px-margin-desktop md:pt-10">
   <div class="flex animate-rise flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b border-ink pb-2 font-news-mono text-news-label uppercase text-ink-muted">
     <a href={listHref} class="news-link transition-colors hover:text-oxblood">← Market notes</a>
@@ -124,7 +127,7 @@ const figures = [
       </aside>
     )}
     <div class:list={['lg:border-ink/25', toc.length > 0 ? 'lg:col-span-9 lg:border-l lg:pl-10' : 'lg:col-span-12']}>
-      <div class="prose prose-lg max-w-[70ch] font-news prose-headings:scroll-mt-20 prose-headings:font-news prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-ink prose-h2:mt-12 prose-h2:border-t prose-h2:border-ink prose-h2:pt-4 prose-h2:text-[1.625rem] prose-h3:text-xl prose-p:text-ink prose-a:text-oxblood prose-a:decoration-oxblood/40 hover:prose-a:text-oxblood-deep prose-blockquote:border-l-2 prose-blockquote:border-oxblood prose-blockquote:font-normal prose-blockquote:text-ink-soft prose-strong:font-semibold prose-strong:text-ink prose-em:text-ink prose-li:text-ink prose-li:marker:text-oxblood prose-hr:border-ink/25 prose-th:font-news-mono prose-th:text-news-label prose-th:uppercase prose-th:text-ink-muted prose-td:text-ink prose-code:text-ink">
+      <div data-note-body class="prose prose-lg max-w-[70ch] font-news prose-headings:scroll-mt-20 prose-headings:font-news prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-ink prose-h2:mt-12 prose-h2:border-t prose-h2:border-ink prose-h2:pt-4 prose-h2:text-[1.625rem] prose-h3:text-xl prose-p:text-ink prose-a:text-oxblood prose-a:decoration-oxblood/40 hover:prose-a:text-oxblood-deep prose-blockquote:border-l-2 prose-blockquote:border-oxblood prose-blockquote:font-normal prose-blockquote:text-ink-soft prose-strong:font-semibold prose-strong:text-ink prose-em:text-ink prose-li:text-ink prose-li:marker:text-oxblood prose-hr:border-ink/25 prose-th:font-news-mono prose-th:text-news-label prose-th:uppercase prose-th:text-ink-muted prose-td:text-ink prose-code:text-ink">
         <slot />
       </div>
     </div>
@@ -150,3 +153,28 @@ const figures = [
     <DisclaimerBox />
   </div>
 </article>
+
+<script>
+  const bar = document.querySelector<HTMLElement>('[data-reading-progress]');
+  const body = document.querySelector<HTMLElement>('[data-note-body]');
+  if (bar && body) {
+    let queued = false;
+    const draw = () => {
+      queued = false;
+      const rect = body.getBoundingClientRect();
+      // 0 when the body's top reaches the header, 1 when its end reaches the bottom of the screen
+      const travel = rect.height - window.innerHeight + 56;
+      const progress = travel > 0 ? Math.min(Math.max((56 - rect.top) / travel, 0), 1) : 1;
+      bar.style.transform = `scaleX(${progress})`;
+    };
+    const queue = () => {
+      if (!queued) {
+        queued = true;
+        requestAnimationFrame(draw);
+      }
+    };
+    window.addEventListener('scroll', queue, { passive: true });
+    window.addEventListener('resize', queue);
+    draw();
+  }
+</script>

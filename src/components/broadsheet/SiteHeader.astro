@@ -42,6 +42,16 @@ const isCurrent = (match: string | null) => match !== null && path.startsWith(ma
           </li>
         ))}
         <li>
+          <button
+            type="button"
+            data-palette-open
+            aria-keyshortcuts="Control+K Meta+K /"
+            class="inline-flex min-h-9 items-center gap-2 font-news-mono text-news-label uppercase text-ink-soft transition-colors hover:text-oxblood"
+          >
+            Search <kbd class="border border-ink/30 px-1 font-news-mono text-[0.625rem] text-ink-muted">/</kbd>
+          </button>
+        </li>
+        <li>
           <a href="/contact" class="inline-flex min-h-9 items-center border border-ink px-3 py-1.5 font-news-mono text-news-label uppercase text-ink transition-colors hover:bg-ink hover:text-paper">
             Contact
           </a>
@@ -49,8 +59,12 @@ const isCurrent = (match: string | null) => match !== null && path.startsWith(ma
       </ul>
     </nav>
 
+    <div class="flex items-center gap-1 md:hidden">
+    <button type="button" data-palette-open class="p-2 text-ink hover:text-oxblood" aria-label="Search">
+      <span class="material-symbols-outlined" aria-hidden="true">search</span>
+    </button>
     <button
-      class="p-2 text-ink hover:text-oxblood md:hidden"
+      class="p-2 text-ink hover:text-oxblood"
       id="mobile-menu-btn"
       aria-label="Menu"
       aria-expanded="false"
@@ -58,6 +72,7 @@ const isCurrent = (match: string | null) => match !== null && path.startsWith(ma
     >
       <span class="material-symbols-outlined" aria-hidden="true">menu</span>
     </button>
+    </div>
   </div>
 
   <div id="mobile-menu" class="hidden border-t border-ink/20 bg-paper md:hidden">

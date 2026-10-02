@@ -96,10 +96,10 @@ scheduled workflows run from the default branch.
 
 ## P2 — UX and navigation
 
-- [ ] Command palette (`Ctrl+K` / `/`): jump to tickers, method pages, notes, CV
+- [x] Command palette (`Ctrl+K` / `⌘K` / `/`, or Search in the header): pages, reports, methods, every note; diacritic-insensitive
 - [x] `/market-views`: All/Weekly/Monthly filter (synced to `?kind=`), grouped by year
 - [x] Note detail pages: H1 above the data card, per-page meta descriptions, sticky TOC
-- [ ] Note detail pages: reading progress bar
+- [x] Note detail pages: reading progress bar
 - [x] Report pages: section index, sensitivity table (HPG, FPT)
 - [x] ~~`/research` tabs~~ — replaced by one page (table + methods index); no tabs left
 - [x] Mobile menu closes on link click or Esc
