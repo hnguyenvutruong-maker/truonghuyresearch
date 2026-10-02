@@ -50,6 +50,42 @@ export type ValuationReport = {
   disclaimer: string;
 };
 
+export type OutputMethod = 'DCF' | 'Comparable' | 'Precedent' | 'LBO';
+
+/** One method's output in VND per share, as a range (low = high for a point estimate). */
+export type ValuationOutput = {
+  method: OutputMethod;
+  low: number;
+  high: number;
+  /** Point estimate inside the range (e.g. the DCF base case), if the method has one. */
+  base?: number;
+  approximate?: boolean;
+  /** What the low–high span represents. */
+  basis: string;
+};
+
+/** Share price the model pack used as its market input (taken from the workbooks). */
+export type ReferencePrice = {
+  value: number;
+  asOf: string;
+  source: string;
+};
+
+/** Implied share price (VND thousands) across two DCF inputs, recomputed from the workbook. */
+export type SensitivityGrid = {
+  title: string;
+  rowLabel: string;
+  colLabel: string;
+  rows: number[];
+  cols: number[];
+  rowFormat: 'pct' | 'multiple';
+  colFormat: 'pct' | 'multiple';
+  values: number[][];
+  baseRow: number;
+  baseCol: number;
+  note: string;
+};
+
 export type ValuationModel = {
   slug: string;
   ticker: string;
@@ -63,11 +99,12 @@ export type ValuationModel = {
   investmentQuestion?: string;
   keyAssumptions?: ReportPoint[];
   modelImprovementNotes?: string[];
-  sensitivityNeeded?: string[];
   limitation?: string;
   futureUpgrade?: string[];
-  metricsNeeded?: string[];
   methods: string[];
+  referencePrice: ReferencePrice;
+  outputs: ValuationOutput[];
+  sensitivity?: SensitivityGrid;
   summary: string;
   conclusion: string;
   valuationNotes: ValuationNote[];
@@ -148,11 +185,34 @@ export const valuationModels: ValuationModel[] = [
       'Full 3-statement integration',
       'Working capital schedule',
       'WACC bridge',
-      'Sensitivity table',
+      'Revenue growth × EBITDA margin sensitivity',
       'EV/EBITDA peer cross-check',
     ],
-    sensitivityNeeded: ['WACC vs Exit Multiple', 'Revenue Growth vs EBITDA Margin'],
     methods: ['DCF', 'Comparable Analysis'],
+    referencePrice: { value: 23600, asOf: '2026-06-11', source: 'Market input in the model workbooks' },
+    outputs: [
+      { method: 'DCF', low: 18400, high: 26500, base: 22261, basis: 'Base case; bar spans WACC 9.5–11.5% and exit EV/EBITDA 8.0–10.0x' },
+      { method: 'Comparable', low: 25500, high: 25900, basis: 'Selected peer P/E medians on LTM, 2026E and 2027E earnings' },
+    ],
+    sensitivity: {
+      title: 'Implied share price, VND thousands',
+      rowLabel: 'WACC',
+      colLabel: 'Exit EV/EBITDA',
+      rows: [0.095, 0.1, 0.105, 0.11, 0.115],
+      cols: [8, 8.5, 9, 9.5, 10],
+      rowFormat: 'pct',
+      colFormat: 'multiple',
+      values: [
+        [20.7, 22.2, 23.6, 25.0, 26.5],
+        [20.1, 21.5, 22.9, 24.3, 25.7],
+        [19.5, 20.9, 22.3, 23.6, 25.0],
+        [18.9, 20.3, 21.6, 23.0, 24.3],
+        [18.4, 19.7, 21.0, 22.3, 23.6],
+      ],
+      baseRow: 2,
+      baseCol: 2,
+      note: 'Recomputed from the DCF workbook: the same unlevered free cash flows, mid-year discounting, net debt and share count, with only WACC and the exit multiple flexed. The centre cell is the model output.',
+    },
     summary: 'Industrial cyclicality model pack with intrinsic value and public-market multiple cross-checks.',
     conclusion: 'HPG should be read as a valuation range, not a single target price. DCF is the conservative intrinsic anchor; comparable analysis is the market-implied normalized earnings case.',
     valuationNotes: [
@@ -317,8 +377,11 @@ export const valuationModels: ValuationModel[] = [
       'NPL and provisioning analysis',
       'CAR/capital adequacy tracking',
     ],
-    metricsNeeded: ['ROE', 'P/B', 'NIM', 'NPL ratio', 'Credit cost', 'Loan growth', 'CASA / funding cost', 'CAR'],
     methods: ['Comparable Analysis'],
+    referencePrice: { value: 41650, asOf: '2026-06-11', source: 'Market input in the model workbooks' },
+    outputs: [
+      { method: 'Comparable', low: 39700, high: 44300, basis: 'Selected listed-bank P/E medians on LTM, 2026E and 2027E earnings' },
+    ],
     summary: 'Bank valuation workflow centered on peer multiples, benchmarking pages, and target-company inputs.',
     conclusion: 'BID should be read as a peer-based valuation range. The current model checks whether BID sits inside the listed-bank multiple frame; it does not yet replace a full bank valuation model.',
     valuationNotes: [
@@ -417,6 +480,30 @@ export const valuationModels: ValuationModel[] = [
     lastUpdated: '2026-06-11',
     disclaimerLabel: 'Academic research / not investment advice',
     methods: ['DCF', 'Comparable Analysis'],
+    referencePrice: { value: 74200, asOf: '2026-06-11', source: 'Market input in the model workbooks' },
+    outputs: [
+      { method: 'DCF', low: 72100, high: 95200, base: 83215, basis: 'Base case; bar spans WACC 9.5–11.5% and exit EV/EBITDA 7.5–9.5x' },
+      { method: 'Comparable', low: 76200, high: 77100, basis: 'Selected tech and telecom peer P/E medians on LTM, 2026E and 2027E earnings' },
+    ],
+    sensitivity: {
+      title: 'Implied share price, VND thousands',
+      rowLabel: 'WACC',
+      colLabel: 'Exit EV/EBITDA',
+      rows: [0.095, 0.1, 0.105, 0.11, 0.115],
+      cols: [7.5, 8, 8.5, 9, 9.5],
+      rowFormat: 'pct',
+      colFormat: 'multiple',
+      values: [
+        [78.6, 82.8, 86.9, 91.0, 95.2],
+        [76.9, 81.0, 85.0, 89.1, 93.1],
+        [75.3, 79.3, 83.2, 87.2, 91.1],
+        [73.7, 77.6, 81.4, 85.3, 89.2],
+        [72.1, 75.9, 79.7, 83.5, 87.3],
+      ],
+      baseRow: 2,
+      baseCol: 2,
+      note: 'Recomputed from the DCF workbook: the same unlevered free cash flows, mid-year discounting, net debt and share count, with only WACC and the exit multiple flexed. The centre cell is the model output.',
+    },
     summary: 'Growth-company model pack combining forecast-driven DCF and public peer valuation checks.',
     conclusion: 'FPT now shows the intended split: DCF is the growth-upside case, while comparable analysis is the tighter public-market multiple check.',
     valuationNotes: [
@@ -531,6 +618,11 @@ export const valuationModels: ValuationModel[] = [
     lastUpdated: '2026-06-11',
     disclaimerLabel: 'Academic research / not investment advice',
     methods: ['Precedent Transactions', 'LBO'],
+    referencePrice: { value: 135200, asOf: '2026-06-11', source: 'Market input in the model workbooks' },
+    outputs: [
+      { method: 'Precedent', low: 152800, high: 152800, approximate: true, basis: 'Selected 13.0% median control premium' },
+      { method: 'LBO', low: 142000, high: 142000, basis: 'Sponsor offer at 20.1% IRR, 2.50x cash return' },
+    ],
     summary: 'Transaction-led valuation set pairing acquisition multiples with sponsor-return analysis.',
     conclusion: 'BMP now shows a clear control-value spread: LBO is the financial-sponsor case at VND 142.0k/share, while precedent transactions imply a higher strategic/control value around VND 152.8k/share.',
     valuationNotes: [
@@ -645,6 +737,12 @@ export const valuationModels: ValuationModel[] = [
     lastUpdated: '2026-06-11',
     disclaimerLabel: 'Academic research / not investment advice',
     methods: ['LBO', 'Comparable / Precedent'],
+    referencePrice: { value: 64000, asOf: '2026-06-11', source: 'Market input in the model workbooks' },
+    outputs: [
+      { method: 'LBO', low: 66000, high: 66000, basis: 'Sponsor offer at 20.1% IRR, 2.50x cash return' },
+      { method: 'Precedent', low: 69800, high: 69800, approximate: true, basis: 'Selected 9.0% median control premium' },
+      { method: 'Comparable', low: 72800, high: 74300, basis: 'Selected retail peer P/E medians on LTM, 2026E and 2027E earnings' },
+    ],
     summary: 'Retail valuation set with sponsor-return analysis and a combined public/transaction multiple pack.',
     conclusion: 'PNJ now has a three-step valuation ladder: LBO is the sponsor floor, precedent is the middle control-value check, and comparable analysis is the higher public-growth case.',
     valuationNotes: [
@@ -756,4 +854,35 @@ export const valuationModels: ValuationModel[] = [
       },
     ],
   },
+];
+
+/** Model inputs older than this are flagged as stale on every page that shows them. */
+export const STALE_AFTER_DAYS = 90;
+
+export const outputMethodLabel: Record<OutputMethod, string> = {
+  DCF: 'DCF',
+  Comparable: 'Comparable',
+  Precedent: 'Precedent',
+  LBO: 'LBO',
+};
+
+/** The single value a method stands for: its base case, else the midpoint of its range. */
+export const outputCentre = (output: ValuationOutput): number => output.base ?? (output.low + output.high) / 2;
+
+/** Implied move from the reference price to the method's centre value, in percent. */
+export const impliedMovePct = (output: ValuationOutput, reference: ReferencePrice): number =>
+  (outputCentre(output) / reference.value - 1) * 100;
+
+/** "22.3k", "25.5k–25.9k", "≈152.8k" */
+export const formatOutput = (output: ValuationOutput): string => {
+  const k = (value: number) => `${(Math.round(value / 100) / 10).toFixed(1)}k`;
+  const prefix = output.approximate ? '≈' : '';
+  if (output.base !== undefined) return `${prefix}${k(output.base)}`;
+  return output.low === output.high ? `${prefix}${k(output.low)}` : `${prefix}${k(output.low)}–${k(output.high)}`;
+};
+
+export const methodPages: Array<{ id: ValuationGroupId; href: string }> = [
+  { id: 'dcf', href: '/research/dcf' },
+  { id: 'comparable', href: '/research/comparable-analysis' },
+  { id: 'transaction-lbo', href: '/research/precedent-transactions-lbo' },
 ];
