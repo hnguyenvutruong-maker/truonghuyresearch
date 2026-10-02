@@ -16,7 +16,7 @@ const isCurrent = (match: string | null) => match !== null && path.startsWith(ma
 <header
   id="site-header"
   data-compact={isHome ? 'false' : 'true'}
-  class="group sticky top-0 z-50 w-full border-b border-ink bg-paper/95 backdrop-blur-sm"
+  class="group sticky top-0 z-50 w-full border-b border-ink bg-paper/95 backdrop-blur-sm print:hidden"
 >
   <div class="mx-auto flex h-14 w-full max-w-container-max items-center justify-between gap-6 px-margin-mobile md:px-margin-desktop">
     <a

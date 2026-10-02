@@ -15,9 +15,11 @@ interface Props {
   outputs: ValuationOutput[];
   reference: ReferencePrice;
   ticker: string;
+  /** Shorter rows and no explanatory footnote (tear sheets). */
+  compact?: boolean;
 }
 
-const { outputs, reference, ticker } = Astro.props;
+const { outputs, reference, ticker, compact = false } = Astro.props;
 
 // Axis: a clean step so there are 3–6 intervals, padded around the data and the price
 const values = [...outputs.flatMap((output) => [output.low, output.high]), reference.value];
@@ -78,7 +80,7 @@ const rows = outputs.map((output) => {
           <p class:list={['font-news-mono text-news-data tabular-nums', toneClass(row.move)]}>{signedPct(row.move, 1)}</p>
           <span class="sr-only">{row.summary}</span>
         </div>
-        <svg viewBox={`0 0 ${W} 40`} preserveAspectRatio="none" class="block h-12 w-full overflow-visible" aria-hidden="true">
+        <svg viewBox={`0 0 ${W} 40`} preserveAspectRatio="none" class:list={['block w-full overflow-visible', compact ? 'h-9' : 'h-12']} aria-hidden="true">
           {ticks.map((tick) => (
             <line x1={x(tick)} x2={x(tick)} y1="0" y2="40" class="stroke-ink/15" stroke-width="1" vector-effect="non-scaling-stroke" />
           ))}
@@ -103,8 +105,10 @@ const rows = outputs.map((output) => {
     </div>
   </div>
 
-  <p class="mt-4 font-news text-news-data italic text-ink-muted">
-    Bars are ranges; a heavy tick is a point estimate; a pale notch inside a bar marks the base case. Percentages compare each
-    method's base case or midpoint with the {formatVndK(reference.value)} price the model used on {formatDate(reference.asOf)}.
-  </p>
+  {!compact && (
+    <p class="mt-4 font-news text-news-data italic text-ink-muted">
+      Bars are ranges; a heavy tick is a point estimate; a pale notch inside a bar marks the base case. Percentages compare each
+      method's base case or midpoint with the {formatVndK(reference.value)} price the model used on {formatDate(reference.asOf)}.
+    </p>
+  )}
 </figure>

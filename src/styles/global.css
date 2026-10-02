@@ -87,3 +87,22 @@ button:focus-visible {
     transform: none;
   }
 }
+
+/* Print: white paper, no chrome, nothing left hidden by scroll reveal */
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff;
+    background-image: none;
+  }
+
+  .js [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+}

@@ -1,10 +1,10 @@
 ---
-import Icon from '../../components/broadsheet/Icon.astro';
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import DisclaimerBox from '../../components/DisclaimerBox.astro';
-import FootballField from '../../components/broadsheet/FootballField.astro';
-import Seal from '../../components/broadsheet/Seal.astro';
-import SensitivityTable from '../../components/broadsheet/SensitivityTable.astro';
+import Icon from '../../../components/broadsheet/Icon.astro';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import DisclaimerBox from '../../../components/DisclaimerBox.astro';
+import FootballField from '../../../components/broadsheet/FootballField.astro';
+import Seal from '../../../components/broadsheet/Seal.astro';
+import SensitivityTable from '../../../components/broadsheet/SensitivityTable.astro';
 import {
   STALE_AFTER_DAYS,
   formatOutput,
@@ -13,9 +13,9 @@ import {
   outputMethodLabel,
   valuationGroups,
   valuationModels,
-} from '../../data/valuation-models';
-import { publicFileSize } from '../../lib/files';
-import { daysBetween, formatDate, formatVndK, signedPct, toneClass } from '../../lib/format';
+} from '../../../data/valuation-models';
+import { publicFileSize } from '../../../lib/files';
+import { daysBetween, formatDate, formatVndK, signedPct, toneClass } from '../../../lib/format';
 
 export function getStaticPaths() {
   return valuationModels.map((model, index) => ({
@@ -36,6 +36,9 @@ const groups = valuationGroups
 const assumptionItems = model.keyAssumptions ?? model.report.assumptions;
 const upgradeItems = model.futureUpgrade ?? model.modelImprovementNotes;
 const reference = model.referencePrice;
+const tearSheetHref = `/research/tear-sheets/${model.slug}.pdf`;
+// Exported by `npm run tear-sheets`; the link only appears once the PDF exists
+const tearSheetSize = publicFileSize(tearSheetHref);
 const modelDate = model.lastUpdated ?? reference.asOf;
 const ageDays = daysBetween(modelDate, new Date());
 const isStale = ageDays > STALE_AFTER_DAYS;
@@ -111,6 +114,12 @@ const jsonLd = {
               ))}
             </dl>
           </div>
+          {tearSheetSize && (
+            <a href={tearSheetHref} download class="mt-4 inline-flex min-h-11 w-full items-center justify-between gap-3 border border-ink px-4 py-2 font-news-mono text-news-label uppercase text-ink transition-colors hover:bg-ink hover:text-paper">
+              <span class="inline-flex items-center gap-2"><Icon name="download" size={18} /> One-page tear sheet</span>
+              <span class="opacity-70">PDF · {tearSheetSize}</span>
+            </a>
+          )}
         </aside>
       </div>
 
@@ -250,6 +259,23 @@ const jsonLd = {
     <section id="files" class="mt-16 scroll-mt-20 border-t-4 border-double border-ink pt-4" data-reveal>
       <p class="font-news-mono text-news-label uppercase text-oxblood">Model files</p>
       <ul class="mt-6 border-t-2 border-ink">
+        {tearSheetSize && (
+          <li class="grid grid-cols-1 gap-x-8 gap-y-3 border-b border-ink/20 py-5 md:grid-cols-12 md:items-center">
+            <div class="md:col-span-4">
+              <p class="font-news text-news-h4 text-ink">One-page tear sheet</p>
+              <p class="mt-1 font-news-mono text-news-label uppercase text-ink-muted">PDF · {tearSheetSize} · A4</p>
+            </div>
+            <p class="font-news text-news-small text-ink-soft md:col-span-5">
+              Outputs against the price used, key assumptions, conclusion and risks on one page.
+              <a href={`/research/${model.slug}/tear-sheet`} class="news-link text-oxblood transition-colors hover:text-oxblood-deep">Printable web version</a>.
+            </p>
+            <div class="md:col-span-3 md:text-right">
+              <a href={tearSheetHref} download class="inline-flex min-h-11 items-center gap-2 border border-ink px-4 py-2 font-news-mono text-news-label uppercase text-ink transition-colors hover:bg-ink hover:text-paper">
+                <Icon name="download" size={18} /> Download PDF
+              </a>
+            </div>
+          </li>
+        )}
         {model.downloads.map((download) => (
           <li class="grid grid-cols-1 gap-x-8 gap-y-3 border-b border-ink/20 py-5 md:grid-cols-12 md:items-center">
             <div class="md:col-span-4">
