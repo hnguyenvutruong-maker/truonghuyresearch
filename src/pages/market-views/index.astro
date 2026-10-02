@@ -1,8 +1,10 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import DisclaimerBox from '../../components/DisclaimerBox.astro';
-import NoteList from '../../components/broadsheet/NoteList.astro';
-import VnIndexChart from '../../components/VnIndexChart.astro';
+import Disclaimer from '../../components/ui/Disclaimer.astro';
+import NoteList from '../../components/ui/NoteList.astro';
+import PageHeader from '../../components/ui/PageHeader.astro';
+import Panel from '../../components/ui/Panel.astro';
+import VnIndexChart from '../../components/ui/VnIndexChart.astro';
 import { getCollection } from 'astro:content';
 import { formatDate } from '../../lib/format';
 import { monthlySummary, weeklySummary } from '../../lib/notes';
@@ -20,33 +22,26 @@ const latest = [...notes].sort((a, b) => b.date.valueOf() - a.date.valueOf())[0]
   title="Market Notes | Truong Huy Research"
   description="Weekly and monthly Vietnam market notes: VN-Index levels, liquidity, foreign flow, sector rotation and cross-asset context."
 >
-  <section class="mx-auto w-full max-w-container-max px-margin-mobile pt-8 md:px-margin-desktop md:pt-10">
-    <div class="flex animate-rise flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b border-ink pb-2 font-news-mono text-news-label uppercase text-ink-muted">
-      <span>Section III · Market Views</span>
-      {latest && <span>Latest note · {formatDate(latest.date)}</span>}
-    </div>
-    <div class="grid grid-cols-1 gap-10 border-b border-ink py-10 lg:grid-cols-12 lg:gap-0">
-      <div class="lg:col-span-6 lg:pr-10">
-        <h1 class="animate-rise font-news text-news-hero text-ink [animation-delay:80ms]">Market notes</h1>
-        <p class="mt-6 max-w-xl animate-rise font-news text-news-dek italic text-ink-soft [animation-delay:160ms]">
-          Weekly and monthly reads on the Vietnam tape: VN-Index levels, liquidity, foreign flow, sector rotation, and what
-          the dollar, oil, and gold mean for local equities.
-        </p>
+  <div class="mx-auto w-full max-w-container-max space-y-4 px-margin-mobile py-6 md:px-margin-desktop md:py-8">
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
+      <div class="lg:col-span-5">
+        <PageHeader
+          tone="market"
+          kicker="Section III · Market views"
+          title="Market notes"
+          lead="Weekly and monthly reads on the Vietnam tape: VN-Index levels, liquidity, foreign flow, sector rotation, and what the dollar, oil, and gold mean for local equities."
+          context={latest ? `Latest · ${formatDate(latest.date)}` : undefined}
+        />
       </div>
       {trend.length > 0 && (
-        <figure class="animate-rise [animation-delay:240ms] lg:col-span-6 lg:border-l lg:border-ink/25 lg:pl-10">
-          <VnIndexChart trendData={trend} label="VN-Index · weekly close" />
-          <figcaption class="mt-3 font-news text-news-data italic text-ink-muted">Weekly closes taken from the notes below.</figcaption>
-        </figure>
+        <Panel title="VN-Index · weekly close" meta={`${trend.length} weeks`} tone="market" class="lg:col-span-7">
+          <VnIndexChart trendData={trend} label="VN-Index weekly closes taken from the notes below" height="md" />
+        </Panel>
       )}
     </div>
-  </section>
 
-  <section class="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop">
     <NoteList notes={notes} filter />
-  </section>
 
-  <section class="mx-auto w-full max-w-container-max px-margin-mobile pb-16 pt-8 md:px-margin-desktop">
-    <DisclaimerBox />
-  </section>
+    <Disclaimer />
+  </div>
 </BaseLayout>

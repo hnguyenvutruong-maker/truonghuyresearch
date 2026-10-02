@@ -1,34 +1,33 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import Seal from '../components/broadsheet/Seal.astro';
+import Panel from '../components/ui/Panel.astro';
 
 const links = [
-  { label: 'Front page', href: '/' },
-  { label: 'Coverage', href: '/research' },
-  { label: 'Market notes', href: '/market-views' },
+  { label: 'Front page', href: '/', primary: true },
+  { label: 'Coverage', href: '/research', primary: false },
+  { label: 'Market notes', href: '/market-views', primary: false },
 ];
 ---
 
 <BaseLayout title="Page Not Found | Truong Huy Research" description="The page you are looking for does not exist.">
-  <section class="mx-auto flex min-h-[60vh] w-full max-w-container-max flex-col items-center justify-center px-margin-mobile py-16 text-center md:px-margin-desktop">
-    <Seal label="404" size="lg" motion="load" decorative />
-    <p class="mt-8 font-news-mono text-news-label uppercase text-oxblood">Correction</p>
-    <h1 class="mt-4 font-news text-news-h2 text-ink">This page did not go to print</h1>
-    <p class="mt-5 max-w-xl font-news text-news-dek italic text-ink-soft">
-      The address may have changed, or the page never existed. Try one of the sections below.
-    </p>
-    <nav aria-label="Sections" class="mt-10 flex flex-wrap justify-center gap-3">
-      {links.map((link, index) => (
-        <a
-          href={link.href}
-          class:list={[
-            'inline-flex min-h-12 items-center px-6 py-3 font-news-mono text-news-label uppercase transition-colors',
-            index === 0 ? 'bg-ink text-paper hover:bg-oxblood hover:text-paper' : 'border border-ink text-ink hover:bg-ink hover:text-paper',
-          ]}
-        >
-          {link.label}
-        </a>
-      ))}
-    </nav>
-  </section>
+  <div class="mx-auto flex min-h-[60vh] w-full max-w-2xl items-center px-margin-mobile py-10">
+    <Panel title="Error 404" meta="Not found" tone="neutral" class="w-full">
+      <p class="font-mono text-figure text-value-ink">404</p>
+      <h1 class="mt-3 font-display text-h1 text-fg">This page is not on the tape</h1>
+      <p class="mt-3 text-lead text-fg-muted">The address may have changed, or the page never existed. Try one of these sections.</p>
+      <nav aria-label="Sections" class="mt-6 flex flex-wrap gap-2">
+        {links.map((link) => (
+          <a
+            href={link.href}
+            class:list={[
+              'inline-flex min-h-11 items-center px-4 py-2 font-mono text-[0.8125rem] font-semibold transition-colors',
+              link.primary ? 'bg-value text-white hover:bg-[#0A858D] hover:text-white' : 'border border-line-strong text-fg hover:border-fg hover:bg-panel-alt',
+            ]}
+          >
+            {link.label}
+          </a>
+        ))}
+      </nav>
+    </Panel>
+  </div>
 </BaseLayout>

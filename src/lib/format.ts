@@ -43,9 +43,9 @@ export const signedNumber = (value: number | null | undefined, decimals = 0): st
 /** VND per share in thousands: 22260 → 22.3k */
 export const formatVndK = (value: number): string => `${(Math.round(value / 100) / 10).toFixed(1)}k`;
 
-/** Text colour for a signed figure: gains ledger green, losses oxblood. */
+/** Text colour for a signed figure: gains green, losses red (theme-aware tokens). */
 export const toneClass = (value: number | null | undefined): string =>
-  value == null ? 'text-ink-muted' : value >= 0 ? 'text-ledger' : 'text-oxblood';
+  value == null ? 'text-fg-muted' : value >= 0 ? 'text-up' : 'text-down';
 
 /** Whole days from `from` to `to`. */
 export const daysBetween = (from: Date | string, to: Date | string): number =>

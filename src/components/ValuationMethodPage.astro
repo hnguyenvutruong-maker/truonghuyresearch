@@ -1,8 +1,10 @@
 ---
-import Icon from './broadsheet/Icon.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import DisclaimerBox from './DisclaimerBox.astro';
-import Seal from './broadsheet/Seal.astro';
+import Disclaimer from './ui/Disclaimer.astro';
+import Icon from './ui/Icon.astro';
+import PageHeader from './ui/PageHeader.astro';
+import Panel from './ui/Panel.astro';
+import Tick from './ui/Tick.astro';
 import { methodPages, valuationGroups, valuationModels, type ValuationGroupId } from '../data/valuation-models';
 import { publicFileSize } from '../lib/files';
 import { formatDate, formatVndK } from '../lib/format';
@@ -36,73 +38,72 @@ const reports = valuationModels
   title={`${group.title} | Valuation Methods | Truong Huy Research`}
   description={`${group.title}: ${group.description} Reports and workbooks for ${reports.map(({ model }) => model.ticker).join(', ')}.`}
 >
-  <section class="mx-auto w-full max-w-container-max px-margin-mobile pt-8 md:px-margin-desktop md:pt-10">
-    <div class="flex animate-rise flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b border-ink pb-2 font-news-mono text-news-label uppercase text-ink-muted">
-      <a href="/research" class="news-link transition-colors hover:text-oxblood">← Coverage</a>
-      <span>Valuation method · {reports.length} report{reports.length === 1 ? '' : 's'}</span>
-    </div>
-    <div class="border-b border-ink py-10">
-      <p class="animate-rise font-news-mono text-news-label uppercase text-oxblood">{group.eyebrow}</p>
-      <h1 class="mt-4 animate-rise text-balance font-news text-news-hero text-ink [animation-delay:80ms]">{group.title}</h1>
-      <p class="mt-6 max-w-3xl animate-rise font-news text-news-dek italic text-ink-soft [animation-delay:160ms]">{group.description}</p>
-    </div>
-    <nav aria-label="Valuation methods" class="flex flex-wrap gap-x-6 gap-y-2 border-b border-ink/25 py-3 font-news-mono text-news-label uppercase">
+  <div class="mx-auto w-full max-w-container-max space-y-4 px-margin-mobile py-6 md:px-margin-desktop md:py-8">
+    <PageHeader
+      tone="value"
+      kicker={group.eyebrow}
+      title={group.title}
+      lead={group.description}
+      back={{ href: '/research', label: 'Coverage' }}
+      context={`Valuation method · ${reports.length} report${reports.length === 1 ? '' : 's'}`}
+    />
+
+    <nav aria-label="Valuation methods" class="flex flex-wrap gap-2">
       {nav.map((item) => (
         <a
           href={item.href}
           aria-current={item.active ? 'page' : undefined}
-          class:list={['news-link transition-colors hover:text-oxblood', item.active ? 'text-oxblood' : 'text-ink-soft']}
+          class:list={[
+            'border px-3 py-1.5 font-mono text-[0.8125rem] font-semibold shadow-panel transition-colors',
+            item.active ? 'border-value bg-value text-white hover:text-white' : 'border-line bg-panel text-fg hover:border-value hover:text-link',
+          ]}
         >
           {item.title}
         </a>
       ))}
     </nav>
-  </section>
 
-  <section class="mx-auto w-full max-w-container-max px-margin-mobile py-12 md:px-margin-desktop">
     {reports.map(({ model, notes, downloads }) => (
-      <article class="grid grid-cols-1 gap-8 border-b border-ink/25 py-10 first:pt-0 lg:grid-cols-12 lg:gap-0" data-reveal>
-        <header class="lg:col-span-4 lg:pr-10">
-          <a href={`/research/${model.slug}`} class="group flex items-start gap-4">
-            <Seal label={model.ticker} size="md" motion="hover" />
-            <span>
-              <span class="block font-news text-news-h3 text-ink transition-colors group-hover:text-oxblood">{model.company}</span>
-              <span class="mt-1 block font-news-mono text-news-label uppercase text-ink-muted">{model.sector}</span>
-            </span>
-          </a>
-          <p class="mt-4 font-news text-news-small text-ink-soft">{model.summary}</p>
-          <p class="mt-3 font-news-mono text-news-label uppercase text-ink-muted">
-            Price used {formatVndK(model.referencePrice.value)} · {formatDate(model.referencePrice.asOf)}
-          </p>
-        </header>
-
-        <div class="lg:col-span-8 lg:border-l lg:border-ink/25 lg:pl-10">
-          {notes.map((note) => (
-            <div class="border-b border-ink/15 pb-5 [&+&]:pt-5">
-              <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-                <p class="font-news-mono text-news-label uppercase text-ink-muted">{note.method}</p>
-                <p class="font-news text-news-h4 lining-nums tabular-nums text-ink">{note.price}</p>
-              </div>
-              <p class="mt-3 font-news text-news-small text-ink">{note.assumptions}</p>
-              <p class="mt-2 font-news text-news-small italic text-ink-soft">{note.result}</p>
-            </div>
-          ))}
-          <div class="mt-5 flex flex-wrap items-center gap-3">
-            <a href={`/research/${model.slug}`} class="inline-flex min-h-11 items-center gap-2 bg-ink px-4 py-2 font-news-mono text-news-label uppercase text-paper transition-colors hover:bg-oxblood hover:text-paper">
-              Read the {model.ticker} report <Icon name="arrow_forward" size={16} />
+      <Panel title={`${model.ticker} · ${model.company}`} meta={`Price used ${formatVndK(model.referencePrice.value)} · ${formatDate(model.referencePrice.asOf)}`} tone="value" reveal>
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div class="lg:col-span-4">
+            <a href={`/research/${model.slug}`} class="group flex items-start gap-3">
+              <Tick label={model.ticker} />
+              <span>
+                <span class="block font-display text-h3 text-fg transition-colors group-hover:text-link">{model.company}</span>
+                <span class="mt-0.5 block font-mono text-[0.75rem] text-fg-muted">{model.sector}</span>
+              </span>
             </a>
-            {downloads.map((download) => (
-              <a href={download.href} download class="inline-flex min-h-11 items-center gap-2 border border-ink px-4 py-2 font-news-mono text-news-label uppercase text-ink transition-colors hover:bg-ink hover:text-paper">
-                <Icon name="download" size={18} /> {[download.label, download.format, publicFileSize(download.href)].filter(Boolean).join(' · ')}
-              </a>
+            <p class="mt-3 text-small text-fg">{model.summary}</p>
+          </div>
+          <div class="space-y-4 lg:col-span-8">
+            {notes.map((note) => (
+              <div class="border border-line">
+                <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 bg-panel-alt px-4 py-2">
+                  <p class="font-mono text-label uppercase text-value-ink">{note.method}</p>
+                  <p class="font-mono text-[0.9375rem] font-semibold tabular-nums text-fg">{note.price}</p>
+                </div>
+                <div class="space-y-2 px-4 py-3">
+                  <p class="text-small text-fg">{note.assumptions}</p>
+                  <p class="text-small text-fg-muted">{note.result}</p>
+                </div>
+              </div>
             ))}
+            <div class="flex flex-wrap items-center gap-2">
+              <a href={`/research/${model.slug}`} class="inline-flex min-h-11 items-center gap-2 bg-value px-4 py-2 font-mono text-[0.8125rem] font-semibold text-white transition-colors hover:bg-[#0A858D] hover:text-white">
+                Read the {model.ticker} report <Icon name="arrow_forward" size={16} />
+              </a>
+              {downloads.map((download) => (
+                <a href={download.href} download class="inline-flex min-h-11 items-center gap-2 border border-line-strong px-4 py-2 font-mono text-[0.8125rem] font-semibold text-fg transition-colors hover:border-fg hover:bg-panel-alt">
+                  <Icon name="download" size={18} /> {[download.label, download.format, publicFileSize(download.href)].filter(Boolean).join(' · ')}
+                </a>
+              ))}
+            </div>
           </div>
         </div>
-      </article>
+      </Panel>
     ))}
-  </section>
 
-  <section class="mx-auto w-full max-w-container-max px-margin-mobile pb-16 md:px-margin-desktop">
-    <DisclaimerBox />
-  </section>
+    <Disclaimer />
+  </div>
 </BaseLayout>

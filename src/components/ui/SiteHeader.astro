@@ -1,0 +1,117 @@
+---
+// Navy chrome bar: wordmark, section nav (each section underlined in its own colour),
+// search, the day/night toggle, contact, and the mobile menu.
+import Icon from './Icon.astro';
+
+const links = [
+  { label: 'Profile', href: '/#about', match: null, bar: 'bg-profile' },
+  { label: 'Coverage', href: '/research', match: '/research', bar: 'bg-value' },
+  { label: 'Market notes', href: '/market-views', match: '/market-', bar: 'bg-market' },
+];
+
+const path = Astro.url.pathname;
+const isCurrent = (match: string | null) => match !== null && (path.startsWith(match) || (match === '/market-' && path.startsWith('/monthly-views')));
+---
+
+<header id="site-header" class="sticky top-0 z-50 w-full border-b border-chrome-line bg-chrome text-chrome-fg print:hidden">
+  <div class="mx-auto flex h-14 w-full max-w-container-max items-center justify-between gap-4 px-margin-mobile md:px-margin-desktop">
+    <a href="/" class="font-display text-[1.25rem] font-extrabold tracking-tight text-chrome-fg transition-colors hover:text-white">
+      Truong Huy <span class="text-[#57D6C8]">Research</span>
+    </a>
+
+    <nav class="hidden h-full md:block" aria-label="Primary">
+      <ul class="flex h-full items-center gap-1">
+        {links.map((link) => (
+          <li class="h-full">
+            <a
+              href={link.href}
+              aria-current={isCurrent(link.match) ? 'page' : undefined}
+              class:list={[
+                'relative flex h-full items-center px-3 font-mono text-[0.8125rem] font-medium transition-colors hover:text-white',
+                isCurrent(link.match) ? 'text-white' : 'text-chrome-muted',
+              ]}
+            >
+              {link.label}
+              <span class:list={['absolute inset-x-3 bottom-0 h-[3px]', link.bar, isCurrent(link.match) ? 'opacity-100' : 'opacity-0']} aria-hidden="true"></span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <div class="flex items-center gap-1">
+      <button
+        type="button"
+        data-palette-open
+        aria-keyshortcuts="Control+K Meta+K /"
+        class="hidden min-h-9 items-center gap-2 border border-chrome-line px-3 font-mono text-[0.8125rem] text-chrome-muted transition-colors hover:border-chrome-muted hover:text-white md:inline-flex"
+      >
+        <Icon name="search" size={16} /> Search <kbd class="border border-chrome-line px-1 text-[0.6875rem]">/</kbd>
+      </button>
+      <button type="button" data-palette-open class="p-2 text-chrome-fg transition-colors hover:text-white md:hidden" aria-label="Search">
+        <Icon name="search" size={22} />
+      </button>
+      <button
+        type="button"
+        data-theme-toggle
+        class="group p-2 text-chrome-fg transition-colors hover:text-white"
+        aria-label="Switch between day and night theme"
+        title="Day theme 06:00–18:00, night theme after 18:00. Click to switch."
+      >
+        <span class="block dark:hidden"><Icon name="moon" size={20} /></span>
+        <span class="hidden dark:block"><Icon name="sun" size={20} /></span>
+      </button>
+      <a href="/contact" class="ml-1 hidden min-h-9 items-center bg-value px-3 font-mono text-[0.8125rem] font-semibold text-white transition-colors hover:bg-[#0A858D] hover:text-white md:inline-flex">
+        Contact
+      </a>
+      <button
+        class="p-2 text-chrome-fg hover:text-white md:hidden"
+        id="mobile-menu-btn"
+        aria-label="Menu"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+      >
+        <Icon name="menu" size={22} />
+      </button>
+    </div>
+  </div>
+
+  <div id="mobile-menu" class="hidden border-t border-chrome-line bg-chrome md:hidden">
+    <ul class="flex flex-col px-margin-mobile py-2">
+      {[...links, { label: 'Contact', href: '/contact', match: '/contact', bar: 'bg-chrome-muted' }, { label: 'Disclaimer', href: '/disclaimer', match: '/disclaimer', bar: 'bg-chrome-muted' }].map((link) => (
+        <li class="border-b border-chrome-line last:border-b-0">
+          <a
+            href={link.href}
+            aria-current={isCurrent(link.match) ? 'page' : undefined}
+            class="flex items-center gap-3 py-3 font-mono text-[0.875rem] text-chrome-fg transition-colors hover:text-white"
+          >
+            <span class:list={['h-3 w-3', link.bar]} aria-hidden="true"></span>
+            {link.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</header>
+
+<script>
+  import { initTheme, toggleTheme } from '../../scripts/theme';
+
+  initTheme();
+  document.querySelectorAll('[data-theme-toggle]').forEach((button) => button.addEventListener('click', toggleTheme));
+
+  const btn = document.getElementById('mobile-menu-btn');
+  const menu = document.getElementById('mobile-menu');
+  const setOpen = (open: boolean) => {
+    btn?.setAttribute('aria-expanded', String(open));
+    menu?.classList.toggle('hidden', !open);
+  };
+  btn?.addEventListener('click', () => setOpen(btn.getAttribute('aria-expanded') !== 'true'));
+  menu?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => setOpen(false)));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && btn?.getAttribute('aria-expanded') === 'true') {
+      setOpen(false);
+      btn.focus();
+    }
+  });
+</script>

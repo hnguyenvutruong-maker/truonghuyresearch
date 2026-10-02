@@ -1,0 +1,127 @@
+---
+// VN-Index chart (lightweight-charts): an area of weekly closes, or daily candles when a note
+// carries `vn_index_daily`. Colours come from the theme tokens and follow day/night switches.
+// The library is imported only when the chart nears the viewport.
+export interface TrendPoint {
+  time: string; // YYYY-MM-DD
+  value: number;
+}
+
+export interface CandlePoint {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+}
+
+interface Props {
+  trendData?: TrendPoint[];
+  candleData?: CandlePoint[];
+  label: string;
+  height?: 'md' | 'lg';
+}
+
+const { trendData = [], candleData = [], label, height = 'lg' } = Astro.props;
+const hasData = trendData.length > 0 || candleData.length > 0;
+---
+
+{hasData && (
+  <div>
+    <div
+      id="vni-chart"
+      role="img"
+      aria-label={label}
+      class:list={['w-full', height === 'lg' ? 'h-[300px]' : 'h-[240px]']}
+      data-trend={JSON.stringify(trendData)}
+      data-candle={JSON.stringify(candleData)}
+    ></div>
+    <p class="mt-2 text-right font-mono text-[0.75rem] text-fg-muted">
+      Chart: <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer" class="u-link text-link transition-colors hover:text-fg">TradingView Lightweight Charts™</a>
+    </p>
+  </div>
+)}
+
+<script>
+  const container = document.getElementById('vni-chart');
+
+  // Theme tokens are stored as "R G B" channels on :root
+  const token = (name: string, alpha = 1) => {
+    const [r, g, b] = getComputedStyle(document.documentElement).getPropertyValue(`--c-${name}`).trim().split(/\s+/);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+  const palette = () => ({
+    text: token('fg-muted'),
+    grid: token('line', 0.6),
+    line: token('value-ink'),
+    top: token('value-ink', 0.28),
+    bottom: token('value-ink', 0.02),
+    up: token('up'),
+    down: token('down'),
+  });
+
+  const draw = async (el: HTMLElement) => {
+    const { createChart, CrosshairMode } = await import('lightweight-charts');
+    const trendData: { time: string; value: number }[] = JSON.parse(el.dataset.trend ?? '[]');
+    const candleData: { time: string; open: number; high: number; low: number; close: number }[] = JSON.parse(el.dataset.candle ?? '[]');
+    let colors = palette();
+
+    const chart = createChart(el, {
+      width: el.clientWidth,
+      height: el.clientHeight || 240,
+      layout: {
+        background: { color: 'rgba(0, 0, 0, 0)' },
+        textColor: colors.text,
+        fontFamily: 'IBM Plex Mono, monospace',
+        // The logo injects an inline <style> (blocked by our CSP); attribution is the text link below the chart
+        attributionLogo: false,
+      },
+      grid: { vertLines: { color: colors.grid }, horzLines: { color: colors.grid } },
+      crosshair: { mode: CrosshairMode.Normal },
+      rightPriceScale: { borderColor: colors.grid },
+      timeScale: { borderColor: colors.grid, timeVisible: true },
+      handleScroll: false,
+      handleScale: false,
+    });
+
+    const candles = candleData.length > 0 ? chart.addCandlestickSeries() : null;
+    const area = !candles && trendData.length > 0 ? chart.addAreaSeries({ lineWidth: 2, priceLineVisible: false, lastValueVisible: true }) : null;
+    const paint = () => {
+      chart.applyOptions({
+        layout: { textColor: colors.text },
+        grid: { vertLines: { color: colors.grid }, horzLines: { color: colors.grid } },
+        rightPriceScale: { borderColor: colors.grid },
+        timeScale: { borderColor: colors.grid },
+      });
+      candles?.applyOptions({ upColor: colors.up, downColor: colors.down, borderUpColor: colors.up, borderDownColor: colors.down, wickUpColor: colors.up, wickDownColor: colors.down });
+      area?.applyOptions({ lineColor: colors.line, topColor: colors.top, bottomColor: colors.bottom });
+    };
+    paint();
+    candles?.setData(candleData);
+    area?.setData(trendData);
+    chart.timeScale().fitContent();
+
+    new ResizeObserver(() => chart.applyOptions({ width: el.clientWidth })).observe(el);
+    window.addEventListener('themechange', () => {
+      colors = palette();
+      paint();
+    });
+  };
+
+  if (container) {
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            observer.disconnect();
+            void draw(container);
+          }
+        },
+        { rootMargin: '300px 0px' }
+      );
+      observer.observe(container);
+    } else {
+      void draw(container);
+    }
+  }
+</script>

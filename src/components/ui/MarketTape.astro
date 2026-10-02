@@ -1,0 +1,37 @@
+---
+// Bloomberg-style tape under the header: the latest weekly note's closes and changes.
+// Always dark (it is part of the chrome); links to the note it comes from.
+import { getCollection } from 'astro:content';
+import { formatIndex, formatNumber, signedNumber, signedPct } from '../../lib/format';
+import { weeklySummary } from '../../lib/notes';
+
+const latest = (await getCollection('market-views')).map(weeklySummary).sort((a, b) => b.date.valueOf() - a.date.valueOf())[0];
+const items = latest
+  ? [
+      { label: 'VN-Index', value: formatIndex(latest.close), change: latest.change, text: signedPct(latest.change) },
+      ...(latest.foreignNet != null ? [{ label: 'Foreign net', value: `${signedNumber(latest.foreignNet)}bn`, change: null, text: '' }] : []),
+      ...latest.macro.map((row) => ({ label: row.label, value: formatNumber(row.value, row.decimals), change: row.change, text: row.change == null ? '' : signedPct(row.change) })),
+    ]
+  : [];
+---
+
+{latest && (
+  <div class="w-full border-b border-chrome-line bg-chrome-deep text-chrome-fg print:hidden">
+    <div class="mx-auto flex w-full max-w-container-max items-center gap-4 px-margin-mobile md:px-margin-desktop">
+      <a href={latest.href} class="shrink-0 py-2 font-mono text-[0.75rem] font-semibold uppercase tracking-wide text-[#F5AA48] transition-colors hover:text-white">
+        Week of {latest.period}
+      </a>
+      <div class="min-w-0 flex-1 overflow-x-auto" tabindex="0" role="region" aria-label="Market tape, scrolls sideways">
+        <ul class="flex w-max items-center gap-5 py-2 font-mono text-[0.8125rem]" aria-label={`Market close, week of ${latest.period}`}>
+          {items.map((item) => (
+            <li class="whitespace-nowrap">
+              <span class="text-chrome-muted">{item.label}</span>
+              <span class="ml-1.5 font-medium text-chrome-fg">{item.value}</span>
+              {item.text && <span class:list={['ml-1.5', item.change != null && item.change >= 0 ? 'text-tape-up' : 'text-tape-down']}>{item.text}</span>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </div>
+)}

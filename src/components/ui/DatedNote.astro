@@ -1,0 +1,12 @@
+---
+// Amber callout shown when model figures are older than STALE_AFTER_DAYS.
+interface Props {
+  class?: string;
+}
+const { class: className } = Astro.props;
+---
+
+<p class:list={['border border-l-4 border-line border-l-market bg-panel px-4 py-3 text-small text-fg shadow-panel', className]} role="note">
+  <span class="mr-2 inline-block bg-market px-1.5 py-0.5 font-mono text-label uppercase text-white">Dated figures</span>
+  <slot />
+</p>

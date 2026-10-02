@@ -1,7 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import DisclaimerBox from '../../components/DisclaimerBox.astro';
-import NoteList from '../../components/broadsheet/NoteList.astro';
+import Disclaimer from '../../components/ui/Disclaimer.astro';
+import NoteList from '../../components/ui/NoteList.astro';
+import PageHeader from '../../components/ui/PageHeader.astro';
 import { getCollection } from 'astro:content';
 import { monthlySummary } from '../../lib/notes';
 
@@ -12,25 +13,16 @@ const notes = (await getCollection('monthly-views')).map(monthlySummary);
   title="Monthly Market Views | Truong Huy Research"
   description="Monthly Vietnam market notes: VN-Index monthly range, liquidity, foreign flow, best and worst sectors, and cross-asset context."
 >
-  <section class="mx-auto w-full max-w-container-max px-margin-mobile pt-8 md:px-margin-desktop md:pt-10">
-    <div class="flex animate-rise flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b border-ink pb-2 font-news-mono text-news-label uppercase text-ink-muted">
-      <a href="/market-views" class="news-link transition-colors hover:text-oxblood">← All market notes</a>
-      <span>{notes.length} monthly notes</span>
-    </div>
-    <div class="border-b border-ink py-10">
-      <h1 class="animate-rise font-news text-news-hero text-ink [animation-delay:80ms]">Monthly views</h1>
-      <p class="mt-6 max-w-2xl animate-rise font-news text-news-dek italic text-ink-soft [animation-delay:160ms]">
-        The month in one read: where VN-Index travelled, which sectors led and lagged, how foreign investors traded, and what
-        to watch next.
-      </p>
-    </div>
-  </section>
-
-  <section class="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop">
+  <div class="mx-auto w-full max-w-container-max space-y-4 px-margin-mobile py-6 md:px-margin-desktop md:py-8">
+    <PageHeader
+      tone="market"
+      kicker="Section III · Market views"
+      title="Monthly views"
+      lead="The month in one read: where VN-Index travelled, which sectors led and lagged, how foreign investors traded, and what to watch next."
+      back={{ href: '/market-views', label: 'All market notes' }}
+      context={`${notes.length} monthly notes`}
+    />
     <NoteList notes={notes} />
-  </section>
-
-  <section class="mx-auto w-full max-w-container-max px-margin-mobile pb-16 pt-8 md:px-margin-desktop">
-    <DisclaimerBox />
-  </section>
+    <Disclaimer />
+  </div>
 </BaseLayout>

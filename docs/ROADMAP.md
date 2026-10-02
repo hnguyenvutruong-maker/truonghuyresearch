@@ -32,7 +32,8 @@ code works, this file for where things stand.
 
 ## Recommended next steps (in order)
 
-1. ~~Roll the Broadsheet theme out~~ — done 2026-10-02; the terminal theme is deleted.
+1. ~~Roll the Broadsheet theme out~~ — done 2026-10-02, then replaced the same day by the
+   "Desk" design with a day/night theme (see the decisions log).
 2. **Finish P0**: the owner fixes the LLM key/vars, merges the bot fixes to `master`, then backfills.
 3. **Refresh the valuation models** (P1 leftover): new prices and estimates, then update
    `referencePrice`, `outputs` and `sensitivity` in `valuation-models.ts`.
@@ -131,7 +132,7 @@ scheduled workflows run from the default branch.
 
 ## Decisions log
 
-- **2026-10-01 — Design direction: Broadsheet.** Four directions were mocked up: A Broadsheet
+- **2026-10-01 — Design direction: Broadsheet** (superseded 2026-10-02, below). Four directions were mocked up: A Broadsheet
   (paper and ink, Fraunces + Geist Mono), B Sơn mài (Vietnamese lacquer), C Swiss poster,
   D Blueprint. The owner picked **A**; its cinnabar ticker seal (borrowed from B) is the
   signature accent. B was built on branch `redesign/son-mai` and is kept for reference only.
@@ -140,5 +141,13 @@ scheduled workflows run from the default branch.
 - **2026-10-02 — Valuation prices:** pages compare against each workbook's own market-input
   price (11 Jun 2026), labelled as such, rather than a live price; no live feed is available and
   inventing one is not an option. Methods are never blended into a single target.
+- **2026-10-02 — Design direction replaced: "Desk" (direction C of a second round).** The owner
+  found Broadsheet hard to read (text on grain, faint hairlines, small muted mono). A second round
+  offered three framed, colourful directions; the owner picked **C**: dark navy header and market
+  tape, every block in a panel with a coloured title bar (violet profile, teal valuation, amber
+  market notes), Archivo + Source Sans 3 + IBM Plex Mono. Plus a **day/night theme**: white from
+  06:00 to 17:59 local time, black from 18:00, switched automatically at the boundary, with a
+  header toggle that remembers the visitor's choice, and a sun / moon greeting on the first page
+  of each visit. Broadsheet components are deleted; branch `redesign/son-mai` stays as reference.
 - **2026-10-02 — Weekly macro changes:** notes before Oct 2026 may show one-day moves as
   "weekly"; the note pages say so instead of rewriting stored figures.
