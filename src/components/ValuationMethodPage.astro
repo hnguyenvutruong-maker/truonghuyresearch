@@ -4,6 +4,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import DisclaimerBox from './DisclaimerBox.astro';
 import Seal from './broadsheet/Seal.astro';
 import { methodPages, valuationGroups, valuationModels, type ValuationGroupId } from '../data/valuation-models';
+import { publicFileSize } from '../lib/files';
 import { formatDate, formatVndK } from '../lib/format';
 
 interface Props {
@@ -92,7 +93,7 @@ const reports = valuationModels
             </a>
             {downloads.map((download) => (
               <a href={download.href} download class="inline-flex min-h-11 items-center gap-2 border border-ink px-4 py-2 font-news-mono text-news-label uppercase text-ink transition-colors hover:bg-ink hover:text-paper">
-                <Icon name="download" size={18} /> {download.label} · {download.format}
+                <Icon name="download" size={18} /> {[download.label, download.format, publicFileSize(download.href)].filter(Boolean).join(' · ')}
               </a>
             ))}
           </div>

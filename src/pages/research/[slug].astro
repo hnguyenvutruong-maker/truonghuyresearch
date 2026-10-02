@@ -14,6 +14,7 @@ import {
   valuationGroups,
   valuationModels,
 } from '../../data/valuation-models';
+import { publicFileSize } from '../../lib/files';
 import { daysBetween, formatDate, formatVndK, signedPct, toneClass } from '../../lib/format';
 
 export function getStaticPaths() {
@@ -252,7 +253,7 @@ const jsonLd = {
           <li class="grid grid-cols-1 gap-x-8 gap-y-3 border-b border-ink/20 py-5 md:grid-cols-12 md:items-center">
             <div class="md:col-span-4">
               <p class="font-news text-news-h4 text-ink">{download.modelType ?? download.label}</p>
-              <p class="mt-1 font-news-mono text-news-label uppercase text-ink-muted">{download.format} · {formatDate(download.lastUpdated ?? modelDate)}</p>
+              <p class="mt-1 font-news-mono text-news-label uppercase text-ink-muted">{[download.format, publicFileSize(download.href), formatDate(download.lastUpdated ?? modelDate)].filter(Boolean).join(' · ')}</p>
             </div>
             <p class="font-news text-news-small text-ink-soft md:col-span-5">
               {download.description ?? `Sheets: ${download.sheets.join(', ')}.`}
