@@ -1,4 +1,5 @@
 ---
+import Icon from '../../components/broadsheet/Icon.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import DisclaimerBox from '../../components/DisclaimerBox.astro';
 import FootballField from '../../components/broadsheet/FootballField.astro';
@@ -258,7 +259,7 @@ const jsonLd = {
             </p>
             <div class="md:col-span-3 md:text-right">
               <a href={download.href} download class="inline-flex min-h-11 items-center gap-2 border border-ink px-4 py-2 font-news-mono text-news-label uppercase text-ink transition-colors hover:bg-ink hover:text-paper">
-                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">download</span> Download {download.format}
+                <Icon name="download" size={18} /> Download {download.format}
               </a>
             </div>
           </li>

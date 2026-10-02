@@ -1,4 +1,6 @@
 ---
+import Icon from './Icon.astro';
+
 const links = [
   { label: 'Profile', href: '/#about', match: null },
   { label: 'Valuation', href: '/research', match: '/research' },
@@ -61,7 +63,7 @@ const isCurrent = (match: string | null) => match !== null && path.startsWith(ma
 
     <div class="flex items-center gap-1 md:hidden">
     <button type="button" data-palette-open class="p-2 text-ink hover:text-oxblood" aria-label="Search">
-      <span class="material-symbols-outlined" aria-hidden="true">search</span>
+      <Icon name="search" size={24} />
     </button>
     <button
       class="p-2 text-ink hover:text-oxblood"
@@ -70,7 +72,7 @@ const isCurrent = (match: string | null) => match !== null && path.startsWith(ma
       aria-expanded="false"
       aria-controls="mobile-menu"
     >
-      <span class="material-symbols-outlined" aria-hidden="true">menu</span>
+      <Icon name="menu" size={24} />
     </button>
     </div>
   </div>

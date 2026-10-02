@@ -62,7 +62,7 @@ export default {
         'container-max': '1200px',
       },
       fontFamily: {
-        'news': ['Fraunces', 'Georgia', 'serif'],
+        'news': ['"Fraunces Variable"', 'Fraunces', 'Georgia', 'serif'],
         'news-mono': ['"Geist Mono"', 'ui-monospace', 'monospace'],
       },
       fontSize: {

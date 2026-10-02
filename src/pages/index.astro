@@ -1,4 +1,5 @@
 ---
+import Icon from '../components/broadsheet/Icon.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import DisclaimerBox from '../components/DisclaimerBox.astro';
 import VnIndexChart from '../components/VnIndexChart.astro';
@@ -194,13 +195,13 @@ const marketRows = latestWeekly
         </p>
         <div class="mt-8 flex animate-rise flex-wrap items-center gap-3 [animation-delay:720ms]">
           <a href="#valuation" class="inline-flex min-h-12 items-center gap-2 bg-ink px-6 py-3 font-news-mono text-news-label uppercase text-paper transition-colors hover:bg-oxblood hover:text-paper">
-            Read the coverage <span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_downward</span>
+            Read the coverage <Icon name="arrow_downward" size={18} />
           </a>
           <a href="/cv.pdf" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-12 items-center gap-2 border border-ink px-6 py-3 font-news-mono text-news-label uppercase text-ink transition-colors hover:bg-ink hover:text-paper">
-            Download CV <span class="material-symbols-outlined text-[18px]" aria-hidden="true">download</span>
+            Download CV <Icon name="download" size={18} />
           </a>
           <a href="https://www.linkedin.com/in/trghuyy/" target="_blank" rel="noopener noreferrer" class="news-link ml-1 inline-flex items-center gap-1 font-news-mono text-news-label uppercase text-ink-soft transition-colors hover:text-oxblood">
-            LinkedIn <span class="material-symbols-outlined text-[16px]" aria-hidden="true">north_east</span>
+            LinkedIn <Icon name="north_east" size={16} />
           </a>
         </div>
       </div>
@@ -222,7 +223,7 @@ const marketRows = latestWeekly
               ))}
             </dl>
             <a href={`/market-views/${latestWeekly.slug}`} class="news-link mt-5 inline-flex items-center gap-1 font-news-mono text-news-label uppercase text-oxblood transition-colors hover:text-oxblood-deep">
-              Read the weekly note <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
+              Read the weekly note <Icon name="arrow_forward" size={16} />
             </a>
           </div>
         )}
@@ -292,7 +293,7 @@ const marketRows = latestWeekly
   <section id="valuation" class="mx-auto w-full max-w-container-max scroll-mt-16 px-margin-mobile py-16 md:px-margin-desktop">
     <SectionHead numeral="II" label="Valuation" title="Coverage">
       <a slot="aside" href="/research" class="news-link hidden items-center gap-1 font-news-mono text-news-label uppercase text-oxblood transition-colors hover:text-oxblood-deep sm:inline-flex">
-        All valuation work <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
+        All valuation work <Icon name="arrow_forward" size={16} />
       </a>
     </SectionHead>
 
@@ -304,7 +305,7 @@ const marketRows = latestWeekly
         </h3>
         <p class="mt-4 max-w-2xl font-news text-news-dek italic text-ink-soft">{lead.report.headline}</p>
         <a href={`/research/${lead.slug}`} class="news-link mt-6 inline-flex items-center gap-1 font-news-mono text-news-label uppercase text-oxblood transition-colors hover:text-oxblood-deep">
-          Read the {lead.ticker} report <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
+          Read the {lead.ticker} report <Icon name="arrow_forward" size={16} />
         </a>
       </div>
       <div class="lg:col-span-4 lg:border-l lg:border-ink/25 lg:pl-10">
@@ -356,7 +357,7 @@ const marketRows = latestWeekly
               ))}
               <td class="py-4 pl-4 text-right">
                 <a href={`/research/${row.slug}`} tabindex="-1" aria-hidden="true" class="inline-flex text-ink-muted transition-all duration-300 group-hover:translate-x-1 group-hover:text-oxblood">
-                  <span class="material-symbols-outlined">arrow_forward</span>
+                  <Icon name="arrow_forward" size={24} />
                 </a>
               </td>
             </tr>
@@ -390,7 +391,7 @@ const marketRows = latestWeekly
         Values in VND per share; ≈ marks approximate precedent-transaction outputs. Academic work, not investment advice.
       </p>
       <a href="/research" class="news-link mt-4 inline-flex items-center gap-1 font-news-mono text-news-label uppercase text-oxblood transition-colors hover:text-oxblood-deep sm:hidden">
-        All valuation work <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
+        All valuation work <Icon name="arrow_forward" size={16} />
       </a>
     </div>
   </section>
@@ -429,10 +430,10 @@ const marketRows = latestWeekly
         </ul>
         <div class="mt-6 flex flex-wrap gap-3">
           <a href="/market-views" class="inline-flex min-h-11 items-center gap-2 border border-ink px-4 py-2 font-news-mono text-news-label uppercase text-ink transition-colors hover:bg-ink hover:text-paper">
-            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">view_week</span> Weekly notes
+            <Icon name="view_week" size={18} /> Weekly notes
           </a>
           <a href="/monthly-views" class="inline-flex min-h-11 items-center gap-2 bg-ink px-4 py-2 font-news-mono text-news-label uppercase text-paper transition-colors hover:bg-oxblood hover:text-paper">
-            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">calendar_month</span> Monthly notes
+            <Icon name="calendar_month" size={18} /> Monthly notes
           </a>
         </div>
       </div>

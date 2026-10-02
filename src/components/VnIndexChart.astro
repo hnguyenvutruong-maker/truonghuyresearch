@@ -34,29 +34,33 @@ const hasData = hasTrend || hasCandle;
       data-trend={JSON.stringify(trendData)}
       data-candle={JSON.stringify(candleData)}
     ></div>
+    <p class="mt-2 text-right font-news-mono text-news-label uppercase text-ink-muted">
+      Chart: <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer" class="news-link transition-colors hover:text-oxblood">TradingView Lightweight Charts™</a>
+    </p>
   </div>
 )}
 
 <script>
-  import { createChart, CrosshairMode } from 'lightweight-charts';
-
+  // lightweight-charts (~160 KB) is loaded only when the chart is about to scroll into view.
   const container = document.getElementById('vni-chart');
-  if (container) {
-    const trendRaw = container.getAttribute('data-trend') ?? '[]';
-    const candleRaw = container.getAttribute('data-candle') ?? '[]';
-    const trendData: { time: string; value: number }[] = JSON.parse(trendRaw);
-    const candleData: { time: string; open: number; high: number; low: number; close: number }[] = JSON.parse(candleRaw);
+
+  const draw = async (el: HTMLElement) => {
+    const { createChart, CrosshairMode } = await import('lightweight-charts');
+    const trendData: { time: string; value: number }[] = JSON.parse(el.dataset.trend ?? '[]');
+    const candleData: { time: string; open: number; high: number; low: number; close: number }[] = JSON.parse(el.dataset.candle ?? '[]');
 
     // Broadsheet tokens: ink line, ledger gains, oxblood losses, transparent over the paper
     const palette = { bg: 'rgba(0, 0, 0, 0)', text: '#6B6259', grid: 'rgba(25, 23, 20, 0.09)', line: '#191714', up: '#1E6B52', down: '#8E1B1B', font: 'Geist Mono, monospace' } as const;
 
-    const chart = createChart(container, {
-      width: container.clientWidth,
-      height: container.clientHeight || 200,
+    const chart = createChart(el, {
+      width: el.clientWidth,
+      height: el.clientHeight || 200,
       layout: {
         background: { color: palette.bg },
         textColor: palette.text,
         fontFamily: palette.font,
+        // The logo injects an inline <style> (blocked by our CSP); attribution is the text link below the chart
+        attributionLogo: false,
       },
       grid: {
         vertLines: { color: palette.grid },
@@ -70,17 +74,16 @@ const hasData = hasTrend || hasCandle;
     });
 
     if (candleData.length > 0) {
-      const candleSeries = chart.addCandlestickSeries({
+      chart.addCandlestickSeries({
         upColor: palette.up,
         downColor: palette.down,
         borderUpColor: palette.up,
         borderDownColor: palette.down,
         wickUpColor: palette.up,
         wickDownColor: palette.down,
-      });
-      candleSeries.setData(candleData);
+      }).setData(candleData);
     } else if (trendData.length > 0) {
-      const areaSeries = chart.addAreaSeries({
+      chart.addAreaSeries({
         lineColor: palette.line,
         topColor: 'rgba(25, 23, 20, 0.14)',
         bottomColor: 'rgba(25, 23, 20, 0)',
@@ -88,14 +91,27 @@ const hasData = hasTrend || hasCandle;
         priceLineVisible: false,
         lastValueVisible: true,
         crosshairMarkerVisible: true,
-      });
-      areaSeries.setData(trendData);
+      }).setData(trendData);
     }
 
     chart.timeScale().fitContent();
+    new ResizeObserver(() => chart.applyOptions({ width: el.clientWidth })).observe(el);
+  };
 
-    new ResizeObserver(() => {
-      chart.applyOptions({ width: container.clientWidth });
-    }).observe(container);
+  if (container) {
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            observer.disconnect();
+            void draw(container);
+          }
+        },
+        { rootMargin: '300px 0px' }
+      );
+      observer.observe(container);
+    } else {
+      void draw(container);
+    }
   }
 </script>
