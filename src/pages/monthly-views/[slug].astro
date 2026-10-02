@@ -29,6 +29,7 @@ const jsonLd = {
 
 <BaseLayout
   type="article"
+  image={`/og${note.href}.png`}
   title={`${note.headline} | Monthly Market View ${note.period}`}
   description={`Monthly VN-Index note for ${note.period}: close ${note.close.toFixed(2)} (${note.change >= 0 ? '+' : ''}${note.change.toFixed(2)}%), liquidity, foreign flow, sectors and cross-asset context.`}
 >

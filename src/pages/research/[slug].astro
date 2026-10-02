@@ -76,6 +76,7 @@ const jsonLd = {
 
 <BaseLayout
   title={`${model.ticker} Valuation Report | Truong Huy Research`}
+  image={`/og/research/${model.slug}.png`}
   description={`${model.company} (${model.ticker}) valuation: ${model.report.stance}`}
 >
   <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />
