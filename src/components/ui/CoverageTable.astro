@@ -1,0 +1,133 @@
+---
+// Coverage table: issuer, price used, each method's output with its implied move, and the
+// low / high move across methods. With `sortable`, column headings sort the rows (data-*
+// attributes carry the sort keys; missing values always sink to the bottom).
+import Tick from './Tick.astro';
+import { formatOutput, impliedMovePct, valuationModels, type OutputMethod } from '../../data/valuation-models';
+import { formatVndK, signedPct, toneClass } from '../../lib/format';
+
+interface Props {
+  sortable?: boolean;
+}
+
+const { sortable = false } = Astro.props;
+
+const columns: Array<{ method: OutputMethod; label: string }> = [
+  { method: 'DCF', label: 'DCF' },
+  { method: 'Comparable', label: 'Comps' },
+  { method: 'Precedent', label: 'Precedent' },
+  { method: 'LBO', label: 'LBO' },
+];
+
+const rows = [...valuationModels]
+  .sort((a, b) => a.ticker.localeCompare(b.ticker))
+  .map((model) => {
+    const moves = model.outputs.map((output) => impliedMovePct(output, model.referencePrice));
+    const byMethod = Object.fromEntries(
+      model.outputs.map((output) => [output.method, { text: formatOutput(output), move: impliedMovePct(output, model.referencePrice) }])
+    ) as Partial<Record<OutputMethod, { text: string; move: number }>>;
+    return { model, byMethod, low: Math.min(...moves), high: Math.max(...moves) };
+  });
+
+const heads = [
+  { key: 'price', label: 'Price used' },
+  ...columns.map((column) => ({ key: column.method.toLowerCase(), label: column.label })),
+  { key: 'low', label: 'Low move' },
+  { key: 'high', label: 'High move' },
+];
+---
+
+<div class="overflow-x-auto" data-coverage>
+  <table class="w-full min-w-[48rem] border-collapse" data-sortable={sortable ? '' : undefined}>
+    <caption class="sr-only">Valuation coverage, VND per share; implied moves against the price each model used</caption>
+    <thead>
+      <tr class="bg-panel-alt font-mono text-label uppercase text-fg-muted">
+        <th scope="col" class="sticky left-0 z-10 border-b border-line-strong bg-panel-alt px-3 py-2.5 text-left" aria-sort={sortable ? 'ascending' : undefined}>
+          {sortable ? (
+            <button type="button" data-sort="ticker" data-type="text" class="inline-flex items-center gap-1 uppercase transition-colors hover:text-link">Issuer <span data-arrow aria-hidden="true">↑</span></button>
+          ) : 'Issuer'}
+        </th>
+        {heads.map((head) => (
+          <th scope="col" class="border-b border-line-strong px-3 py-2.5 text-right" aria-sort={sortable ? 'none' : undefined}>
+            {sortable ? (
+              <button type="button" data-sort={head.key} class="inline-flex items-center gap-1 uppercase transition-colors hover:text-link">{head.label} <span data-arrow aria-hidden="true"></span></button>
+            ) : head.label}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr
+          class="group border-b border-line transition-colors hover:bg-panel-alt"
+          data-ticker={row.model.ticker}
+          data-price={row.model.referencePrice.value}
+          data-low={row.low}
+          data-high={row.high}
+          {...Object.fromEntries(columns.map((column) => [`data-${column.method.toLowerCase()}`, row.byMethod[column.method]?.move ?? '']))}
+        >
+          <th scope="row" class="sticky left-0 z-10 bg-panel px-3 py-3 text-left font-normal transition-colors group-hover:bg-panel-alt">
+            <a href={`/research/${row.model.slug}`} class="flex items-center gap-3">
+              <Tick label={row.model.ticker} size="sm" />
+              <span class="hidden sm:block">
+                <span class="block font-semibold text-fg transition-colors group-hover:text-link">{row.model.company}</span>
+                <span class="block text-[0.8125rem] text-fg-muted">{row.model.sector}</span>
+              </span>
+            </a>
+          </th>
+          <td class="px-3 py-3 text-right font-mono text-[0.9375rem] font-medium tabular-nums text-fg">{formatVndK(row.model.referencePrice.value)}</td>
+          {columns.map((column) => {
+            const cell = row.byMethod[column.method];
+            return (
+              <td class="px-3 py-3 text-right align-top">
+                {cell ? (
+                  <>
+                    <span class="block whitespace-nowrap font-mono text-[0.9375rem] font-semibold tabular-nums text-fg">{cell.text}</span>
+                    <span class:list={['mt-1 inline-block px-1.5 py-0.5 font-mono text-[0.75rem] font-semibold tabular-nums', cell.move >= 0 ? 'bg-up-soft text-up' : 'bg-down-soft text-down']}>{signedPct(cell.move, 1)}</span>
+                  </>
+                ) : (
+                  <span class="text-fg-muted">—</span>
+                )}
+              </td>
+            );
+          })}
+          <td class:list={['px-3 py-3 text-right font-mono text-[0.875rem] font-semibold tabular-nums', toneClass(row.low)]}>{signedPct(row.low, 1)}</td>
+          <td class:list={['px-3 py-3 text-right font-mono text-[0.875rem] font-semibold tabular-nums', toneClass(row.high)]}>{signedPct(row.high, 1)}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  // Sort any coverage table marked data-sortable; numeric keys sort high → low first.
+  document.querySelectorAll<HTMLTableElement>('table[data-sortable]').forEach((table) => {
+    const body = table.tBodies[0];
+    const buttons = Array.from(table.querySelectorAll<HTMLButtonElement>('button[data-sort]'));
+    let current = { key: 'ticker', dir: 1 };
+
+    const sortBy = (key: string, isText: boolean) => {
+      const dir = current.key === key ? -current.dir : isText ? 1 : -1;
+      current = { key, dir };
+      Array.from(body.rows)
+        .sort((a, b) => {
+          const av = a.dataset[key] ?? '';
+          const bv = b.dataset[key] ?? '';
+          if (isText) return av.localeCompare(bv) * dir;
+          if (av === '' && bv === '') return 0;
+          if (av === '') return 1;
+          if (bv === '') return -1;
+          return (Number(av) - Number(bv)) * dir;
+        })
+        .forEach((row) => body.appendChild(row));
+      buttons.forEach((button) => {
+        const active = button.dataset.sort === key;
+        button.closest('th')?.setAttribute('aria-sort', active ? (dir === 1 ? 'ascending' : 'descending') : 'none');
+        const arrow = button.querySelector('[data-arrow]');
+        if (arrow) arrow.textContent = active ? (dir === 1 ? '↑' : '↓') : '';
+      });
+    };
+
+    buttons.forEach((button) => button.addEventListener('click', () => sortBy(button.dataset.sort ?? 'ticker', button.dataset.type === 'text')));
+  });
+</script>

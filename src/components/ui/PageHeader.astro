@@ -1,0 +1,38 @@
+---
+// Framed page header: breadcrumb strip, kicker, h1 and lead, on a panel whose top edge
+// carries the section colour. Optional right column via the `aside` slot.
+import type { Tone } from '../../lib/tone';
+
+interface Props {
+  kicker: string;
+  title: string;
+  lead?: string;
+  tone?: Tone;
+  back?: { href: string; label: string };
+  context?: string;
+}
+
+const { kicker, title, lead, tone = 'neutral', back, context } = Astro.props;
+const edge = { neutral: 'border-t-chrome', profile: 'border-t-profile', value: 'border-t-value', market: 'border-t-market' }[tone];
+const ink = { neutral: 'text-fg-muted', profile: 'text-profile-ink', value: 'text-value-ink', market: 'text-market-ink' }[tone];
+const hasAside = Astro.slots.has('aside');
+---
+
+<header class:list={['border border-t-4 border-line bg-panel shadow-panel', edge]}>
+  {(back || context) && (
+    <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b border-line bg-panel-alt px-4 py-2 font-mono text-label uppercase text-fg-muted md:px-6">
+      {back ? <a href={back.href} class="u-link transition-colors hover:text-link">← {back.label}</a> : <span></span>}
+      {context && <span>{context}</span>}
+    </div>
+  )}
+  <div class:list={['grid grid-cols-1 gap-8 px-4 py-6 md:px-6 md:py-8', hasAside && 'lg:grid-cols-12']}>
+    <div class:list={['min-w-0', hasAside && 'lg:col-span-8']}>
+      <slot name="before" />
+      <p class:list={['animate-rise font-mono text-label uppercase', ink]}>{kicker}</p>
+      <h1 class="mt-2 animate-rise text-balance font-display text-h1 text-fg [animation-delay:60ms]">{title}</h1>
+      {lead && <p class="mt-4 max-w-3xl animate-rise text-lead text-fg-muted [animation-delay:120ms]">{lead}</p>}
+      <slot />
+    </div>
+    {hasAside && <div class="min-w-0 animate-rise [animation-delay:180ms] lg:col-span-4"><slot name="aside" /></div>}
+  </div>
+</header>

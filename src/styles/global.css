@@ -1,10 +1,66 @@
 /*
- * Broadsheet — the site's only theme.
- * Newsprint paper, ink, oxblood, ledger green, cinnabar seal. Fraunces + Geist Mono.
- * Tailwind preflight already makes headings, paragraphs and links inherit, so this file
- * only adds what utilities cannot: the paper grain, selection/focus colours, the
- * drawn underline, scroll reveal, and the global sharp-corner rule.
+ * Direction C ("Desk") — dark navy chrome, framed panels, one colour per section.
+ * Colour tokens are RGB channels so Tailwind can apply /<alpha>. The day theme is the
+ * :root default; the night theme (after 18:00 local time, or by choice) redefines them
+ * under [data-theme="dark"], set before first paint by the inline script in BaseLayout.
+ * Contrast: body text ≥ 13:1, muted text ≥ 6:1, white on every section bar ≥ 5.5:1.
  */
+
+:root {
+  color-scheme: light;
+  --c-canvas: 246 248 251;      /* #F6F8FB */
+  --c-panel: 255 255 255;
+  --c-panel-alt: 240 243 247;   /* #F0F3F7 rows, insets */
+  --c-line: 201 210 220;        /* #C9D2DC */
+  --c-line-strong: 143 156 172; /* #8F9CAC */
+  --c-fg: 16 26 43;             /* #101A2B */
+  --c-fg-muted: 74 89 107;      /* #4A596B */
+  --c-link: 23 84 178;          /* #1754B2 */
+  --c-up: 14 107 52;            /* #0E6B34 */
+  --c-up-soft: 225 242 231;
+  --c-down: 190 38 26;          /* #BE261A */
+  --c-down-soft: 250 229 226;
+  --c-chrome: 11 27 51;         /* #0B1B33 navy */
+  --c-chrome-deep: 7 19 38;     /* #071326 tape */
+  --c-chrome-fg: 242 245 249;
+  --c-chrome-muted: 159 176 195;
+  --c-chrome-line: 38 58 88;
+  --c-profile: 91 63 217;       /* #5B3FD9 violet */
+  --c-profile-ink: 79 52 199;
+  --c-value: 8 111 118;         /* #086F76 teal */
+  --c-value-ink: 7 99 105;
+  --c-market: 154 79 4;         /* #9A4F04 amber */
+  --c-market-ink: 140 71 3;
+  --c-shadow: 15 26 43;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --c-canvas: 4 6 10;           /* #04060A near-black */
+  --c-panel: 14 20 29;          /* #0E141D */
+  --c-panel-alt: 21 29 40;      /* #151D28 */
+  --c-line: 41 53 70;           /* #293546 */
+  --c-line-strong: 88 104 126;
+  --c-fg: 232 237 243;          /* #E8EDF3 */
+  --c-fg-muted: 163 176 192;    /* #A3B0C0 */
+  --c-link: 125 184 255;        /* #7DB8FF */
+  --c-up: 70 217 147;           /* #46D993 */
+  --c-up-soft: 16 52 38;
+  --c-down: 255 112 112;        /* #FF7070 */
+  --c-down-soft: 64 22 24;
+  --c-chrome: 10 20 36;         /* #0A1424 */
+  --c-chrome-deep: 5 11 22;
+  --c-chrome-fg: 238 242 247;
+  --c-chrome-muted: 150 166 186;
+  --c-chrome-line: 33 49 74;
+  --c-profile: 91 63 217;
+  --c-profile-ink: 176 160 255; /* #B0A0FF */
+  --c-value: 8 111 118;
+  --c-value-ink: 87 214 200;    /* #57D6C8 */
+  --c-market: 154 79 4;
+  --c-market-ink: 245 170 72;   /* #F5AA48 */
+  --c-shadow: 0 0 0;
+}
 
 *,
 *::before,
@@ -13,54 +69,58 @@
 }
 
 html {
-  color-scheme: light;
   scroll-behavior: smooth;
-  background-color: #F2E8DA;
+  background-color: rgb(var(--c-canvas));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Fine paper grain */
 body {
-  background-color: #F2E8DA;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.10 0 0 0 0 0.08 0 0 0 0 0.06 0 0 0 0.10 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  color: #191714;
+  background-color: rgb(var(--c-canvas));
+  color: rgb(var(--c-fg));
+}
+
+/* Theme switches cross-fade instead of flashing (the first paint has no transition) */
+html.theme-ready body,
+html.theme-ready .bg-panel,
+html.theme-ready .bg-canvas {
+  transition: background-color 0.5s ease, color 0.5s ease;
 }
 
 ::selection {
-  background-color: #8E1B1B;
-  color: #F2E8DA;
+  background-color: rgb(var(--c-value));
+  color: #fff;
 }
 
 a:focus-visible,
-button:focus-visible {
-  outline: 2px solid #8E1B1B;
-  outline-offset: 3px;
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid rgb(var(--c-link));
+  outline-offset: 2px;
 }
 
-/* Ink underline that draws in from the left on hover */
-.news-link {
+/* Underline that draws in from the left on hover (nav and inline links) */
+.u-link {
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
   background-position: 0 100%;
   background-size: 0% 1px;
   padding-bottom: 1px;
-  transition: background-size 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.2s ease;
+  transition: background-size 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.2s ease;
 }
 
-.news-link:hover,
-.news-link:focus-visible,
-.news-link[aria-current="page"] {
+.u-link:hover,
+.u-link:focus-visible,
+.u-link[aria-current="page"] {
   background-size: 100% 1px;
 }
 
 /* Scroll reveal — only hidden once JS has marked <html class="js"> */
 .js [data-reveal] {
   opacity: 0;
-  transform: translateY(18px);
-  transition:
-    opacity 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) var(--reveal-delay, 0ms),
-    transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) var(--reveal-delay, 0ms);
+  transform: translateY(12px);
+  transition: opacity 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .js [data-reveal].is-revealed {
@@ -88,17 +148,31 @@ button:focus-visible {
   }
 }
 
-/* Print: white paper, no chrome, nothing left hidden by scroll reveal */
+/* Print: always the day palette on white paper, nothing hidden by scroll reveal */
 @page {
   size: A4;
   margin: 12mm;
 }
 
 @media print {
-  html,
-  body {
-    background: #fff;
-    background-image: none;
+  :root,
+  [data-theme="dark"] {
+    color-scheme: light;
+    --c-canvas: 255 255 255;
+    --c-panel: 255 255 255;
+    --c-panel-alt: 240 243 247;
+    --c-line: 201 210 220;
+    --c-line-strong: 143 156 172;
+    --c-fg: 16 26 43;
+    --c-fg-muted: 74 89 107;
+    --c-link: 23 84 178;
+    --c-up: 14 107 52;
+    --c-up-soft: 225 242 231;
+    --c-down: 190 38 26;
+    --c-down-soft: 250 229 226;
+    --c-profile-ink: 79 52 199;
+    --c-value-ink: 7 99 105;
+    --c-market-ink: 140 71 3;
   }
 
   .js [data-reveal] {

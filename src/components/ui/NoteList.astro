@@ -1,0 +1,96 @@
+---
+// Market-note index: one framed panel per year, newest first, with an optional
+// All / Weekly / Monthly filter synced to ?kind= (client-side; every note is in the HTML).
+import Panel from './Panel.astro';
+import { formatIndex, signedPct } from '../../lib/format';
+import type { NoteSummary } from '../../lib/notes';
+
+interface Props {
+  notes: NoteSummary[];
+  filter?: boolean;
+}
+
+const { notes, filter = false } = Astro.props;
+const sorted = [...notes].sort((a, b) => b.date.valueOf() - a.date.valueOf());
+const years = [...new Set(sorted.map((note) => note.date.getUTCFullYear()))];
+const filters = [
+  { key: 'all', label: 'All notes', count: notes.length },
+  { key: 'weekly', label: 'Weekly', count: notes.filter((note) => note.kind === 'Weekly').length },
+  { key: 'monthly', label: 'Monthly', count: notes.filter((note) => note.kind === 'Monthly').length },
+];
+---
+
+<div data-note-list class="space-y-4">
+  {filter && (
+    <div role="group" aria-label="Filter notes" class="flex flex-wrap gap-2">
+      {filters.map((item, index) => (
+        <button
+          type="button"
+          data-filter={item.key}
+          aria-pressed={index === 0 ? 'true' : 'false'}
+          class="inline-flex min-h-10 items-center gap-2 border border-line bg-panel px-4 py-2 font-mono text-[0.8125rem] font-semibold text-fg shadow-panel transition-colors hover:border-market aria-pressed:border-market aria-pressed:bg-market aria-pressed:text-white"
+        >
+          {item.label} <span class="font-medium">{item.count}</span>
+        </button>
+      ))}
+    </div>
+  )}
+
+  {years.map((year) => (
+    <div data-year>
+      <Panel title={String(year)} tone="market" flush>
+        <span slot="meta" data-year-count></span>
+        <ol>
+          {sorted.filter((note) => note.date.getUTCFullYear() === year).map((note) => (
+            <li class="border-b border-line last:border-b-0" data-kind={note.kind.toLowerCase()}>
+              <a href={note.href} class="group grid grid-cols-1 gap-x-6 gap-y-1.5 px-4 py-4 transition-colors hover:bg-panel-alt md:grid-cols-12 md:items-center">
+                <p class="font-mono text-label uppercase md:col-span-3">
+                  <span class:list={['mr-2 inline-block px-1.5 py-0.5 text-white', note.kind === 'Monthly' ? 'bg-market' : 'bg-chrome']}>{note.kind}</span>
+                  <span class="text-fg-muted">{note.period}</span>
+                </p>
+                <p class="font-display text-h3 text-fg transition-colors group-hover:text-link md:col-span-7">{note.headline}</p>
+                <p class="font-mono text-[0.875rem] tabular-nums text-fg md:col-span-2 md:text-right">
+                  {formatIndex(note.close)}
+                  <span class:list={['ml-1 inline-block px-1.5 py-0.5 font-semibold', note.change >= 0 ? 'bg-up-soft text-up' : 'bg-down-soft text-down']}>{signedPct(note.change)}</span>
+                </p>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </Panel>
+    </div>
+  ))}
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-note-list]');
+  const buttons = Array.from(root?.querySelectorAll<HTMLButtonElement>('button[data-filter]') ?? []);
+
+  const apply = (kind: string) => {
+    if (!root) return;
+    root.querySelectorAll<HTMLElement>('li[data-kind]').forEach((item) => {
+      item.hidden = kind !== 'all' && item.dataset.kind !== kind;
+    });
+    root.querySelectorAll<HTMLElement>('[data-year]').forEach((section) => {
+      const visible = section.querySelectorAll('li[data-kind]:not([hidden])').length;
+      section.hidden = visible === 0;
+      const label = section.querySelector('[data-year-count]');
+      if (label) label.textContent = `${visible} note${visible === 1 ? '' : 's'}`;
+    });
+    buttons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.filter === kind)));
+  };
+
+  buttons.forEach((button) =>
+    button.addEventListener('click', () => {
+      const kind = button.dataset.filter ?? 'all';
+      apply(kind);
+      const url = new URL(window.location.href);
+      if (kind === 'all') url.searchParams.delete('kind');
+      else url.searchParams.set('kind', kind);
+      history.replaceState(null, '', url);
+    })
+  );
+
+  const initial = new URLSearchParams(window.location.search).get('kind');
+  apply(initial === 'weekly' || initial === 'monthly' ? initial : 'all');
+</script>

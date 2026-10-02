@@ -1,6 +1,6 @@
 ---
 // Two-way DCF sensitivity as a ruled table. Cells are shaded on a diverging scale
-// around the model's reference price (ledger above, oxblood below, none within ±2%);
+// around the model's reference price (green above, red below, none within ±2%);
 // every value is printed, so the shading is never the only channel.
 import type { ReferencePrice, SensitivityGrid } from '../../data/valuation-models';
 import { formatDate, formatVndK } from '../../lib/format';
@@ -18,42 +18,36 @@ const fmtAxis = (value: number, format: SensitivityGrid['rowFormat']) =>
 const refK = reference.value / 1000;
 const shade = (valueK: number) => {
   const move = (valueK / refK - 1) * 100;
-  if (move >= 10) return 'bg-ledger/25';
-  if (move >= 2) return 'bg-ledger/10';
+  if (move >= 10) return 'bg-up/30';
+  if (move >= 2) return 'bg-up/15';
   if (move > -2) return '';
-  if (move > -10) return 'bg-oxblood/10';
-  return 'bg-oxblood/20';
+  if (move > -10) return 'bg-down/15';
+  return 'bg-down/25';
 };
 ---
 
 <figure>
-  <div class="overflow-x-auto">
-    <table class="w-full min-w-[22rem] border-collapse">
-      <caption class="pb-3 text-left font-news-mono text-news-label uppercase text-ink">{grid.title}</caption>
+  <div class="overflow-x-auto" tabindex="0" role="region" aria-label={`${grid.title}, scrolls sideways`}>
+    <table class="w-full min-w-[22rem] border-collapse border border-line">
+      <caption class="pb-3 text-left font-mono text-label uppercase text-fg">{grid.title}</caption>
       <thead>
-        <tr class="border-y-2 border-ink font-news-mono text-news-label uppercase text-ink-muted">
-          <th scope="col" class="py-2 pr-3 text-left font-medium">{grid.rowLabel} ↓ · {grid.colLabel} →</th>
+        <tr class="bg-panel-alt font-mono text-label uppercase text-fg-muted">
+          <th scope="col" class="border-b border-line-strong px-3 py-2 text-left">{grid.rowLabel} ↓ · {grid.colLabel} →</th>
           {grid.cols.map((col, j) => (
-            <th scope="col" class:list={['px-2 py-2 text-right font-medium', j === grid.baseCol && 'text-ink']}>{fmtAxis(col, grid.colFormat)}</th>
+            <th scope="col" class:list={['border-b border-line-strong px-2 py-2 text-right', j === grid.baseCol && 'text-fg']}>{fmtAxis(col, grid.colFormat)}</th>
           ))}
         </tr>
       </thead>
       <tbody>
         {grid.values.map((row, i) => (
-          <tr class="border-b border-ink/15">
-            <th scope="row" class:list={['py-2 pr-3 text-left font-news-mono text-news-data font-normal tabular-nums', i === grid.baseRow ? 'text-ink' : 'text-ink-muted']}>
+          <tr class="border-b border-line">
+            <th scope="row" class:list={['bg-panel-alt px-3 py-2 text-left font-mono text-[0.875rem] font-medium tabular-nums', i === grid.baseRow ? 'text-fg' : 'text-fg-muted']}>
               {fmtAxis(grid.rows[i], grid.rowFormat)}
             </th>
             {row.map((value, j) => {
               const isBase = i === grid.baseRow && j === grid.baseCol;
               return (
-                <td
-                  class:list={[
-                    'px-2 py-2 text-right font-news text-base lining-nums tabular-nums text-ink',
-                    shade(value),
-                    isBase && 'font-semibold outline outline-2 -outline-offset-2 outline-ink',
-                  ]}
-                >
+                <td class:list={['px-2 py-2 text-right font-mono text-[0.9375rem] tabular-nums text-fg', shade(value), isBase && 'font-bold outline outline-2 -outline-offset-2 outline-fg']}>
                   {value.toFixed(1)}
                 </td>
               );
@@ -63,7 +57,7 @@ const shade = (valueK: number) => {
       </tbody>
     </table>
   </div>
-  <figcaption class="mt-3 space-y-1 font-news text-news-data italic text-ink-muted">
+  <figcaption class="mt-3 space-y-1 text-[0.875rem] text-fg-muted">
     <p>
       Outlined cell: model base case. Green cells sit above, red cells below, the {formatVndK(reference.value)} price used on
       {' '}{formatDate(reference.asOf)} (unshaded within ±2%; darker beyond ±10%).

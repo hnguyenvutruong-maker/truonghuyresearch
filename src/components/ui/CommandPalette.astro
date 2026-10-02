@@ -56,10 +56,10 @@ const defaults = [
 <dialog
   id="command-palette"
   aria-label="Search the site"
-  class="m-0 mx-auto mt-[12vh] w-[calc(100%-2rem)] max-w-2xl border border-ink bg-paper p-0 text-ink shadow-[8px_8px_0_rgba(25,23,20,0.15)] backdrop:bg-ink/40"
+  class="m-0 mx-auto mt-[12vh] w-[calc(100%-2rem)] max-w-2xl border border-line bg-panel p-0 text-fg shadow-lift backdrop:bg-[#04060A]/60"
 >
-  <div class="flex items-center gap-3 border-b-2 border-ink px-4">
-    <label for="palette-input" class="font-news-mono text-news-label uppercase text-oxblood">Go to</label>
+  <div class="flex items-center gap-3 border-b border-line bg-chrome px-4 text-chrome-fg">
+    <label for="palette-input" class="font-mono text-label uppercase text-[#57D6C8]">Go to</label>
     <input
       id="palette-input"
       type="text"
@@ -70,13 +70,13 @@ const defaults = [
       autocomplete="off"
       spellcheck="false"
       placeholder="Ticker, method, note, CV…"
-      class="min-w-0 flex-1 bg-transparent py-4 font-news text-xl text-ink placeholder:text-ink-muted focus:outline-none"
+      class="min-w-0 flex-1 bg-transparent py-4 font-sans text-xl text-chrome-fg placeholder:text-chrome-muted focus:outline-none"
     />
-    <kbd class="hidden border border-ink/30 px-1.5 py-0.5 font-news-mono text-news-label text-ink-muted sm:inline">Esc</kbd>
+    <kbd class="hidden border border-chrome-line px-1.5 py-0.5 font-mono text-label text-chrome-muted sm:inline">Esc</kbd>
   </div>
   <ul id="palette-results" role="listbox" aria-label="Results" class="max-h-[60vh] overflow-y-auto"></ul>
-  <p id="palette-empty" class="hidden px-4 py-6 font-news text-news-small italic text-ink-muted">Nothing matches. Try a ticker such as HPG, or a month such as May 2026.</p>
-  <p class="flex flex-wrap gap-x-4 gap-y-1 border-t border-ink/20 px-4 py-2 font-news-mono text-news-label uppercase text-ink-muted">
+  <p id="palette-empty" class="hidden px-4 py-6 text-small text-fg-muted">Nothing matches. Try a ticker such as HPG, or a month such as May 2026.</p>
+  <p class="flex flex-wrap gap-x-4 gap-y-1 border-t border-line bg-panel-alt px-4 py-2 font-mono text-label uppercase text-fg-muted">
     <span>↑↓ move</span><span>Enter open</span><span>Esc close</span>
   </p>
 </dialog>
@@ -124,17 +124,17 @@ const defaults = [
         li.setAttribute('role', 'option');
         li.setAttribute('aria-selected', String(i === active));
         li.dataset.index = String(i);
-        li.className = 'flex cursor-pointer items-baseline gap-4 border-b border-ink/10 px-4 py-3 aria-selected:bg-paper-deep';
+        li.className = 'flex cursor-pointer items-baseline gap-4 border-b border-line px-4 py-3 aria-selected:bg-panel-alt';
         const kind = document.createElement('span');
-        kind.className = 'w-24 shrink-0 font-news-mono text-news-label uppercase text-oxblood';
+        kind.className = `w-24 shrink-0 font-mono text-label uppercase ${entry.kind === 'Report' || entry.kind === 'Method' ? 'text-value-ink' : entry.kind.endsWith('note') ? 'text-market-ink' : 'text-profile-ink'}`;
         kind.textContent = entry.kind;
         const body = document.createElement('span');
         body.className = 'min-w-0 flex-1';
         const title = document.createElement('span');
-        title.className = 'block truncate font-news text-news-small font-semibold text-ink';
+        title.className = 'block truncate text-small font-semibold text-fg';
         title.textContent = entry.title;
         const detail = document.createElement('span');
-        detail.className = 'block truncate font-news text-news-data text-ink-muted';
+        detail.className = 'block truncate font-mono text-[0.8125rem] text-fg-muted';
         detail.textContent = entry.detail;
         body.append(title, detail);
         li.append(kind, body);

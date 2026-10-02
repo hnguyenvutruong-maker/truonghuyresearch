@@ -1,0 +1,27 @@
+---
+// Heading above a group of panels: a coloured section marker, a kicker, the title, and an
+// optional link on the right.
+import type { Tone } from '../../lib/tone';
+
+interface Props {
+  kicker: string;
+  title: string;
+  tone?: Tone;
+  id?: string;
+}
+
+const { kicker, title, tone = 'neutral', id } = Astro.props;
+const swatch = { neutral: 'bg-chrome', profile: 'bg-profile', value: 'bg-value', market: 'bg-market' }[tone];
+const ink = { neutral: 'text-fg-muted', profile: 'text-profile-ink', value: 'text-value-ink', market: 'text-market-ink' }[tone];
+---
+
+<header id={id} class="flex scroll-mt-28 flex-wrap items-end justify-between gap-x-6 gap-y-2" data-reveal>
+  <div class="flex items-stretch gap-3">
+    <span class:list={['w-1.5 shrink-0', swatch]} aria-hidden="true"></span>
+    <div>
+      <p class:list={['font-mono text-label uppercase', ink]}>{kicker}</p>
+      <h2 class="mt-1 font-display text-h2 text-fg">{title}</h2>
+    </div>
+  </div>
+  <slot name="aside" />
+</header>

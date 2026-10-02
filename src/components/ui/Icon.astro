@@ -1,7 +1,7 @@
 ---
 // Inline stroke icons (24-unit grid, square caps) replacing the Material Symbols web font:
 // no extra request, no ligature text flashing while a font loads, nothing for CSP to allow.
-type IconName = 'arrow_downward' | 'arrow_forward' | 'calendar_month' | 'download' | 'menu' | 'north_east' | 'search' | 'view_week';
+type IconName = 'arrow_downward' | 'arrow_forward' | 'calendar_month' | 'close' | 'download' | 'menu' | 'moon' | 'north_east' | 'search' | 'sun' | 'view_week';
 
 interface Props {
   name: IconName;
@@ -14,11 +14,14 @@ const { name, size = 24, class: className } = Astro.props;
 const paths: Record<IconName, string> = {
   arrow_downward: 'M12 4v15M6 13l6 6 6-6',
   arrow_forward: 'M4 12h15M13 6l6 6-6 6',
+  close: 'M6 6l12 12M18 6L6 18',
   calendar_month: 'M4 6h16v14H4zM4 10h16M8 3v5M16 3v5M8 14h2M14 14h2M8 17h2',
   download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
   menu: 'M4 7h16M4 12h16M4 17h16',
+  moon: 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z',
   north_east: 'M7 17L17 7M9 7h8v8',
   search: 'M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM15.5 15.5L20 20',
+  sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8',
   view_week: 'M4 5h16v14H4zM9.33 5v14M14.67 5v14',
 };
 ---

@@ -1,37 +1,14 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import DisclaimerBox from '../components/DisclaimerBox.astro';
-import Seal from '../components/broadsheet/Seal.astro';
-import {
-  STALE_AFTER_DAYS,
-  formatOutput,
-  impliedMovePct,
-  methodPages,
-  valuationGroups,
-  valuationModels,
-  type OutputMethod,
-} from '../data/valuation-models';
-import { daysBetween, formatDate, formatVndK, signedPct, toneClass } from '../lib/format';
-
-const columns: Array<{ method: OutputMethod; label: string }> = [
-  { method: 'DCF', label: 'DCF' },
-  { method: 'Comparable', label: 'Comps' },
-  { method: 'Precedent', label: 'Precedent' },
-  { method: 'LBO', label: 'LBO' },
-];
-
-const rows = [...valuationModels].sort((a, b) => a.ticker.localeCompare(b.ticker)).map((model) => {
-  const moves = model.outputs.map((output) => impliedMovePct(output, model.referencePrice));
-  const byMethod = Object.fromEntries(
-    model.outputs.map((output) => [output.method, { text: formatOutput(output), move: impliedMovePct(output, model.referencePrice) }])
-  ) as Partial<Record<OutputMethod, { text: string; move: number }>>;
-  return {
-    model,
-    byMethod,
-    low: Math.min(...moves),
-    high: Math.max(...moves),
-  };
-});
+import CoverageTable from '../components/ui/CoverageTable.astro';
+import DatedNote from '../components/ui/DatedNote.astro';
+import Disclaimer from '../components/ui/Disclaimer.astro';
+import Icon from '../components/ui/Icon.astro';
+import PageHeader from '../components/ui/PageHeader.astro';
+import Panel from '../components/ui/Panel.astro';
+import Tick from '../components/ui/Tick.astro';
+import { STALE_AFTER_DAYS, methodPages, valuationGroups, valuationModels } from '../data/valuation-models';
+import { daysBetween, formatDate } from '../lib/format';
 
 const downloadCount = valuationModels.reduce((total, model) => total + model.downloads.length, 0);
 const modelDates = [...new Set(valuationModels.map((model) => model.lastUpdated ?? model.referencePrice.asOf))].sort();
@@ -49,174 +26,53 @@ const methods = methodPages.map((page) => {
   title="Coverage | Truong Huy Research"
   description="Vietnam equity valuation coverage: DCF, comparable, precedent-transaction and LBO outputs for HPG, BID, FPT, BMP and PNJ, with downloadable workbooks."
 >
-  <section class="mx-auto w-full max-w-container-max px-margin-mobile pt-8 md:px-margin-desktop md:pt-10">
-    <div class="flex animate-rise flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b border-ink pb-2 font-news-mono text-news-label uppercase text-ink-muted">
-      <span>Section II · Valuation</span>
-      <span>{valuationModels.length} issuers · {downloadCount} workbooks</span>
-    </div>
-    <div class="grid grid-cols-1 gap-8 border-b border-ink py-10 lg:grid-cols-12 lg:gap-0">
-      <div class="lg:col-span-8 lg:pr-10">
-        <h1 class="animate-rise font-news text-news-hero text-ink [animation-delay:80ms]">Coverage</h1>
-        <p class="mt-6 max-w-2xl animate-rise font-news text-news-dek italic text-ink-soft [animation-delay:160ms]">
-          Five Vietnam-listed issuers, each valued with the methods that fit the business, and every workbook open for review.
-          Ranges, not single targets: where methods disagree, the spread is the finding.
-        </p>
-      </div>
-      <aside class="animate-rise [animation-delay:240ms] lg:col-span-4 lg:border-l lg:border-ink/25 lg:pl-10">
-        <p class="border-b-2 border-ink pb-2 font-news-mono text-news-label uppercase text-ink">How to read the table</p>
-        <p class="mt-3 font-news text-news-small text-ink-soft">
+  <div class="mx-auto w-full max-w-container-max space-y-4 px-margin-mobile py-6 md:px-margin-desktop md:py-8">
+    <PageHeader
+      tone="value"
+      kicker="Section II · Valuation"
+      title="Coverage"
+      lead="Five Vietnam-listed issuers, each valued with the methods that fit the business, and every workbook open for review. Ranges, not single targets: where methods disagree, the spread is the finding."
+      context={`${valuationModels.length} issuers · ${downloadCount} workbooks`}
+    >
+      <div slot="aside" class="border border-line bg-panel-alt p-4">
+        <p class="font-mono text-label uppercase text-value-ink">How to read the table</p>
+        <p class="mt-2 text-small text-fg">
           Values are VND per share. The implied move compares each method's base case or midpoint with the share price the
           model used. Click a column heading to sort.
         </p>
-      </aside>
-    </div>
+      </div>
+    </PageHeader>
+
     {isStale && (
-      <p class="mt-6 border-l-2 border-oxblood pl-4 font-news text-news-small text-ink" role="note">
-        <span class="font-news-mono text-news-label uppercase text-oxblood">Dated figures · </span>
+      <DatedNote>
         All models and prices are as of {formatDate(oldestDate)} and have not been refreshed since. Implied moves are against
         those prices, not today's.
-      </p>
+      </DatedNote>
     )}
-  </section>
 
-  <!-- Coverage table -->
-  <section class="mx-auto w-full max-w-container-max px-margin-mobile py-12 md:px-margin-desktop" data-reveal>
-    <p class="pb-3 font-news-mono text-news-label uppercase text-ink" aria-hidden="true">
-      The coverage table · VND per share<span class="block text-ink-muted sm:hidden">Scroll sideways for every method</span>
-    </p>
-    <div class="overflow-x-auto">
-      <table class="w-full min-w-[46rem] border-collapse sm:min-w-[56rem]" data-sortable>
-        <caption class="sr-only">The coverage table, VND per share</caption>
-        <thead>
-          <tr class="border-y-2 border-ink font-news-mono text-news-label uppercase text-ink-muted">
-            <th scope="col" class="sticky left-0 z-10 bg-paper py-2 pr-3 text-left font-medium sm:pr-4" aria-sort="ascending">
-              <button type="button" data-sort="ticker" data-type="text" class="inline-flex items-center gap-1 uppercase transition-colors hover:text-oxblood">Issuer <span data-arrow aria-hidden="true">↑</span></button>
-            </th>
-            <th scope="col" class="px-3 py-2 text-right font-medium" aria-sort="none">
-              <button type="button" data-sort="price" class="inline-flex items-center gap-1 uppercase transition-colors hover:text-oxblood">Price used <span data-arrow aria-hidden="true"></span></button>
-            </th>
-            {columns.map((column) => (
-              <th scope="col" class="px-3 py-2 text-right font-medium" aria-sort="none">
-                <button type="button" data-sort={column.method.toLowerCase()} class="inline-flex items-center gap-1 uppercase transition-colors hover:text-oxblood">{column.label} <span data-arrow aria-hidden="true"></span></button>
-              </th>
-            ))}
-            <th scope="col" class="px-3 py-2 text-right font-medium" aria-sort="none">
-              <button type="button" data-sort="low" class="inline-flex items-center gap-1 uppercase transition-colors hover:text-oxblood">Low move <span data-arrow aria-hidden="true"></span></button>
-            </th>
-            <th scope="col" class="py-2 pl-3 text-right font-medium" aria-sort="none">
-              <button type="button" data-sort="high" class="inline-flex items-center gap-1 uppercase transition-colors hover:text-oxblood">High move <span data-arrow aria-hidden="true"></span></button>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr
-              class="group border-b border-ink/20 transition-colors hover:bg-paper-deep"
-              data-ticker={row.model.ticker}
-              data-price={row.model.referencePrice.value}
-              data-low={row.low}
-              data-high={row.high}
-              {...Object.fromEntries(columns.map((column) => [`data-${column.method.toLowerCase()}`, row.byMethod[column.method]?.move ?? '']))}
-            >
-              <th scope="row" class="sticky left-0 z-10 bg-paper py-4 pr-4 text-left font-normal transition-colors group-hover:bg-paper-deep">
-                <a href={`/research/${row.model.slug}`} class="flex items-center gap-4">
-                  <Seal label={row.model.ticker} size="sm" motion="hover" />
-                  <span class="hidden sm:block">
-                    <span class="block font-news text-news-h4 text-ink transition-colors group-hover:text-oxblood">{row.model.company}</span>
-                    <span class="mt-0.5 block font-news-mono text-news-label uppercase text-ink-muted">{row.model.sector}</span>
-                  </span>
-                </a>
-              </th>
-              <td class="px-3 py-4 text-right font-news text-lg lining-nums tabular-nums text-ink">{formatVndK(row.model.referencePrice.value)}</td>
-              {columns.map((column) => {
-                const cell = row.byMethod[column.method];
-                return (
-                  <td class="px-3 py-4 text-right">
-                    {cell ? (
-                      <>
-                        <span class="block whitespace-nowrap font-news text-lg lining-nums tabular-nums text-ink">{cell.text}</span>
-                        <span class:list={['block font-news-mono text-news-data tabular-nums', toneClass(cell.move)]}>{signedPct(cell.move, 1)}</span>
-                      </>
-                    ) : (
-                      <span class="text-ink/30">—</span>
-                    )}
-                  </td>
-                );
-              })}
-              <td class:list={['px-3 py-4 text-right font-news-mono text-news-data tabular-nums', toneClass(row.low)]}>{signedPct(row.low, 1)}</td>
-              <td class:list={['py-4 pl-3 text-right font-news-mono text-news-data tabular-nums', toneClass(row.high)]}>{signedPct(row.high, 1)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-    <p class="mt-3 font-news text-news-data italic text-ink-muted">
-      ≈ marks approximate precedent-transaction outputs. Low and high move are the weakest and strongest method versus the
-      price used; methods are not blended into one target. Academic work, not investment advice.
-    </p>
-  </section>
+    <Panel title="Coverage table · VND per share" meta="Sortable" tone="value" flush>
+      <p class="border-b border-line bg-panel-alt px-4 py-2 font-mono text-[0.75rem] text-fg-muted sm:hidden">Scroll sideways for every method.</p>
+      <CoverageTable sortable />
+      <p class="border-t border-line px-4 py-3 text-[0.875rem] text-fg-muted">
+        ≈ marks approximate precedent-transaction outputs. Low and high move are the weakest and strongest method versus the
+        price used; methods are not blended into one target. Academic work, not investment advice.
+      </p>
+    </Panel>
 
-  <!-- Methods -->
-  <section class="mx-auto w-full max-w-container-max px-margin-mobile pb-16 md:px-margin-desktop">
-    <header class="border-t-4 border-double border-ink pt-4" data-reveal>
-      <p class="font-news-mono text-news-label uppercase text-oxblood">By method</p>
-      <h2 class="mt-3 font-news text-news-h2 text-ink">Methods</h2>
-    </header>
-    <ol class="mt-8 grid grid-cols-1 border-t border-ink md:grid-cols-3" data-reveal>
-      {methods.map((method, index) => method.group && (
-        <li class="border-b border-ink/20 py-6 md:border-b-0 md:px-6 md:first:pl-0 md:last:pr-0 md:[&:not(:first-child)]:border-l md:[&:not(:first-child)]:border-ink/20">
-          <a href={method.href} class="group block">
-            <p class="font-news text-3xl font-light italic text-oxblood">{['I', 'II', 'III'][index]}</p>
-            <p class="mt-3 font-news-mono text-news-label uppercase text-ink-muted">{method.group.eyebrow}</p>
-            <p class="mt-1 font-news text-news-h4 text-ink transition-colors group-hover:text-oxblood">{method.group.title}</p>
-            <p class="mt-2 font-news text-news-small text-ink-soft">{method.group.description}</p>
-            <p class="mt-4 font-news-mono text-news-label uppercase text-ink">
-              {method.tickers.join(' · ')} <span class="ml-1 inline-block transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
-            </p>
-          </a>
-        </li>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+      {methods.map((method) => method.group && (
+        <Panel title={method.group.title} meta={method.group.eyebrow} tone="value" level={3} reveal>
+          <p class="text-small text-fg">{method.group.description}</p>
+          <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
+            <span class="flex flex-wrap gap-1.5">{method.tickers.map((ticker) => <Tick label={ticker} size="sm" />)}</span>
+            <a href={method.href} class="inline-flex items-center gap-1 font-mono text-[0.8125rem] font-semibold text-link transition-colors hover:text-fg">
+              Open <Icon name="arrow_forward" size={16} />
+            </a>
+          </div>
+        </Panel>
       ))}
-    </ol>
-  </section>
+    </div>
 
-  <section class="mx-auto w-full max-w-container-max px-margin-mobile pb-16 md:px-margin-desktop">
-    <DisclaimerBox />
-  </section>
-
-  <script>
-    // Sort the coverage table by the clicked column; numeric keys sort high → low first.
-    const table = document.querySelector<HTMLTableElement>('table[data-sortable]');
-    const body = table?.tBodies[0];
-    const buttons = Array.from(table?.querySelectorAll<HTMLButtonElement>('button[data-sort]') ?? []);
-    let current = { key: 'ticker', dir: 1 };
-
-    const sortBy = (key: string, isText: boolean) => {
-      if (!body) return;
-      const dir = current.key === key ? -current.dir : isText ? 1 : -1;
-      current = { key, dir };
-      const rows = Array.from(body.rows);
-      rows.sort((a, b) => {
-        const av = a.dataset[key] ?? '';
-        const bv = b.dataset[key] ?? '';
-        if (isText) return av.localeCompare(bv) * dir;
-        // Missing values always sink to the bottom
-        if (av === '' && bv === '') return 0;
-        if (av === '') return 1;
-        if (bv === '') return -1;
-        return (Number(av) - Number(bv)) * dir;
-      });
-      rows.forEach((row) => body.appendChild(row));
-      buttons.forEach((button) => {
-        const th = button.closest('th');
-        const active = button.dataset.sort === key;
-        th?.setAttribute('aria-sort', active ? (dir === 1 ? 'ascending' : 'descending') : 'none');
-        const arrow = button.querySelector('[data-arrow]');
-        if (arrow) arrow.textContent = active ? (dir === 1 ? '↑' : '↓') : '';
-      });
-    };
-
-    buttons.forEach((button) => {
-      button.addEventListener('click', () => sortBy(button.dataset.sort ?? 'ticker', button.dataset.type === 'text'));
-    });
-  </script>
+    <Disclaimer />
+  </div>
 </BaseLayout>

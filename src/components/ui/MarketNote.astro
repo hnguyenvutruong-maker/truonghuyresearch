@@ -1,0 +1,177 @@
+---
+// Detail page for a weekly or monthly market note: framed header, data panel, cross-asset
+// panel, optional daily chart, a sticky section index beside the note, prev/next.
+import type { MarkdownHeading } from 'astro';
+import Disclaimer from './Disclaimer.astro';
+import PageHeader from './PageHeader.astro';
+import Panel from './Panel.astro';
+import VnIndexChart from './VnIndexChart.astro';
+import { formatIndex, formatNumber, signedNumber, signedPct, toneClass } from '../../lib/format';
+import type { NoteSummary } from '../../lib/notes';
+
+interface Props {
+  note: NoteSummary;
+  headings: MarkdownHeading[];
+  prev: NoteSummary | null;
+  next: NoteSummary | null;
+  listHref: string;
+}
+
+const { note, headings, prev, next, listHref } = Astro.props;
+const unit = note.kind === 'Weekly' ? 'week' : 'month';
+const toc = headings.filter((heading) => heading.depth === 2);
+// Weekly notes written before October 2026 stored the final session's move as the
+// "weekly" macro change (a bot error since fixed); say so rather than mislabel it.
+const legacyWeeklyMacro = note.kind === 'Weekly' && note.date < new Date('2026-10-01T00:00:00Z');
+const macroBasis = legacyWeeklyMacro
+  ? "In notes before October 2026 these changes may be the final session's move rather than week-on-week (a calculation error since corrected)."
+  : `Changes are ${unit}-on-${unit}.`;
+const toneLabel = { positive: 'Positive tone', negative: 'Negative tone', neutral: 'Neutral tone' }[note.tone];
+
+const figures = [
+  { label: 'Open', value: formatIndex(note.open) },
+  { label: 'High', value: formatIndex(note.high) },
+  { label: 'Low', value: formatIndex(note.low) },
+  { label: 'Avg liquidity, bn VND', value: formatNumber(note.liquidity, 0) },
+  ...note.extras,
+];
+---
+
+<!-- Reading progress: a bar under the sticky header that fills as the note body is read -->
+<div class="pointer-events-none fixed inset-x-0 top-14 z-40 h-[3px] origin-left scale-x-0 bg-market print:hidden" data-reading-progress aria-hidden="true"></div>
+
+<div class="mx-auto w-full max-w-container-max space-y-4 px-margin-mobile py-6 md:px-margin-desktop md:py-8">
+  <PageHeader
+    tone="market"
+    kicker={`${note.kind} market view · ${note.period}`}
+    title={note.headline}
+    back={{ href: listHref, label: 'Market notes' }}
+    context={toneLabel}
+  />
+
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
+    <Panel title="VN-Index" meta={note.period} tone="market" class="lg:col-span-7">
+      <div class="grid grid-cols-1 gap-6 sm:grid-cols-[auto_minmax(0,1fr)]">
+        <div>
+          <p class="font-mono text-label uppercase text-fg-muted">Close</p>
+          <p class="mt-1 font-mono text-figure tabular-nums text-fg">{formatIndex(note.close)}</p>
+          <p class:list={['mt-2 inline-block px-2 py-1 font-mono text-[0.875rem] font-semibold tabular-nums', note.change >= 0 ? 'bg-up-soft text-up' : 'bg-down-soft text-down']}>
+            {signedPct(note.change)} on the {unit}
+          </p>
+        </div>
+        <dl class="grid grid-cols-2 gap-x-6 gap-y-3 sm:border-l sm:border-line sm:pl-6">
+          {figures.map((figure) => (
+            <div>
+              <dt class="font-mono text-label uppercase text-fg-muted">{figure.label}</dt>
+              <dd class="mt-0.5 font-mono text-data tabular-nums text-fg">{figure.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </Panel>
+
+    <Panel title="Foreign flow" meta="bn VND" tone="market" class="lg:col-span-5">
+      {note.foreignNet != null ? (
+        <>
+          <p class="font-mono text-label uppercase text-fg-muted">Net</p>
+          <p class:list={['mt-1 font-mono text-figure tabular-nums', toneClass(note.foreignNet)]}>{signedNumber(note.foreignNet)}</p>
+          {note.foreignBuy != null && note.foreignSell != null && (
+            <dl class="mt-4 grid grid-cols-2 gap-4 border-t border-line pt-3">
+              <div><dt class="font-mono text-label uppercase text-fg-muted">Bought</dt><dd class="font-mono text-data tabular-nums text-fg">{formatNumber(note.foreignBuy, 0)}</dd></div>
+              <div><dt class="font-mono text-label uppercase text-fg-muted">Sold</dt><dd class="font-mono text-data tabular-nums text-fg">{formatNumber(note.foreignSell, 0)}</dd></div>
+            </dl>
+          )}
+        </>
+      ) : (
+        <>
+          <p class="font-mono text-figure text-fg-muted">—</p>
+          <p class="mt-2 text-small text-fg-muted">Foreign flow was not collected for this {unit}.</p>
+        </>
+      )}
+    </Panel>
+  </div>
+
+  <Panel title="Cross-asset" meta={`${unit}-on-${unit}`} tone="neutral">
+    <dl class="grid grid-cols-2 gap-4 sm:grid-cols-5">
+      {note.macro.map((row) => (
+        <div class="border-l-2 border-line pl-3">
+          <dt class="font-mono text-label uppercase text-fg-muted">{row.label}</dt>
+          <dd class="mt-0.5 font-mono text-data tabular-nums text-fg">{formatNumber(row.value, row.decimals)}</dd>
+          <dd class:list={['font-mono text-[0.8125rem] font-semibold tabular-nums', toneClass(row.change)]}>{signedPct(row.change)}</dd>
+        </div>
+      ))}
+    </dl>
+    <p class="mt-4 text-[0.875rem] text-fg-muted">{macroBasis} A dash means the figure was unavailable when the note was written.</p>
+  </Panel>
+
+  {note.daily.length > 0 && (
+    <Panel title="VN-Index · daily" meta={note.period} tone="market">
+      <VnIndexChart candleData={note.daily} label={`VN-Index daily candles, ${note.period}`} height="md" />
+    </Panel>
+  )}
+
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
+    {toc.length > 0 && (
+      <aside class="lg:col-span-3">
+        <div class="lg:sticky lg:top-20">
+          <Panel title="In this note" tone="neutral" as="nav" level={3} flush label="In this note">
+            <ol>
+              {toc.map((heading) => (
+                <li class="border-b border-line last:border-b-0">
+                  <a href={`#${heading.slug}`} class="block px-4 py-2.5 text-small text-fg transition-colors hover:bg-panel-alt hover:text-link">{heading.text}</a>
+                </li>
+              ))}
+            </ol>
+          </Panel>
+        </div>
+      </aside>
+    )}
+    <article class:list={['min-w-0 border border-line bg-panel px-5 py-6 shadow-panel md:px-8 md:py-8', toc.length > 0 ? 'lg:col-span-9' : 'lg:col-span-12']}>
+      <div data-note-body class="prose prose-lg max-w-[70ch] font-sans text-fg prose-headings:scroll-mt-24 prose-headings:font-display prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-fg prose-h2:mt-10 prose-h2:border-l-4 prose-h2:border-market prose-h2:pl-3 prose-h2:text-[1.5rem] prose-h3:text-xl prose-p:text-fg prose-a:text-link hover:prose-a:text-fg prose-blockquote:border-l-4 prose-blockquote:border-line-strong prose-blockquote:font-normal prose-blockquote:text-fg-muted prose-strong:text-fg prose-em:text-fg prose-li:text-fg prose-li:marker:text-market-ink prose-hr:border-line prose-th:bg-panel-alt prose-th:px-2 prose-th:font-mono prose-th:text-label prose-th:uppercase prose-th:text-fg-muted prose-td:px-2 prose-td:text-fg prose-code:text-fg first:prose-h2:mt-0">
+        <slot />
+      </div>
+    </article>
+  </div>
+
+  <nav aria-label={`${note.kind} notes`} class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    {prev ? (
+      <a href={prev.href} class="group block border border-line bg-panel p-4 shadow-panel transition-colors hover:border-market">
+        <span class="font-mono text-label uppercase text-market-ink">← Older · {prev.period}</span>
+        <span class="mt-1 block font-display text-h3 text-fg transition-colors group-hover:text-link">{prev.headline}</span>
+      </a>
+    ) : <span class="hidden sm:block"></span>}
+    {next ? (
+      <a href={next.href} class="group block border border-line bg-panel p-4 text-right shadow-panel transition-colors hover:border-market">
+        <span class="font-mono text-label uppercase text-market-ink">Newer · {next.period} →</span>
+        <span class="mt-1 block font-display text-h3 text-fg transition-colors group-hover:text-link">{next.headline}</span>
+      </a>
+    ) : <span class="hidden sm:block"></span>}
+  </nav>
+
+  <Disclaimer />
+</div>
+
+<script>
+  const bar = document.querySelector<HTMLElement>('[data-reading-progress]');
+  const body = document.querySelector<HTMLElement>('[data-note-body]');
+  if (bar && body) {
+    let queued = false;
+    const draw = () => {
+      queued = false;
+      const rect = body.getBoundingClientRect();
+      // 0 when the body's top reaches the header, 1 when its end reaches the bottom of the screen
+      const travel = rect.height - window.innerHeight + 56;
+      const progress = travel > 0 ? Math.min(Math.max((56 - rect.top) / travel, 0), 1) : 1;
+      bar.style.transform = `scaleX(${progress})`;
+    };
+    const queue = () => {
+      if (!queued) {
+        queued = true;
+        requestAnimationFrame(draw);
+      }
+    };
+    window.addEventListener('scroll', queue, { passive: true });
+    window.addEventListener('resize', queue);
+    draw();
+  }
+</script>

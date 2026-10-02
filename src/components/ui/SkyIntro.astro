@@ -1,0 +1,135 @@
+---
+// Day/night greeting: on the first page of a visit (and whenever the theme changes) a small
+// framed sky rises under the header — a sun with turning rays by day, a moon and twinkling
+// stars after 18:00 — with a greeting for the viewer's local time. It never blocks the page,
+// hides itself after a few seconds, and closes on click or Esc.
+import Icon from './Icon.astro';
+
+const rays = Array.from({ length: 12 }, (_, i) => i * 30);
+const stars = [
+  { x: 22, y: 20, r: 1.6, d: '0ms' },
+  { x: 58, y: 34, r: 1.1, d: '600ms' },
+  { x: 96, y: 14, r: 1.4, d: '1200ms' },
+  { x: 250, y: 22, r: 1.5, d: '300ms' },
+  { x: 290, y: 44, r: 1.1, d: '900ms' },
+  { x: 318, y: 16, r: 1.3, d: '1500ms' },
+  { x: 140, y: 52, r: 1, d: '1800ms' },
+];
+---
+
+<div
+  id="sky-intro"
+  hidden
+  role="status"
+  aria-live="polite"
+  class="fixed right-4 top-[calc(env(safe-area-inset-top,0px)+6.5rem)] z-[60] w-[min(22rem,calc(100vw-2rem))] border border-line bg-panel shadow-lift transition-opacity duration-500 data-[leaving]:opacity-0 print:hidden"
+>
+  <div data-sky-band class="relative h-28 overflow-hidden">
+    <!-- Day: blue sky, rising sun with slowly turning rays -->
+    <div data-sky="day" class="absolute inset-0 bg-gradient-to-b from-[#9ED4FF] via-[#CBE8FF] to-[#FFF1CF]">
+      <svg viewBox="0 0 352 112" class="absolute inset-0 h-full w-full" aria-hidden="true">
+        <g class="animate-sky-rise">
+          <circle cx="176" cy="74" r="40" class="animate-glow fill-sun/30" />
+          <g class="origin-center animate-sun-spin [transform-box:fill-box]">
+            {rays.map((angle) => (
+              <rect x="174.5" y="16" width="3" height="14" class="fill-sun" transform={`rotate(${angle} 176 74)`} />
+            ))}
+          </g>
+          <circle cx="176" cy="74" r="24" class="fill-sun" />
+        </g>
+        <path d="M0 98 Q88 86 176 96 T352 92 V112 H0Z" fill="#FFFFFF" opacity="0.55" />
+      </svg>
+    </div>
+    <!-- Night: deep navy sky, rising crescent moon, twinkling stars -->
+    <div data-sky="night" class="absolute inset-0 bg-gradient-to-b from-[#071326] via-[#0B1B33] to-[#1C2C4C]">
+      <svg viewBox="0 0 352 112" class="absolute inset-0 h-full w-full" aria-hidden="true">
+        {stars.map((star) => (
+          <circle cx={star.x} cy={star.y} r={star.r} fill="#FFFFFF" class="animate-twinkle" data-delay={star.d} />
+        ))}
+        <g class="animate-sky-rise">
+          <circle cx="176" cy="66" r="36" class="animate-glow fill-moon/20" />
+          <path d="M190 44a24 24 0 1 0 8 40 20 20 0 1 1-8-40z" class="fill-moon" />
+        </g>
+      </svg>
+    </div>
+  </div>
+  <div class="flex items-start gap-3 p-4">
+    <div class="min-w-0 flex-1">
+      <p data-sky-greeting class="font-display text-h3 text-fg">Good morning</p>
+      <p data-sky-note class="mt-1 text-small text-fg-muted">Day theme is on.</p>
+    </div>
+    <button type="button" data-sky-close class="-mr-1 -mt-1 p-1.5 text-fg-muted transition-colors hover:text-fg" aria-label="Close greeting">
+      <Icon name="close" size={18} />
+    </button>
+  </div>
+</div>
+
+<script>
+  import { currentTheme, type ThemeChangeDetail } from '../../scripts/theme';
+
+  const box = document.getElementById('sky-intro');
+  const SEEN = 'thr-sky-seen';
+  let hideTimer: number | undefined;
+  let removeTimer: number | undefined;
+
+  // Star twinkle delays come from data-delay and are set through CSSOM (the CSP forbids style attributes)
+  const staggerStars = () =>
+    box?.querySelectorAll<SVGElement>('[data-delay]').forEach((star) => star.style.setProperty('animation-delay', star.dataset.delay ?? '0ms'));
+
+  const greeting = (hour: number) => (hour >= 5 && hour < 12 ? 'Good morning' : hour >= 12 && hour < 18 ? 'Good afternoon' : hour >= 18 && hour < 22 ? 'Good evening' : 'Good night');
+  const clock = (date: Date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const hide = () => {
+    if (!box || box.hidden) return;
+    box.dataset.leaving = '';
+    removeTimer = window.setTimeout(() => {
+      box.hidden = true;
+      delete box.dataset.leaving;
+    }, 500);
+  };
+
+  const play = (manual: boolean) => {
+    if (!box) return;
+    window.clearTimeout(hideTimer);
+    window.clearTimeout(removeTimer);
+    const night = currentTheme() === 'dark';
+    const now = new Date();
+    box.querySelectorAll<HTMLElement>('[data-sky]').forEach((sky) => {
+      sky.hidden = sky.dataset.sky !== (night ? 'night' : 'day');
+    });
+    // Re-insert the band so the rise animation replays every time
+    const band = box.querySelector('[data-sky-band]');
+    band?.querySelectorAll<SVGElement>('[data-delay]').forEach((star) => star.removeAttribute('style'));
+    band?.replaceWith(band.cloneNode(true));
+    staggerStars();
+    // The greeting follows the clock, unless the viewer picked the other theme (a moon at 10:00)
+    const hourIsNight = now.getHours() >= 18 || now.getHours() < 6;
+    box.querySelector('[data-sky-greeting]')!.textContent = hourIsNight === night ? greeting(now.getHours()) : night ? 'Night mode' : 'Day mode';
+    box.querySelector('[data-sky-note]')!.textContent = manual
+      ? `${night ? 'Night' : 'Day'} theme, chosen by you. It is ${clock(now)} where you are.`
+      : night
+        ? `It is ${clock(now)}. Night theme is on until 06:00.`
+        : `It is ${clock(now)}. Day theme is on until 18:00.`;
+    delete box.dataset.leaving;
+    box.hidden = false;
+    hideTimer = window.setTimeout(hide, 5200);
+  };
+
+  box?.querySelector('[data-sky-close]')?.addEventListener('click', hide);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') hide();
+  });
+  window.addEventListener('themechange', (event) => {
+    const { source } = (event as CustomEvent<ThemeChangeDetail>).detail;
+    if (source !== 'load') play(source === 'toggle');
+  });
+
+  let seen = false;
+  try {
+    seen = sessionStorage.getItem(SEEN) === '1';
+    sessionStorage.setItem(SEEN, '1');
+  } catch {
+    /* storage blocked: greet on every page rather than never */
+  }
+  if (!seen) window.setTimeout(() => play(document.documentElement.dataset.themeMode === 'manual'), 350);
+</script>

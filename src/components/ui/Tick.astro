@@ -1,0 +1,13 @@
+---
+// Ticker badge: the issuer's code on a solid teal block (valuation colour).
+interface Props {
+  label: string;
+  size?: 'sm' | 'md' | 'lg';
+  class?: string;
+}
+
+const { label, size = 'md', class: className } = Astro.props;
+const sizes = { sm: 'px-1.5 py-1 text-[0.6875rem]', md: 'px-2 py-1.5 text-[0.8125rem]', lg: 'px-3 py-2 text-base' }[size];
+---
+
+<span class:list={['inline-flex shrink-0 items-center bg-value font-mono font-semibold uppercase leading-none tracking-wide text-white', sizes, className]}>{label}</span>

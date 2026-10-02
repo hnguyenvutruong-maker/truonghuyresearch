@@ -1,0 +1,15 @@
+---
+import { portfolioDisclaimer } from '../../data/valuation-models';
+import Panel from './Panel.astro';
+
+interface Props {
+  label?: string;
+  text?: string;
+}
+
+const { label = 'Academic research / not investment advice', text = portfolioDisclaimer } = Astro.props;
+---
+
+<Panel title={`Disclosure · ${label}`} tone="neutral" as="aside" level={3}>
+  <p class="max-w-4xl text-small text-fg-muted">{text}</p>
+</Panel>

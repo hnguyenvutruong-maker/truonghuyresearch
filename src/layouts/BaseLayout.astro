@@ -1,15 +1,19 @@
 ---
-// Self-hosted fonts (bundled into /_astro/): Fraunces with weight + optical-size axes, Geist Mono 400/500
-import '@fontsource-variable/fraunces/opsz.css';
-import '@fontsource-variable/fraunces/opsz-italic.css';
-import '@fontsource/geist-mono/400.css';
-import '@fontsource/geist-mono/500.css';
+// Self-hosted fonts (bundled into /_astro/): Archivo (display, width + weight axes),
+// Source Sans 3 (body), IBM Plex Mono (labels and figures)
+import '@fontsource-variable/archivo/wdth.css';
+import '@fontsource-variable/source-sans-3/wght.css';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
+import '@fontsource/ibm-plex-mono/600.css';
 import '../styles/global.css';
 import Analytics from '@vercel/analytics/astro';
-import SiteHeader from '../components/broadsheet/SiteHeader.astro';
-import SiteFooter from '../components/broadsheet/SiteFooter.astro';
-import Motion from '../components/broadsheet/Motion.astro';
-import CommandPalette from '../components/broadsheet/CommandPalette.astro';
+import SiteHeader from '../components/ui/SiteHeader.astro';
+import MarketTape from '../components/ui/MarketTape.astro';
+import SiteFooter from '../components/ui/SiteFooter.astro';
+import Motion from '../components/ui/Motion.astro';
+import CommandPalette from '../components/ui/CommandPalette.astro';
+import SkyIntro from '../components/ui/SkyIntro.astro';
 
 interface Props {
   title: string;
@@ -34,8 +38,8 @@ const ogImageURL = new URL(image, Astro.site).toString();
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script is:inline>document.documentElement.classList.add('js');</script>
-    <meta name="theme-color" content="#F2E8DA" />
+    <script is:inline>(function(){var d=document.documentElement,m=null,h=new Date().getHours();try{m=localStorage.getItem('thr-theme')}catch(e){}var manual=m==='light'||m==='dark';d.dataset.theme=manual?m:(h>=18||h<6?'dark':'light');d.dataset.themeMode=manual?'manual':'auto';d.classList.add('js')})();</script>
+    <meta name="theme-color" content="#0B1B33" />
     <link rel="canonical" href={canonicalURL} />
     <link rel="alternate" type="application/rss+xml" title="Truong Huy Research — Market Views" href="/rss.xml" />
     <title>{title}</title>
@@ -56,34 +60,20 @@ const ogImageURL = new URL(image, Astro.site).toString();
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageURL} />
   </head>
-  <body class="flex min-h-screen flex-col font-news text-ink antialiased">
+  <body class="flex min-h-screen flex-col bg-canvas font-sans text-fg antialiased">
+    <a href="#main" class="sr-only bg-value px-4 py-2 font-mono text-label uppercase text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70]">Skip to content</a>
     <SiteHeader />
+    <MarketTape />
 
-    <main class="w-full flex-grow">
+    <main id="main" class="w-full flex-grow">
       <slot />
     </main>
 
     <SiteFooter />
 
-    <Analytics />
-    <Motion />
+    <SkyIntro />
     <CommandPalette />
-
-    <script>
-      const btn = document.getElementById('mobile-menu-btn');
-      const menu = document.getElementById('mobile-menu');
-      const setOpen = (open: boolean) => {
-        btn?.setAttribute('aria-expanded', String(open));
-        menu?.classList.toggle('hidden', !open);
-      };
-      btn?.addEventListener('click', () => setOpen(btn.getAttribute('aria-expanded') !== 'true'));
-      menu?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => setOpen(false)));
-      document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && btn?.getAttribute('aria-expanded') === 'true') {
-          setOpen(false);
-          btn.focus();
-        }
-      });
-    </script>
+    <Motion />
+    <Analytics />
   </body>
 </html>
