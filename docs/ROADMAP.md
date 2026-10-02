@@ -1,6 +1,6 @@
 # Roadmap & handoff
 
-_Status as of 2026-10-01. Keep this file current: tick items, add dates, log decisions._
+_Status as of 2026-10-02. Keep this file current: tick items, add dates, log decisions._
 
 The owner is continuing on a different machine (possibly via Claude Code cloud sessions).
 Everything needed to pick up the work is in this repo: [CLAUDE.md](../CLAUDE.md) for how the
@@ -32,84 +32,100 @@ code works, this file for where things stand.
 
 ## Recommended next steps (in order)
 
-1. **Roll the Broadsheet theme out** to `/research`, `/research/[slug]`, the three method pages,
-   `/market-views`, `/monthly-views` and their detail pages, `/contact`, `/disclaimer`, `/404`.
-   Then delete the terminal tokens, `.stich-*` classes, and the terminal header/footer markup in
-   `BaseLayout`, and update CLAUDE.md §4.
-2. **Fix the bot pipeline (P0 below)** so content resumes, then backfill.
-3. Work through P1 → P3.
+1. ~~Roll the Broadsheet theme out~~ — done 2026-10-02; the terminal theme is deleted.
+2. **Finish P0**: the owner fixes the LLM key/vars, merges the bot fixes to `master`, then backfills.
+3. **Refresh the valuation models** (P1 leftover): new prices and estimates, then update
+   `referencePrice`, `outputs` and `sensitivity` in `valuation-models.ts`.
+4. Work through what is left of P2 → P3.
 
 ---
 
 ## P0 — Content bots are down (no new notes since 05 Jun 2026)
 
-Latest weekly: 2026-06-05. Latest monthly: 2026-05-31. Diagnosis from CI logs:
+Latest weekly: 2026-06-05. Latest monthly: 2026-05-31. Diagnosis from CI logs; code fixes landed
+2026-10-02 (branch `claude/busy-einstein-75w6kn`) and take effect once merged to `master`, because
+scheduled workflows run from the default branch.
 
-- [ ] **vnstock is not installable from PyPI** (`No matching distribution found for vnstock>=4.0.0`)
-      since 2026-09-25, so all three workflows die at `pip install`, including the daily
-      foreign-flow collection (and foreign-flow days that aren't collected are lost for good).
-      The code already runs without vnstock (`HAS_VNSTOCK`): drop it from `requirements.txt` and
-      install it in a separate non-fatal step (or from source).
-- [ ] **Weekly LLM call returns HTTP 401** (every Friday since 2026-06-13). No `vars.LLM_BASE_URL` /
-      `vars.LLM_MODEL` are set, so CI calls `api.openai.com` with `gpt-5.2`, but `secrets.LLM_API_KEY`
-      (set 2026-06-09, when the project moved to Ollama/MiniMax) is probably not an OpenAI key. Set
-      the repo variables to match the key's provider, or replace the key. The owner has to do the
-      secrets part.
-- [ ] **Synthetic VN-Index can be published undisclosed.** `_synthesize_vnindex()` sets
-      `_estimated: True`, but nothing reads that flag. Abort the run instead of publishing when the
-      index data is synthetic. This matters more now that vnstock is gone.
-- [ ] **Synthetic macro (DXY/WTI/Gold/BTC) shows as real** on the cross-asset strip (e.g. WTI
-      67→91 in one week). Leave fields `null` and render "—", as is already done for foreign flow.
-- [ ] **Cache prunes to 60 days** (`collect_foreign_flow_today`): stop pruning or archive old days.
-      Older days can be rebuilt from the git history of `_foreign_flow_cache.json`.
-- [ ] **No failure alerting**: 16 weeks of failures went unnoticed. Add an `if: failure()` step that
-      opens or updates a GitHub issue.
-- [ ] **Workflows use `git add -A`** (that's how vnstock's `AGENTS.md` and `.agents/` got committed)
-      and push without rebasing. Add only content paths, and run `git pull --rebase` before
-      `git push`. Delete `AGENTS.md` and `.agents/`.
-- [ ] vnstock sector API changed: `'function' object has no attribute 'symbols'`.
-- [ ] **Backfill** once fixed: weekly 2026-06-12 → latest Friday (`--week`), monthly Jun–Sep 2026
-      (`--month`). Foreign flow is only available for days in the cache.
-
----
+- [x] **vnstock is not installable from PyPI** — its PyPI project is **quarantined**, not just
+      yanked, so it was removed rather than installed from another source. VN-Index now comes from
+      `vn_market_data.py` (VNDirect dchart API → yfinance `^VNINDEX.VN`). ⚠️ Neither source could be
+      tested from the cloud sandbox (Yahoo and Vietnamese hosts are blocked there); the first CI run
+      confirms which one works. If both fail, the run aborts and opens an issue — nothing fake is
+      published.
+- [ ] **Weekly LLM call returns HTTP 401** (every Friday since 2026-06-13). Confirmed from the
+      2026-09-18 log: OpenAI rejects the key ("Incorrect API key provided"); it is not an OpenAI key.
+      **Owner action:** either set repo variables `LLM_BASE_URL` / `LLM_MODEL` to the provider the
+      key belongs to, or replace `secrets.LLM_API_KEY` with a key for the configured provider.
+- [x] **Synthetic VN-Index can be published undisclosed** → the synthesizer is gone; no index data
+      (or no liquidity) = exit 1 before any file is written.
+- [x] **Synthetic macro (DXY/WTI/Gold/BTC) shows as real** → macro and sectors stay `null` ("—" on
+      the site). Also fixed: the "weekly" macro change was a one-day change (Thu→Fri); it is now vs
+      the prior week's close (monthly: vs prior month-end).
+- [x] **LLM can drift frontmatter numbers** → measured values are written over the LLM's
+      frontmatter after generation (`enforce_frontmatter`), with no thousands separators.
+- [x] **Cache prunes to 60 days** → pruning removed; 29 days (15 Jun–24 Jul) restored from the
+      cache file's git history. Cache now covers 2026-06-15 → 2026-09-30 (with gaps where CI failed).
+- [x] **No failure alerting** → each workflow opens or comments on an issue
+      `Market bot failing: <workflow>` when a run fails.
+- [x] **Workflows use `git add -A`** → stage only `src/content/market-views` / `monthly-views`,
+      check out the branch tip, `git pull --rebase` before push. `AGENTS.md` and `.agents/` deleted.
+      `weekly_bot.py --deploy` narrowed the same way.
+- [x] vnstock sector API changed → vnstock path removed; sectors use yfinance leading-stock proxies
+      (worked in CI on 2026-09-18: 9 sectors).
+- [x] Monthly bot only summed foreign flow on the vnstock path → now always summed from the cache.
+- [ ] **Backfill** once the LLM key works: Actions → *Weekly Market View* → Run workflow with
+      `week` = each Friday 2026-06-12 → latest; *Monthly Market View* with `month` = 2026-06 …
+      2026-09. Foreign flow exists only for cached days (none before 15 Jun). Liquidity for old
+      periods uses today's CafeF average share price, so it is approximate.
 
 ## P1 — Visible impact and research credibility
 
 - [x] Homepage redesign (Broadsheet) with hierarchy, motion, and a real section structure
-- [ ] Broadsheet on every page (see "Recommended next steps")
-- [ ] Valuation: add `currentPrice`, `priceDate`, implied upside/downside per model; show staleness
-      (all models are dated 2026-06-11)
-- [ ] **Football-field chart** per company (method ranges vs current price), inline SVG
-- [ ] Remove the visible placeholders on report pages: HPG "Sensitivity Needed — Placeholder"
-      boxes (`research/[slug].astro`) and BID's "Metrics needed" list. Build the WACC × exit-multiple
-      table from the workbook, or hide the sections
-- [ ] Unify weekly title format (currently three styles); the bot prompt should enforce one
-- [ ] Coverage table on `/research` that can be sorted
+- [x] Broadsheet on every page (2026-10-02); terminal tokens, CSS, header/footer and six unused
+      components deleted
+- [x] Valuation: `referencePrice` (the price each workbook used, 11 Jun 2026), implied move per
+      method, and a "Dated figures" note on stale models. ⚠️ These are **model-date prices, not
+      live prices** — no live price feed was available. Refreshing the models is the real fix.
+- [x] **Football-field chart** per company (method ranges vs the reference price), inline SVG
+- [x] Placeholders removed. HPG and FPT get a real WACC × exit-multiple table, recomputed from
+      the DCF workbooks (centre cell = model output to the dong); BID's "metrics needed" chips
+      are gone (the limitation note already lists them)
+- [ ] Unify weekly title format (currently three styles); the bot prompt should enforce one —
+      deferred with the bot work
+- [x] Sortable coverage table on `/research` (price used, each method, low/high implied move)
 
 ## P2 — UX and navigation
 
-- [ ] Command palette (`Ctrl+K` / `/`): jump to tickers, method pages, notes, CV
-- [ ] `/market-views`: Weekly/Monthly filter tabs, group by year (it'll pass 50 entries a year)
-- [ ] Note detail pages: H1 above the data card, per-page meta descriptions, sticky TOC, reading
-      progress bar
-- [ ] Report pages: section TOC, sensitivity heatmap
-- [ ] `/research` tabs: `role="tab"`, keyboard support, state kept in the URL hash
-- [ ] Mobile menu closes on link click or Esc (terminal header; the broadsheet header needs the same)
-- [ ] Replace the "tracking from Jun 2026" label shown when foreign flow is missing
+- [x] Command palette (`Ctrl+K` / `⌘K` / `/`, or Search in the header): pages, reports, methods, every note; diacritic-insensitive
+- [x] `/market-views`: All/Weekly/Monthly filter (synced to `?kind=`), grouped by year
+- [x] Note detail pages: H1 above the data card, per-page meta descriptions, sticky TOC
+- [x] Note detail pages: reading progress bar
+- [x] Report pages: section index, sensitivity table (HPG, FPT)
+- [x] ~~`/research` tabs~~ — replaced by one page (table + methods index); no tabs left
+- [x] Mobile menu closes on link click or Esc
+- [x] Missing foreign flow now reads "not collected for this week/month"
 
 ## P3 — Technical, SEO, polish
 
-- [ ] Dynamic OG images per note and report (build-time, satori)
-- [ ] `vercel.json`: security headers (CSP, `X-Content-Type-Options`, `Referrer-Policy`) and a
-      `www` → apex redirect
-- [ ] Load `lightweight-charts` (~160 KB) lazily when the chart scrolls into view
-- [ ] Refactor: shared `src/lib/format.ts` (date and number formatters are duplicated in 5+ files),
-      merge the near-identical weekly and monthly `[slug]` pages, drop the hard-coded `'2026-06-11'`
-      fallbacks
-- [ ] JSON-LD for report pages, RSS with full content
-- [ ] One-page PDF per company; convert `.xls` to `.xlsx`; show file sizes on download cards
-- [ ] Contact page: phone number is public; page title still says "NVTH Capital Markets"
-- [ ] Lighthouse and a11y pass at 375px
+- [x] Dynamic OG images per note and report (build-time satori + sharp, `src/pages/og/`)
+- [x] `vercel.json`: strict CSP (no `'unsafe-inline'`), nosniff, Referrer-Policy, X-Frame-Options,
+      Permissions-Policy, COOP, immutable `/_astro/` caching, `www` → apex redirect (verify the
+      redirect after the first production deploy)
+- [x] Fonts self-hosted (fontsource) and icons inlined as SVG — no Google Fonts requests
+- [x] Load `lightweight-charts` (~160 KB) lazily when the chart scrolls into view
+- [x] Refactor: shared `src/lib/format.ts` + `src/lib/notes.ts`; weekly and monthly detail pages
+      share `broadsheet/MarketNote`; hard-coded `'2026-06-11'` fallbacks gone
+- [x] JSON-LD for report pages
+- [x] RSS with full content
+- [x] One-page PDF tear sheet per company (`npm run tear-sheets`) and file sizes on downloads
+- [ ] Convert the two LBO `.xls` files to `.xlsx` — **owner, in Excel**. A LibreOffice conversion
+      broke 1,168 cells (IRR → "NA", `#VALUE!`; the models' circular references), so it was not
+      shipped. Save As `.xlsx` in Excel, then update `href`/`format` in `valuation-models.ts`.
+- [x] Contact page title fixed
+- [ ] Contact page: phone number is public — owner to decide whether to keep it
+- [x] Lighthouse (mobile) pass: accessibility 100 and SEO 100 on every page type checked; fixed
+      seal-label contrast and masthead tap targets. Best practices 96 locally only because
+      `/_vercel/insights/script.js` exists only on Vercel.
 
 ---
 
@@ -121,3 +137,8 @@ Latest weekly: 2026-06-05. Latest monthly: 2026-05-31. Diagnosis from CI logs:
   signature accent. B was built on branch `redesign/son-mai` and is kept for reference only.
 - **2026-10-01 — CFA wording** follows CFA Institute guidance ("Passed Level II of the CFA Program").
 - **2026-10-01 — Foreign-flow merge:** CI values win where the PC and CI disagree.
+- **2026-10-02 — Valuation prices:** pages compare against each workbook's own market-input
+  price (11 Jun 2026), labelled as such, rather than a live price; no live feed is available and
+  inventing one is not an option. Methods are never blended into a single target.
+- **2026-10-02 — Weekly macro changes:** notes before Oct 2026 may show one-day moves as
+  "weekly"; the note pages say so instead of rewriting stored figures.

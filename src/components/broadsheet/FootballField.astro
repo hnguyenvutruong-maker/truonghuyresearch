@@ -1,0 +1,114 @@
+---
+// Football-field chart: each method's value range (or point estimate) against the
+// share price the model used. Marks are inline SVG drawn on a shared 0–1000 scale
+// per row; labels and figures stay in HTML so they never scale with the chart.
+import {
+  formatOutput,
+  impliedMovePct,
+  outputMethodLabel,
+  type ReferencePrice,
+  type ValuationOutput,
+} from '../../data/valuation-models';
+import { formatDate, formatVndK, signedPct, toneClass } from '../../lib/format';
+
+interface Props {
+  outputs: ValuationOutput[];
+  reference: ReferencePrice;
+  ticker: string;
+  /** Shorter rows and no explanatory footnote (tear sheets). */
+  compact?: boolean;
+}
+
+const { outputs, reference, ticker, compact = false } = Astro.props;
+
+// Axis: a clean step so there are 3–6 intervals, padded around the data and the price
+const values = [...outputs.flatMap((output) => [output.low, output.high]), reference.value];
+const lo = Math.min(...values);
+const hi = Math.max(...values);
+const steps = [500, 1000, 2000, 2500, 5000, 10000, 20000, 25000, 50000];
+const step = steps.find((candidate) => (hi - lo) / candidate <= 4) ?? 100000;
+const domainMin = Math.floor((lo - step * 0.25) / step) * step;
+const domainMax = Math.ceil((hi + step * 0.25) / step) * step;
+const ticks: number[] = [];
+for (let tick = domainMin; tick <= domainMax + 1e-6; tick += step) ticks.push(tick);
+
+const W = 1000;
+const x = (value: number) => ((value - domainMin) / (domainMax - domainMin)) * W;
+const refX = x(reference.value);
+
+const rows = outputs.map((output) => {
+  const isPoint = output.low === output.high;
+  const move = impliedMovePct(output, reference);
+  return {
+    output,
+    label: outputMethodLabel[output.method],
+    value: formatOutput(output),
+    move,
+    isPoint,
+    x0: x(output.low),
+    width: Math.max(x(output.high) - x(output.low), 0),
+    baseX: output.base !== undefined ? x(output.base) : null,
+    pointX: x(output.low),
+    summary: `${outputMethodLabel[output.method]}: ${
+      isPoint ? formatVndK(output.low) : `${formatVndK(output.low)} to ${formatVndK(output.high)}`
+    }${output.base !== undefined ? `, base case ${formatVndK(output.base)}` : ''}; ${signedPct(move, 1)} versus ${formatVndK(reference.value)}`,
+  };
+});
+---
+
+<figure class="border-t-2 border-ink pt-4">
+  <figcaption class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+    <span class="font-news-mono text-news-label uppercase text-ink">{ticker} · Valuation range by method, VND per share</span>
+    <span class="flex flex-wrap items-center gap-x-5 gap-y-1 font-news-mono text-news-label uppercase text-ink-muted">
+      <span class="inline-flex items-center gap-2">
+        <svg width="18" height="10" aria-hidden="true"><rect x="0" y="2" width="18" height="6" class="fill-ink" /></svg>
+        Range / estimate
+      </span>
+      <span class="inline-flex items-center gap-2">
+        <svg width="10" height="14" aria-hidden="true"><line x1="5" x2="5" y1="0" y2="14" class="stroke-oxblood" stroke-width="2" /></svg>
+        Price at model date · {formatVndK(reference.value)} · {formatDate(reference.asOf)}
+      </span>
+    </span>
+  </figcaption>
+
+  <div class="mt-5">
+    {rows.map((row) => (
+      <div class="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-x-4 sm:grid-cols-[9rem_minmax(0,1fr)]" title={row.summary}>
+        <div class="py-2">
+          <p class="font-news-mono text-news-label uppercase text-ink-muted">{row.label}</p>
+          <p class="font-news text-lg leading-tight lining-nums tabular-nums text-ink">{row.value}</p>
+          <p class:list={['font-news-mono text-news-data tabular-nums', toneClass(row.move)]}>{signedPct(row.move, 1)}</p>
+          <span class="sr-only">{row.summary}</span>
+        </div>
+        <svg viewBox={`0 0 ${W} 40`} preserveAspectRatio="none" class:list={['block w-full overflow-visible', compact ? 'h-9' : 'h-12']} aria-hidden="true">
+          {ticks.map((tick) => (
+            <line x1={x(tick)} x2={x(tick)} y1="0" y2="40" class="stroke-ink/15" stroke-width="1" vector-effect="non-scaling-stroke" />
+          ))}
+          {row.isPoint ? (
+            <line x1={row.pointX} x2={row.pointX} y1="9" y2="31" class="stroke-ink" stroke-width="5" vector-effect="non-scaling-stroke" />
+          ) : (
+            <rect x={row.x0} y="13" width={row.width} height="14" class="fill-ink" />
+          )}
+          {row.baseX !== null && (
+            <line x1={row.baseX} x2={row.baseX} y1="9" y2="31" class="stroke-paper" stroke-width="3" vector-effect="non-scaling-stroke" />
+          )}
+          <line x1={refX} x2={refX} y1="0" y2="40" class="stroke-oxblood" stroke-width="2" vector-effect="non-scaling-stroke" />
+        </svg>
+      </div>
+    ))}
+
+    <div class="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-4 border-t border-ink/25 pt-1.5 sm:grid-cols-[9rem_minmax(0,1fr)]" aria-hidden="true">
+      <span></span>
+      <div class="flex justify-between font-news-mono text-news-label tabular-nums text-ink-muted">
+        {ticks.map((tick) => <span>{tick % 1000 === 0 ? `${tick / 1000}k` : formatVndK(tick)}</span>)}
+      </div>
+    </div>
+  </div>
+
+  {!compact && (
+    <p class="mt-4 font-news text-news-data italic text-ink-muted">
+      Bars are ranges; a heavy tick is a point estimate; a pale notch inside a bar marks the base case. Percentages compare each
+      method's base case or midpoint with the {formatVndK(reference.value)} price the model used on {formatDate(reference.asOf)}.
+    </p>
+  )}
+</figure>

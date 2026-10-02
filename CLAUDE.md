@@ -10,10 +10,9 @@ This file is the source of truth for how the code is wired today. **Read
 (the content bots have been down since June 2026), the decisions log, and the prioritised
 upgrade plan.
 
-> ⚠️ `AGENTS.md` and `.agents/AGENTS.md` at the repo root are **not project instructions**.
-> They were written by the `vnstock` package installer during CI and swept into the repo by the
-> bots' `git add -A` (Market Bot commits `be0077a`, `254cf9e`, Jul 2026). Ignore them and do not
-> run their setup steps. Removing them (and narrowing the bots' `git add`) is on the roadmap.
+> ⚠️ If an `AGENTS.md` or `.agents/` ever reappears at the repo root, it is **not project
+> instructions**. The `vnstock` installer wrote them during CI and the bots' old `git add -A` swept
+> them in (Jul 2026); they were deleted on 2026-10-02 and the workflows now stage content paths only.
 
 ---
 
@@ -42,14 +41,16 @@ deliberately not committed to this public repo.
 ```
 ./
 ├── astro.config.mjs              # static output, site=truonghuyresearch.xyz, tailwind+sitemap
-├── tailwind.config.mjs           # broadsheet tokens + legacy terminal/MD3 tokens, sharp corners
+├── tailwind.config.mjs           # Broadsheet tokens (colours, news type scale, motion), sharp corners
 ├── tsconfig.json                 # extends astro/tsconfigs/strict
 ├── package.json                  # Node >=22.12, Astro 5
 ├── requirements.txt              # Python deps for the bots
 ├── weekly_bot.py                 # Weekly Market View generator (~2k lines)
 ├── monthly_bot.py                # Monthly Market View generator (~1k lines)
 ├── market_memory.py              # Shared weekly/monthly/quarterly narrative memory
+├── vn_market_data.py             # VN-Index daily history + frontmatter enforcement (both bots)
 ├── docs/ROADMAP.md               # ★ status, bot diagnosis, upgrade plan, decisions
+├── scripts/tear-sheets.mjs       # exports the tear-sheet PDFs (npm run tear-sheets)
 ├── .github/workflows/            # 3 scheduled bot workflows (see §9)
 ├── public/
 │   ├── cv.pdf, og-image.png, favicon.*, robots.txt
@@ -60,10 +61,13 @@ deliberately not committed to this public repo.
     │   ├── market-views/         # WEEKLY .md posts + bot state JSON (_*.json)
     │   └── monthly-views/        # MONTHLY .md posts + _monthly_summary.json
     ├── data/valuation-models.ts  # ★ the "research"/valuation data (NOT a collection)
-    ├── layouts/BaseLayout.astro  # shell: head/meta, theme switch, header/footer
-    ├── styles/stichui.css        # global reset, terminal base styles, broadsheet theme block
-    ├── components/               # shared components (see §7)
-    │   └── broadsheet/           # broadsheet-theme header/footer/seal/section head/motion
+    ├── lib/format.ts             # shared number/date formatters (UTC dates, signed %, VND k)
+    ├── lib/notes.ts              # normalises weekly + monthly entries into one NoteSummary
+    ├── lib/files.ts              # build-time sizes of public/ downloads
+    ├── layouts/BaseLayout.astro  # shell: head/meta, fonts, header/footer, motion, mobile menu
+    ├── styles/global.css         # sharp corners, paper grain, .news-link, scroll reveal
+    ├── components/               # DisclaimerBox, VnIndexChart, ValuationMethodPage (see §7)
+    │   └── broadsheet/           # header/footer, Seal, SectionHead, Motion, charts, note views
     └── pages/                    # routes (see §7)
 ```
 
@@ -74,9 +78,9 @@ deliberately not committed to this public repo.
 - **Astro 5** (`output: 'static'`), TypeScript **strict**, **Tailwind 3.4** via `@astrojs/tailwind`,
   `@astrojs/sitemap`, `@astrojs/rss`, `@tailwindcss/typography`, `sharp`, `@vercel/analytics`.
 - `lightweight-charts` renders the VN-Index chart (`VnIndexChart.astro`).
-- **Python** bots use `vnstock`, `yfinance`, `feedparser`, `requests`+`beautifulsoup4`
-  (all optional — code degrades if a lib/source is missing). **`vnstock` is currently not
-  installable from PyPI** — see ROADMAP P0.
+- **Python** bots use `yfinance`, `feedparser`, `requests`+`beautifulsoup4` (all optional — code
+  degrades if a lib/source is missing). **`vnstock` was removed on 2026-10-02**: its PyPI project
+  is quarantined (Sep 2026). Do not reinstall it from another source.
 
 | Command | Action |
 | :-- | :-- |
@@ -84,24 +88,23 @@ deliberately not committed to this public repo.
 | `npm run dev` | Dev server → http://localhost:4321 |
 | `npm run build` | Production build → `dist/` (must pass with **0 errors**) |
 | `npx astro check` | TypeScript / content-schema check (0 errors expected) |
-| `pip install -r requirements.txt` | Install bot deps (fails today because of vnstock) |
+| `pip install -r requirements.txt` | Install bot deps |
+| `npm run tear-sheets` | Build, then export `public/research/tear-sheets/*.pdf` (needs Chrome) |
 | `python weekly_bot.py` | Generate the latest Weekly Market View |
 | `python monthly_bot.py` | Generate the previous Monthly Market View |
 
 ---
 
-## 4. Design system — two themes, migrating to Broadsheet
+## 4. Design system — Broadsheet
 
-`BaseLayout` takes `theme?: 'terminal' | 'broadsheet'` (default `terminal`) and sets
-`<html data-theme=…>`. **Broadsheet is the chosen direction (Oct 2026); only the homepage uses
-it so far.** Next step is rolling it out page by page, then deleting the terminal theme.
-
-### 4a. Broadsheet (new — use for all new work)
 Financial-newspaper front page: newsprint paper, ink rules, oxblood accent, a cinnabar seal.
+It is the only theme (chosen Oct 2026; the dark "terminal" theme was deleted on 2026-10-02).
+`BaseLayout` takes `title`, `description`, `image` (OG card path), `type` and always renders
+`components/broadsheet/SiteHeader` + `SiteFooter`, imports the self-hosted fonts (`@fontsource-variable/fraunces`
+opsz + italic, `@fontsource/geist-mono` 400/500 — no Google Fonts), adds `<html class="js">`, and
+mounts `broadsheet/Motion` (scroll reveal + count-up) and `CommandPalette`. Icons are inline SVG via
+`broadsheet/Icon` (add a path there for a new icon).
 
-- **Opt in:** `<BaseLayout theme="broadsheet" …>`. This swaps in `components/broadsheet/SiteHeader`
-  + `SiteFooter`, loads Fraunces + Geist Mono, adds `<html class="js">`, and mounts
-  `broadsheet/Motion` (scroll reveal + count-up).
 - **Color tokens** (`tailwind.config.mjs`):
   `paper` #F2E8DA (`paper-deep` #E9DCC7 hover rows, `paper-light`), `ink` #191714
   (`ink-soft` #3D3731 secondary text, `ink-muted` #6B6259 labels/captions),
@@ -112,31 +115,40 @@ Financial-newspaper front page: newsprint paper, ink rules, oxblood accent, a ci
   (Geist Mono — labels, kickers, data only). Pair with the `text-news-*` scale:
   `masthead, hero, h2, h3, h4, dek, body, small, figure, label, data`.
   Use `lining-nums tabular-nums` on figures.
-- **Components:** `Seal` (square cinnabar con dấu; `motion="hover"` stamps on `group-hover`,
-  `"load"` stamps on page load), `SectionHead` (double rule + "Section N · Label" + h2, has an
-  `aside` slot), `SiteHeader` (wordmark hidden on `/` until the element marked `data-masthead`
-  scrolls away), `SiteFooter`, `Motion`.
+- **Components** (`components/broadsheet/`): `Seal` (square cinnabar con dấu; `motion="hover"`
+  stamps on `group-hover`, `"load"` on page load), `SectionHead` (double rule + "Section N ·
+  Label" + h2, `aside` slot), `SiteHeader` (wordmark hidden on `/` until `data-masthead` scrolls
+  away), `SiteFooter`, `Motion`, `FootballField` (method ranges vs the model's reference price,
+  inline SVG), `SensitivityTable` (two-way DCF grid, diverging shading around the reference
+  price), `MarketNote` (weekly/monthly detail body + reading-progress hairline), `NoteList` (notes by
+  year, optional All/Weekly/Monthly filter synced to `?kind=`), `CommandPalette` (mounted by
+  `BaseLayout`; `<dialog>` combobox over pages, reports, methods and notes, opened by Ctrl/⌘+K,
+  `/`, or any `[data-palette-open]` button; the index is built at compile time).
 - **Motion:** `animate-rise` (+ `[animation-delay:…]`) for above-the-fold load stagger,
   `animate-rule` for rules drawing in, `animate-stamp` for seals, `data-reveal` for scroll reveal,
   `data-countup="N"` on figures inside a revealed block. Content is fully visible without JS;
-  `prefers-reduced-motion` is respected.
-- **CSS** (`stichui.css`, "Broadsheet theme" block): `:where()` resets so headings/p/a inherit and
-  never outrank utilities; `.news-link` (ink underline drawing in on hover); paper grain on body.
-  Because a global `a:hover` rule exists, **give every link an explicit `hover:text-…` class.**
-- **Variants on shared components:** `VnIndexChart theme="broadsheet"` (ink area chart,
-  transparent bg), `DisclaimerBox variant="broadsheet"` (ruled disclosure strip).
+  `prefers-reduced-motion` drops durations and delays.
+- **CSS** (`global.css`): sharp corners, paper grain, selection/focus colours, `.news-link` (ink
+  underline drawing in on hover), scroll reveal. Tailwind preflight makes headings/links inherit;
+  still **give every link an explicit `hover:text-…` class.**
+- **Charts:** `VnIndexChart` (lightweight-charts, dynamically imported when the chart nears the
+  viewport; ink area for weekly closes, ledger/oxblood candles when `vn_index_daily` exists; the
+  TradingView logo is off because it injects inline CSS — the text attribution link replaces it). Hand-built charts are inline SVG with marks on a fixed
+  viewBox and all text in HTML; no inline `style`.
 - **Layout idiom:** columns separated by vertical `border-l/border-r border-ink/25` rules, not
   boxed cards; kickers in mono uppercase oxblood; dotted leaders for data rows
   (`after:border-dotted` on `dt`); one fact box (`border border-ink` + ink header band) per section max.
+  Page header pattern: mono strip (back link · context) over a `border-b border-ink`, then kicker,
+  `text-news-hero` h1 and an italic `text-news-dek`.
 
-### 4b. Terminal (legacy — every page except `/`)
-Bloomberg-style dark: `terminal-bg` #0d1117, `terminal-card` #161b22, `terminal-border` #30363d,
-`terminal-text` #e6edf3, `terminal-muted` #8b949e, `terminal-accent` #f0a500 (amber), plus an
-MD3 dark palette (`tertiary` = gains, `error` = losses, `on-surface-variant`/`outline-variant`
-muted). JetBrains Mono + Inter, `font-*`/`text-*` token pairs, 2px amber top border on cards.
-Letter-spacing is locked to 0 **only** in this theme.
-
-### 4c. Global rules (both themes)
+### Global rules
+- **CSP** (`vercel.json`) allows only same-origin scripts, styles, fonts and connections. Astro is
+  set to never inline scripts/CSS (`astro.config.mjs`). The single inline script (`classList.add('js')`
+  in `BaseLayout`) is allowed by its SHA-256 hash — **if you change it or add another `is:inline`
+  script, update the hash in `vercel.json`**. No third-party scripts, fonts or iframes without
+  widening the CSP deliberately. JSON-LD / JSON data blocks are fine (not executed).
+- **Print:** `global.css` sets A4 pages and forces scroll-reveal content visible; hide chrome
+  with `print:hidden`.
 - **Sharp corners everywhere** (`border-radius: 0 !important`; Tailwind radius 0 except `full`).
 - Tailwind utility classes only — no inline `style=""`. Arbitrary values/properties are fine.
 - Mobile-first, must work at 375px with no horizontal page scroll. No `any`; props typed.
@@ -161,12 +173,12 @@ Frontmatter (Zod): `title`, `date`, `week_start`, `week_end`,
 `foreign_net_weekly_bn_vnd` (nullable), `foreign_buy/sell_weekly_bn_vnd` (nullable opt);
 macro `dxy_close/_weekly_change_pct`, `usd_vnd/_weekly_change_pct`,
 `btc_close/_weekly_change_pct`, `gold_*`, `wti_*` (all **nullable**); optional
-`vn_index_daily[]` OHLC (no file has it yet). File date = the Friday.
+`vn_index_daily[]` OHLC (bots emit it from 2026-10 on; older files lack it). File date = the Friday.
 
 ### `monthly-views`
 Same idea with `_monthly_` variants, plus `month_start`, `month_end`, `trading_days`,
 `best_sector`/`best_sector_change_pct`, `worst_sector`/`worst_sector_change_pct`.
-File date = last trading day of the month.
+File date = last calendar day of the month.
 
 The weekly bot may emit `foreign_net_estimated` in frontmatter; it's not in the schema and Zod
 ignores it — don't rely on it in pages.
@@ -182,78 +194,107 @@ State JSON (managed by the bots, never hand-edit except to merge data):
 The valuation section is a **typed TypeScript module, not a content collection.**
 
 Exports: `portfolioDisclaimer`, `valuationGroups` (`dcf`, `comparable`, `transaction-lbo`),
-`valuationModels` (**5 companies**: `hpg`, `bid`, `fpt`, `bmp`, `pnj`), and types
-`ValuationModel`, `ValuationGroup`, `ValuationDownload`, `ValuationNote`, `ReportPoint`,
-`ValuationReport`, `ValuationGroupId`, `ProjectStatus`.
+`methodPages` (group → route), `valuationModels` (**5 companies**: `hpg`, `bid`, `fpt`, `bmp`,
+`pnj`), helpers `outputCentre`, `impliedMovePct`, `formatOutput`, `outputMethodLabel`,
+`STALE_AFTER_DAYS` (90), and the types (`ValuationModel`, `ValuationOutput`, `ReferencePrice`,
+`SensitivityGrid`, `ValuationGroup`, `ValuationDownload`, `ValuationNote`, `ReportPoint`,
+`ValuationReport`, `ValuationGroupId`, `ProjectStatus`, `OutputMethod`).
 
 Each `ValuationModel` carries `slug`, `ticker`, `company`, `sector`, `status`, `lastUpdated`,
 `outputRange`, `investmentQuestion`, `keyAssumptions[]`, `methods[]`, `summary`, `conclusion`,
 `valuationNotes[]`, a `report{ headline, stance, thesis[], assumptions[], valuationResult[],
 interpretation[], risks[], disclaimer }`, and `downloads[]` (→ `public/research/valuation-models/`).
-The homepage coverage table reads `report.valuationResult` entries whose label ends in "output".
+Plus the numeric layer the charts and tables use:
+- `referencePrice { value, asOf, source }` — the share price the model pack used as its market
+  input, read from the workbooks' "Valuation Summary" / `TargetCo!E17` cells. All five are as of
+  2026-06-11. **It is not a live price**; every implied move is against it, and pages show a
+  "Dated figures" note once a model is older than `STALE_AFTER_DAYS`.
+- `outputs[] { method, low, high, base?, approximate?, basis }` in VND per share (low = high for a
+  point estimate). DCF ranges span the sensitivity grid's corners; `base` is the model output.
+- `sensitivity?` — WACC × exit EV/EBITDA grid (VND thousands) for HPG and FPT, **recomputed from
+  the DCF workbook** (same UFCF, mid-year discounting, net debt, shares; centre cell = model
+  output). The workbooks' own Excel data tables are empty (never recalculated) — don't read them.
 
-**To add/edit a company report, edit this file** — pages and method pages derive from it.
-All models are dated 2026-06-11 and carry no current market price yet (see ROADMAP P1).
+The homepage coverage table reads `report.valuationResult` entries whose label ends in "output";
+`/research` and the report pages read `outputs`.
+
+**To add/edit a company report, edit this file** — pages and method pages derive from it. When a
+model is refreshed, update `lastUpdated`, `referencePrice`, `outputs` and (for a DCF) regenerate
+`sensitivity` from the new workbook so the centre cell matches the model output.
 
 ---
 
 ## 7. Pages & components
 
-| Route | File | Theme | Notes |
-| :-- | :-- | :-- | :-- |
-| `/` | `index.astro` | broadsheet | Masthead, analyst profile + markets box, Profile (`#about`), Coverage (`#valuation`: lead note + table), Market notes (`#market-views`: chart + briefs). |
-| `/research` | `research.astro` | terminal | Valuation hub, client-side Company ⇄ Method toggle. |
-| `/research/[slug]` | `research/[slug].astro` | terminal | Company report; `getStaticPaths` from `valuationModels`. |
-| `/research/dcf`, `/research/comparable-analysis`, `/research/precedent-transactions-lbo` | thin wrappers | terminal | render `<ValuationMethodPage groupId=…/>`. |
-| `/market-views`, `/market-views/[slug]` | `market-views/*` | terminal | Combined weekly+monthly list; weekly detail with prev/next links. |
-| `/monthly-views`, `/monthly-views/[slug]` | `monthly-views/*` | terminal | Monthly equivalents. |
-| `/contact`, `/disclaimer`, `/404` | static | terminal | |
-| `/rss.xml` | `rss.xml.js` | — | Weekly + monthly feed. |
+| Route | File | Notes |
+| :-- | :-- | :-- |
+| `/` | `index.astro` | Masthead, analyst profile + markets box, Profile (`#about`), Coverage (`#valuation`: lead note + table), Market notes (`#market-views`: chart + briefs). |
+| `/research` | `research.astro` | Sortable coverage table (price used, each method + implied move, low/high move; client-side sort with `aria-sort`) and the methods index. |
+| `/research/[slug]` | `research/[slug]/index.astro` | Company report: fact file, dated-figures note, section index, football field + outputs table, thesis, assumptions, DCF sensitivity, conclusion, risks, model files, prev/next, Report JSON-LD. |
+| `/research/dcf`, `/research/comparable-analysis`, `/research/precedent-transactions-lbo` | thin wrappers | render `<ValuationMethodPage groupId=…/>`. |
+| `/market-views` | `market-views/index.astro` | All notes by year with All/Weekly/Monthly filter, weekly-close chart. |
+| `/market-views/[slug]`, `/monthly-views/[slug]` | `*/[slug].astro` | Both render `broadsheet/MarketNote` from `lib/notes.ts` summaries: data band, cross-asset strip, daily chart, sticky "In this note" index, prev/next. |
+| `/monthly-views` | `monthly-views/index.astro` | Monthly notes only. |
+| `/contact`, `/disclaimer`, `/404` | static | |
+| `/research/[slug]/tear-sheet` | `research/[slug]/tear-sheet.astro` | One-page A4 summary; exported to `public/research/tear-sheets/<slug>.pdf` by `npm run tear-sheets` (builds, then prints with `playwright-core` + installed Chrome; `CHROME_PATH` overrides). **Re-run it whenever a model changes** and commit the PDFs; report pages link the PDF only if it exists. |
+| `/og/<path>.png` | `og/[...path].png.ts` | Build-time 1200×630 OG cards (satori + sharp, fonts from `@fontsource`) for every report and note. |
+| `/rss.xml` | `rss.xml.ts` | Weekly + monthly feed with full note HTML (`markdown-it` + `sanitize-html`). |
 
-Shared components: `ValuationMethodPage`, `ProjectCard`, `DownloadCard`, `AssumptionTable`,
-`ValuationSnapshot`, `RiskList`, `StatusBadge`, `DisclaimerBox`, `VnIndexChart`; broadsheet-only
-components under `components/broadsheet/` (§4a).
+Shared components: `ValuationMethodPage`, `DisclaimerBox`, `VnIndexChart`; the rest live under
+`components/broadsheet/` (§4).
 
 ---
 
 ## 8. Python bot pipeline
 
 ### `weekly_bot.py` — Weekly Market View
-VN-Index OHLCV (`vnstock` VCI → `yfinance ^VNINDEX.VN` → deterministic synthetic fallback) →
-foreign flow (HSX API → CafeF → sum of daily cache) → sector performance → macro DXY/Gold/WTI/BTC
-+ USD/VND (`yfinance`) → news (RSS → CafeF scrape → yfinance) → **LLM #1** writes commentary +
-frontmatter → validate → write `market-views/<friday>.md` → **LLM #2** updates
-`_quarterly_summary.json` → update `_market_memory.json`.
+VN-Index daily OHLCV (`vn_market_data.py`: VNDirect dchart API → `yfinance ^VNINDEX.VN`; **the
+run aborts with exit 1 if neither works**) + liquidity (volume × CafeF HOSE avg share price; abort
+if unavailable) → foreign flow (sum of daily cache) → sector proxies (`yfinance` leading stocks) →
+macro DXY/Gold/WTI/BTC + USD/VND (`yfinance`, change vs prior week's close) → news (RSS → CafeF
+scrape → yfinance) → **LLM #1** writes commentary + frontmatter → **measured values overwrite the
+frontmatter** (`vn_market_data.enforce_frontmatter`) → inject `vn_index_daily` → validate → write
+`market-views/<friday>.md` → **LLM #2** updates `_quarterly_summary.json` → update
+`_market_memory.json`.
 CLI: `--week YYYY-MM-DD`, `--rebuild-summary Q2-2026`, `--skip-news`, `--skip-summary`,
 `--collect-foreign-flow` (cache today's flow only, no LLM), `--deploy`.
 
 ### `monthly_bot.py` — Monthly Market View
-Writes `monthly-views/<last-trading-day>.md`, updates `_monthly_summary.json`.
-CLI: `--month YYYY-MM` (default previous month), `--skip-summary`.
+Same sources via `vn_market_data.py` (aborts without real VN-Index data); week-by-week recap is
+built from the daily rows; macro changes are vs the prior month-end close. Writes
+`monthly-views/<month-end>.md`, updates `_monthly_summary.json`.
+CLI: `--month YYYY-MM` (default: previous month on days 1–5, else the current month), `--skip-summary`.
 
 ### `market_memory.py`
 Shared narrative state linking latest weekly, current monthly, and quarterly summaries.
 
 ### Data-quality model
-- Foreign flow has **no historical API** → `--collect-foreign-flow` must run **daily**; the cache
-  currently prunes to 60 days (older days survive only in git history of the cache file).
-- Missing live data is filled with deterministic synthetic values flagged as `estimated_fields`;
-  foreign flow is left `null`. Known gaps: the synthetic **VN-Index** flag is never read, and
-  synthetic macro numbers render as if real (ROADMAP P0).
+- Foreign flow has **no historical API** → `--collect-foreign-flow` must run **daily** (it exits 1
+  when every source fails). The cache keeps every day (no pruning since 2026-10-02; Jun–Jul days
+  were restored from the file's git history). Cache starts 2026-06-15.
+- **No synthetic data.** VN-Index and liquidity are required (else abort). Macro, sectors and
+  foreign flow stay `null` when unavailable; pages render `null` as "—" and the LLM is told the
+  field is unavailable.
+- Index weekly/monthly change = period close vs period's first open (unchanged definition); macro
+  change = period close vs the previous period's last close.
 - Windows stdout/stderr is reconfigured to UTF-8.
 
 ---
 
 ## 9. Automation (`.github/workflows/`)
 
-17:00 ICT = 10:00 UTC (GitHub usually starts these hours late). Jobs commit as "Market Bot" with
-`git add -A` and `git push`; shared `concurrency: market-bot`; all support `workflow_dispatch`.
+17:00 ICT = 10:00 UTC (GitHub usually starts these hours late). Jobs check out the branch tip,
+commit as "Market Bot" staging **only `src/content/market-views` / `monthly-views`**, then
+`git pull --rebase` + push; shared `concurrency: market-bot`; all support `workflow_dispatch`
+(weekly takes a `week` input, monthly a `month` input, for backfills). On failure each workflow
+opens — or comments on — a GitHub issue titled `Market bot failing: <workflow name>`; close it
+once green.
 
-| Workflow | Schedule | Does | Status (2026-10-01) |
+| Workflow | Schedule | Does | Status (2026-10-02) |
 | :-- | :-- | :-- | :-- |
-| `daily_foreign_flow.yml` | `0 10 * * *` | `weekly_bot.py --collect-foreign-flow` → commit cache | ❌ failing since 25 Sep (pip: vnstock) |
-| `weekly_market_view.yml` | `0 10 * * 5` | collect flow → `weekly_bot.py` → commit | ❌ every run since 13 Jun (LLM 401), then pip |
-| `monthly_market_view.yml` | `0 10 28-31 * *` + ICT month-end guard | collect flow → `monthly_bot.py` → commit | ❌ no monthly since May 2026 |
+| `daily_foreign_flow.yml` | `0 10 * * *` | `weekly_bot.py --collect-foreign-flow` → commit cache | fixed in code (pip) — verify first run |
+| `weekly_market_view.yml` | `0 10 * * 5` | collect flow (best effort) → `weekly_bot.py` → commit | ❌ LLM 401 until the owner fixes the key/vars (§10) |
+| `monthly_market_view.yml` | `0 10 28-31 * *` + ICT month-end guard | collect flow (best effort) → `monthly_bot.py` → commit | ❌ same LLM 401 |
 
 ---
 
@@ -295,7 +336,8 @@ Frontmatter numbers are the ground truth; LLM prose drifts. When reviewing or re
 - Don't claim a close below support when only the intraday low undercut it.
 - Measured titles ("Falls", not "Crashes"); fix "intrawEEK"-style artifacts and lowercase run-ons.
 - Monthlies: month-specific facts, not generic if/then ladders.
-- Cross-asset values may be synthetic fallbacks — don't "correct" the numbers; make prose consistent.
+- Notes up to 2026-06-05 may carry synthetic cross-asset values, and their macro "weekly" changes
+  were really one-day changes (Thu→Fri). Don't "correct" the numbers; make prose consistent.
 
 ---
 

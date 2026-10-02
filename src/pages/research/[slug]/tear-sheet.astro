@@ -1,0 +1,123 @@
+---
+// One-page A4 tear sheet per company: the printable summary behind /research/<slug>.
+// The same page is exported to public/research/tear-sheets/<slug>.pdf by `npm run tear-sheets`.
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import FootballField from '../../../components/broadsheet/FootballField.astro';
+import Icon from '../../../components/broadsheet/Icon.astro';
+import Seal from '../../../components/broadsheet/Seal.astro';
+import { formatOutput, impliedMovePct, outputMethodLabel, portfolioDisclaimer, valuationModels } from '../../../data/valuation-models';
+import { formatDate, formatVndK, signedPct, toneClass } from '../../../lib/format';
+
+export function getStaticPaths() {
+  return valuationModels.map((model) => ({ params: { slug: model.slug }, props: { model } }));
+}
+
+const { model } = Astro.props;
+const reference = model.referencePrice;
+const modelDate = model.lastUpdated ?? reference.asOf;
+const assumptions = (model.keyAssumptions ?? model.report.assumptions).slice(0, 5);
+const risks = model.report.risks.slice(0, 3);
+---
+
+<BaseLayout
+  title={`${model.ticker} Tear Sheet | Truong Huy Research`}
+  description={`One-page summary of the ${model.company} (${model.ticker}) valuation: methods, outputs versus the price used, key assumptions and risks.`}
+  image={`/og/research/${model.slug}.png`}
+>
+  <div class="mx-auto w-full max-w-[210mm] px-margin-mobile pb-16 pt-8 print:max-w-none print:p-0">
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
+      <a href={`/research/${model.slug}`} class="news-link font-news-mono text-news-label uppercase text-ink-muted transition-colors hover:text-oxblood">← Full report</a>
+      <button type="button" data-print class="inline-flex min-h-11 items-center gap-2 bg-ink px-4 py-2 font-news-mono text-news-label uppercase text-paper transition-colors hover:bg-oxblood hover:text-paper">
+        <Icon name="download" size={18} /> Print / save as PDF
+      </button>
+    </div>
+
+    <article class="bg-paper-light p-8 shadow-[0_0_0_1px_rgba(25,23,20,0.25)] print:bg-transparent print:p-0 print:shadow-none">
+      <header class="flex items-center justify-between border-b-2 border-ink pb-2 font-news-mono text-[0.625rem] uppercase tracking-[0.12em] text-ink-muted">
+        <span class="font-news text-base normal-case tracking-tight text-ink">Truong Huy <em class="italic text-oxblood">Research</em></span>
+        <span>Tear sheet · model {formatDate(modelDate)}</span>
+      </header>
+
+      <div class="mt-5 flex items-start gap-4">
+        <Seal label={model.ticker} size="lg" />
+        <div class="min-w-0">
+          <p class="font-news-mono text-[0.625rem] uppercase tracking-[0.12em] text-oxblood">{model.sector} · {model.methods.join(' · ')}</p>
+          <h1 class="mt-1 font-news text-[2.25rem] font-semibold leading-none tracking-tight text-ink">{model.company}</h1>
+          <p class="mt-2 font-news text-[0.9375rem] italic leading-snug text-ink-soft">{model.report.headline}</p>
+        </div>
+      </div>
+
+      <section class="mt-5">
+        <FootballField outputs={model.outputs} reference={reference} ticker={model.ticker} compact />
+      </section>
+
+      <div class="mt-4 grid grid-cols-2 gap-6">
+        <section>
+          <p class="border-b border-ink pb-1 font-news-mono text-[0.625rem] uppercase tracking-[0.12em] text-ink">Outputs, VND per share</p>
+          <table class="w-full border-collapse text-[0.8125rem]">
+            <tbody>
+              {model.outputs.map((output) => {
+                const move = impliedMovePct(output, reference);
+                return (
+                  <tr class="border-b border-ink/15">
+                    <th scope="row" class="py-1.5 pr-2 text-left font-news font-semibold text-ink">{outputMethodLabel[output.method]}</th>
+                    <td class="py-1.5 text-right font-news tabular-nums text-ink">{formatOutput(output)}</td>
+                    <td class:list={['py-1.5 pl-2 text-right font-news-mono text-[0.75rem] tabular-nums', toneClass(move)]}>{signedPct(move, 1)}</td>
+                  </tr>
+                );
+              })}
+              <tr>
+                <th scope="row" class="py-1.5 pr-2 text-left font-news font-normal italic text-ink-muted">Price used</th>
+                <td class="py-1.5 text-right font-news tabular-nums text-ink-muted">{formatVndK(reference.value)}</td>
+                <td class="py-1.5 pl-2 text-right font-news-mono text-[0.75rem] text-ink-muted">{formatDate(reference.asOf)}</td>
+              </tr>
+            </tbody>
+          </table>
+          {model.investmentQuestion && (
+            <p class="mt-3 border-l-2 border-oxblood pl-3 font-news text-[0.8125rem] italic leading-snug text-ink">{model.investmentQuestion}</p>
+          )}
+        </section>
+
+        <section>
+          <p class="border-b border-ink pb-1 font-news-mono text-[0.625rem] uppercase tracking-[0.12em] text-ink">Key assumptions</p>
+          <dl class="text-[0.8125rem]">
+            {assumptions.map((item) => (
+              <div class="flex items-baseline gap-2 border-b border-ink/15 py-1.5">
+                <dt class="flex-1 font-news text-ink-soft">{item.label}</dt>
+                <dd class="text-right font-news font-semibold text-ink">{item.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      </div>
+
+      <section class="mt-4">
+        <p class="border-b border-ink pb-1 font-news-mono text-[0.625rem] uppercase tracking-[0.12em] text-ink">Conclusion</p>
+        <p class="mt-2 font-news text-[0.875rem] leading-snug text-ink">{model.conclusion}</p>
+      </section>
+
+      <section class="mt-4">
+        <p class="border-b border-ink pb-1 font-news-mono text-[0.625rem] uppercase tracking-[0.12em] text-ink">Key risks</p>
+        <ol class="mt-1 text-[0.8125rem] leading-snug">
+          {risks.map((risk, index) => (
+            <li class="flex gap-2 border-b border-ink/15 py-1.5">
+              <span class="w-4 shrink-0 font-news italic text-oxblood">{index + 1}</span>
+              <span class="font-news text-ink">{risk}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <footer class="mt-4 border-t-2 border-ink pt-2 font-news text-[0.6875rem] italic leading-snug text-ink-muted">
+        <p>{portfolioDisclaimer} Figures are as of the model date and are not refreshed automatically.</p>
+        <p class="mt-1 font-news-mono not-italic uppercase tracking-[0.12em]">
+          Nguyen Vu Truong Huy · truonghuyresearch.xyz/research/{model.slug}
+        </p>
+      </footer>
+    </article>
+  </div>
+</BaseLayout>
+
+<script>
+  document.querySelector('[data-print]')?.addEventListener('click', () => window.print());
+</script>

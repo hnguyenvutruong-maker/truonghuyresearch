@@ -1,4 +1,6 @@
 ---
+import Icon from './Icon.astro';
+
 const links = [
   { label: 'Profile', href: '/#about', match: null },
   { label: 'Valuation', href: '/research', match: '/research' },
@@ -14,7 +16,7 @@ const isCurrent = (match: string | null) => match !== null && path.startsWith(ma
 <header
   id="site-header"
   data-compact={isHome ? 'false' : 'true'}
-  class="group sticky top-0 z-50 w-full border-b border-ink bg-paper/95 backdrop-blur-sm"
+  class="group sticky top-0 z-50 w-full border-b border-ink bg-paper/95 backdrop-blur-sm print:hidden"
 >
   <div class="mx-auto flex h-14 w-full max-w-container-max items-center justify-between gap-6 px-margin-mobile md:px-margin-desktop">
     <a
@@ -42,6 +44,16 @@ const isCurrent = (match: string | null) => match !== null && path.startsWith(ma
           </li>
         ))}
         <li>
+          <button
+            type="button"
+            data-palette-open
+            aria-keyshortcuts="Control+K Meta+K /"
+            class="inline-flex min-h-9 items-center gap-2 font-news-mono text-news-label uppercase text-ink-soft transition-colors hover:text-oxblood"
+          >
+            Search <kbd class="border border-ink/30 px-1 font-news-mono text-[0.625rem] text-ink-muted">/</kbd>
+          </button>
+        </li>
+        <li>
           <a href="/contact" class="inline-flex min-h-9 items-center border border-ink px-3 py-1.5 font-news-mono text-news-label uppercase text-ink transition-colors hover:bg-ink hover:text-paper">
             Contact
           </a>
@@ -49,15 +61,20 @@ const isCurrent = (match: string | null) => match !== null && path.startsWith(ma
       </ul>
     </nav>
 
+    <div class="flex items-center gap-1 md:hidden">
+    <button type="button" data-palette-open class="p-2 text-ink hover:text-oxblood" aria-label="Search">
+      <Icon name="search" size={24} />
+    </button>
     <button
-      class="p-2 text-ink hover:text-oxblood md:hidden"
+      class="p-2 text-ink hover:text-oxblood"
       id="mobile-menu-btn"
       aria-label="Menu"
       aria-expanded="false"
       aria-controls="mobile-menu"
     >
-      <span class="material-symbols-outlined" aria-hidden="true">menu</span>
+      <Icon name="menu" size={24} />
     </button>
+    </div>
   </div>
 
   <div id="mobile-menu" class="hidden border-t border-ink/20 bg-paper md:hidden">

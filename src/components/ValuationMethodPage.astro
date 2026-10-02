@@ -1,7 +1,11 @@
 ---
+import Icon from './broadsheet/Icon.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import DisclaimerBox from './DisclaimerBox.astro';
-import { valuationGroups, valuationModels, type ValuationGroupId } from '../data/valuation-models';
+import Seal from './broadsheet/Seal.astro';
+import { methodPages, valuationGroups, valuationModels, type ValuationGroupId } from '../data/valuation-models';
+import { publicFileSize } from '../lib/files';
+import { formatDate, formatVndK } from '../lib/format';
 
 interface Props {
   groupId: ValuationGroupId;
@@ -13,11 +17,11 @@ if (!group) {
   throw new Error(`Unknown valuation group: ${groupId}`);
 }
 
-const methodPages: Array<{ id: ValuationGroupId; href: string }> = [
-  { id: 'dcf', href: '/research/dcf' },
-  { id: 'comparable', href: '/research/comparable-analysis' },
-  { id: 'transaction-lbo', href: '/research/precedent-transactions-lbo' },
-];
+const nav = methodPages.map((page) => ({
+  ...page,
+  title: valuationGroups.find((item) => item.id === page.id)?.title ?? page.id,
+  active: page.id === groupId,
+}));
 
 const reports = valuationModels
   .map((model) => ({
@@ -29,99 +33,76 @@ const reports = valuationModels
 ---
 
 <BaseLayout
-  title={`${group.title} - Valuation Method`}
-  description={`${group.title} valuation reports, workbook outputs, assumptions, and downloadable model files.`}
+  title={`${group.title} | Valuation Methods | Truong Huy Research`}
+  description={`${group.title}: ${group.description} Reports and workbooks for ${reports.map(({ model }) => model.ticker).join(', ')}.`}
 >
-  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap">
-    <a href="/research" class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors">
-      &larr; All Valuation
-    </a>
-
-    <header class="mt-6 mb-section-gap max-w-4xl border-b border-outline-variant pb-8">
-      <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest mb-3">Valuation method</p>
-      <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-4">
-        {group.title}
-      </h1>
-      <p class="font-body-lg text-body-lg text-on-surface-variant">{group.description}</p>
-      <div class="mt-6 flex flex-wrap gap-3 font-label-data text-label-data text-on-surface-variant">
-        <span class="border border-outline-variant px-3 py-1">{reports.length} reports</span>
-        <span class="border border-outline-variant px-3 py-1">{group.eyebrow}</span>
-      </div>
-    </header>
-
-    <nav class="mb-10 grid grid-cols-1 md:grid-cols-3 gap-3" aria-label="Valuation method pages">
-      {methodPages.map((methodPage) => {
-        const methodGroup = valuationGroups.find((item) => item.id === methodPage.id);
-        const active = methodPage.id === groupId;
-        return methodGroup && (
-          <a
-            href={methodPage.href}
-            class:list={[
-              'border px-4 py-3 font-label-md uppercase text-label-md transition-colors',
-              active
-                ? 'border-terminal-accent bg-terminal-accent text-terminal-bg'
-                : 'border-outline-variant bg-terminal-card text-terminal-text hover:border-terminal-accent hover:text-terminal-accent',
-            ]}
-          >
-            {methodGroup.title}
-          </a>
-        );
-      })}
+  <section class="mx-auto w-full max-w-container-max px-margin-mobile pt-8 md:px-margin-desktop md:pt-10">
+    <div class="flex animate-rise flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b border-ink pb-2 font-news-mono text-news-label uppercase text-ink-muted">
+      <a href="/research" class="news-link transition-colors hover:text-oxblood">← Coverage</a>
+      <span>Valuation method · {reports.length} report{reports.length === 1 ? '' : 's'}</span>
+    </div>
+    <div class="border-b border-ink py-10">
+      <p class="animate-rise font-news-mono text-news-label uppercase text-oxblood">{group.eyebrow}</p>
+      <h1 class="mt-4 animate-rise text-balance font-news text-news-hero text-ink [animation-delay:80ms]">{group.title}</h1>
+      <p class="mt-6 max-w-3xl animate-rise font-news text-news-dek italic text-ink-soft [animation-delay:160ms]">{group.description}</p>
+    </div>
+    <nav aria-label="Valuation methods" class="flex flex-wrap gap-x-6 gap-y-2 border-b border-ink/25 py-3 font-news-mono text-news-label uppercase">
+      {nav.map((item) => (
+        <a
+          href={item.href}
+          aria-current={item.active ? 'page' : undefined}
+          class:list={['news-link transition-colors hover:text-oxblood', item.active ? 'text-oxblood' : 'text-ink-soft']}
+        >
+          {item.title}
+        </a>
+      ))}
     </nav>
+  </section>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
-      {reports.map(({ model, notes, downloads }) => (
-        <article class="border border-terminal-border border-t-2 border-t-terminal-accent bg-terminal-card p-5 md:p-6">
-          <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <span class="inline-block bg-terminal-bg border border-outline-variant px-2 py-1 font-label-md uppercase text-label-md text-terminal-accent mb-3">
-                {model.ticker}
-              </span>
-              <h2 class="font-headline-md text-headline-md text-terminal-accent">{model.company}</h2>
-            </div>
-            <span class="font-label-data text-label-data text-on-surface-variant">{model.lastUpdated ?? '2026-06-11'}</span>
-          </div>
+  <section class="mx-auto w-full max-w-container-max px-margin-mobile py-12 md:px-margin-desktop">
+    {reports.map(({ model, notes, downloads }) => (
+      <article class="grid grid-cols-1 gap-8 border-b border-ink/25 py-10 first:pt-0 lg:grid-cols-12 lg:gap-0" data-reveal>
+        <header class="lg:col-span-4 lg:pr-10">
+          <a href={`/research/${model.slug}`} class="group flex items-start gap-4">
+            <Seal label={model.ticker} size="md" motion="hover" />
+            <span>
+              <span class="block font-news text-news-h3 text-ink transition-colors group-hover:text-oxblood">{model.company}</span>
+              <span class="mt-1 block font-news-mono text-news-label uppercase text-ink-muted">{model.sector}</span>
+            </span>
+          </a>
+          <p class="mt-4 font-news text-news-small text-ink-soft">{model.summary}</p>
+          <p class="mt-3 font-news-mono text-news-label uppercase text-ink-muted">
+            Price used {formatVndK(model.referencePrice.value)} · {formatDate(model.referencePrice.asOf)}
+          </p>
+        </header>
 
-          <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-3">{model.sector}</p>
-          <p class="font-body-sm text-body-sm text-terminal-text mb-5">{model.summary}</p>
-
-          <div class="space-y-4 border-y border-outline-variant py-5 mb-5">
-            {notes.map((note) => (
-              <div class="border-l-2 border-terminal-accent pl-4">
-                <div class="flex flex-wrap items-baseline justify-between gap-3 mb-2">
-                  <p class="font-label-md uppercase text-label-md text-terminal-text">{note.method}</p>
-                  <p class="font-mono-data text-mono-data text-terminal-accent">{note.price}</p>
-                </div>
-                <p class="font-body-sm text-body-sm text-on-surface-variant mb-2">{note.assumptions}</p>
-                <p class="font-body-sm text-body-sm text-terminal-text">{note.result}</p>
+        <div class="lg:col-span-8 lg:border-l lg:border-ink/25 lg:pl-10">
+          {notes.map((note) => (
+            <div class="border-b border-ink/15 pb-5 [&+&]:pt-5">
+              <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                <p class="font-news-mono text-news-label uppercase text-ink-muted">{note.method}</p>
+                <p class="font-news text-news-h4 lining-nums tabular-nums text-ink">{note.price}</p>
               </div>
-            ))}
-          </div>
-
-          <div class="flex flex-col sm:flex-row gap-3">
-            <a
-              href={`/research/${model.slug}`}
-              class="inline-flex min-h-12 items-center justify-center gap-2 border border-terminal-accent px-4 py-3 font-label-md uppercase text-label-md text-terminal-accent hover:bg-terminal-accent hover:text-terminal-bg transition-colors"
-            >
-              View Company Report <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
+              <p class="mt-3 font-news text-news-small text-ink">{note.assumptions}</p>
+              <p class="mt-2 font-news text-news-small italic text-ink-soft">{note.result}</p>
+            </div>
+          ))}
+          <div class="mt-5 flex flex-wrap items-center gap-3">
+            <a href={`/research/${model.slug}`} class="inline-flex min-h-11 items-center gap-2 bg-ink px-4 py-2 font-news-mono text-news-label uppercase text-paper transition-colors hover:bg-oxblood hover:text-paper">
+              Read the {model.ticker} report <Icon name="arrow_forward" size={16} />
             </a>
-            {downloads.slice(0, 2).map((download) => (
-              <a
-                href={download.href}
-                download
-                class="inline-flex min-h-12 items-center justify-center gap-2 border border-outline-variant px-4 py-3 font-label-md uppercase text-label-md text-terminal-text hover:border-terminal-accent hover:text-terminal-accent transition-colors"
-              >
-                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">download</span>
-                Download {download.modelType ?? download.label}
+            {downloads.map((download) => (
+              <a href={download.href} download class="inline-flex min-h-11 items-center gap-2 border border-ink px-4 py-2 font-news-mono text-news-label uppercase text-ink transition-colors hover:bg-ink hover:text-paper">
+                <Icon name="download" size={18} /> {[download.label, download.format, publicFileSize(download.href)].filter(Boolean).join(' · ')}
               </a>
             ))}
           </div>
-        </article>
-      ))}
-    </div>
+        </div>
+      </article>
+    ))}
   </section>
 
-  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto pb-section-gap">
+  <section class="mx-auto w-full max-w-container-max px-margin-mobile pb-16 md:px-margin-desktop">
     <DisclaimerBox />
   </section>
 </BaseLayout>
