@@ -50,6 +50,7 @@ deliberately not committed to this public repo.
 ├── market_memory.py              # Shared weekly/monthly/quarterly narrative memory
 ├── vn_market_data.py             # VN-Index daily history + frontmatter enforcement (both bots)
 ├── docs/ROADMAP.md               # ★ status, bot diagnosis, upgrade plan, decisions
+├── scripts/tear-sheets.mjs       # exports the tear-sheet PDFs (npm run tear-sheets)
 ├── .github/workflows/            # 3 scheduled bot workflows (see §9)
 ├── public/
 │   ├── cv.pdf, og-image.png, favicon.*, robots.txt
@@ -62,6 +63,7 @@ deliberately not committed to this public repo.
     ├── data/valuation-models.ts  # ★ the "research"/valuation data (NOT a collection)
     ├── lib/format.ts             # shared number/date formatters (UTC dates, signed %, VND k)
     ├── lib/notes.ts              # normalises weekly + monthly entries into one NoteSummary
+    ├── lib/files.ts              # build-time sizes of public/ downloads
     ├── layouts/BaseLayout.astro  # shell: head/meta, fonts, header/footer, motion, mobile menu
     ├── styles/global.css         # sharp corners, paper grain, .news-link, scroll reveal
     ├── components/               # DisclaimerBox, VnIndexChart, ValuationMethodPage (see §7)
@@ -87,6 +89,7 @@ deliberately not committed to this public repo.
 | `npm run build` | Production build → `dist/` (must pass with **0 errors**) |
 | `npx astro check` | TypeScript / content-schema check (0 errors expected) |
 | `pip install -r requirements.txt` | Install bot deps |
+| `npm run tear-sheets` | Build, then export `public/research/tear-sheets/*.pdf` (needs Chrome) |
 | `python weekly_bot.py` | Generate the latest Weekly Market View |
 | `python monthly_bot.py` | Generate the previous Monthly Market View |
 
@@ -96,10 +99,11 @@ deliberately not committed to this public repo.
 
 Financial-newspaper front page: newsprint paper, ink rules, oxblood accent, a cinnabar seal.
 It is the only theme (chosen Oct 2026; the dark "terminal" theme was deleted on 2026-10-02).
-`BaseLayout` takes `title`, `description`, `image`, `type` and always renders
-`components/broadsheet/SiteHeader` + `SiteFooter`, loads Fraunces + Geist Mono (+ a Material
-Symbols subset — add an icon's name to the `icon_names` list in the font URL before using it),
-adds `<html class="js">`, and mounts `broadsheet/Motion` (scroll reveal + count-up).
+`BaseLayout` takes `title`, `description`, `image` (OG card path), `type` and always renders
+`components/broadsheet/SiteHeader` + `SiteFooter`, imports the self-hosted fonts (`@fontsource-variable/fraunces`
+opsz + italic, `@fontsource/geist-mono` 400/500 — no Google Fonts), adds `<html class="js">`, and
+mounts `broadsheet/Motion` (scroll reveal + count-up) and `CommandPalette`. Icons are inline SVG via
+`broadsheet/Icon` (add a path there for a new icon).
 
 - **Color tokens** (`tailwind.config.mjs`):
   `paper` #F2E8DA (`paper-deep` #E9DCC7 hover rows, `paper-light`), `ink` #191714
@@ -127,8 +131,9 @@ adds `<html class="js">`, and mounts `broadsheet/Motion` (scroll reveal + count-
 - **CSS** (`global.css`): sharp corners, paper grain, selection/focus colours, `.news-link` (ink
   underline drawing in on hover), scroll reveal. Tailwind preflight makes headings/links inherit;
   still **give every link an explicit `hover:text-…` class.**
-- **Charts:** `VnIndexChart` (lightweight-charts; ink area for weekly closes, ledger/oxblood
-  candles when `vn_index_daily` exists). Hand-built charts are inline SVG with marks on a fixed
+- **Charts:** `VnIndexChart` (lightweight-charts, dynamically imported when the chart nears the
+  viewport; ink area for weekly closes, ledger/oxblood candles when `vn_index_daily` exists; the
+  TradingView logo is off because it injects inline CSS — the text attribution link replaces it). Hand-built charts are inline SVG with marks on a fixed
   viewBox and all text in HTML; no inline `style`.
 - **Layout idiom:** columns separated by vertical `border-l/border-r border-ink/25` rules, not
   boxed cards; kickers in mono uppercase oxblood; dotted leaders for data rows
@@ -137,6 +142,13 @@ adds `<html class="js">`, and mounts `broadsheet/Motion` (scroll reveal + count-
   `text-news-hero` h1 and an italic `text-news-dek`.
 
 ### Global rules
+- **CSP** (`vercel.json`) allows only same-origin scripts, styles, fonts and connections. Astro is
+  set to never inline scripts/CSS (`astro.config.mjs`). The single inline script (`classList.add('js')`
+  in `BaseLayout`) is allowed by its SHA-256 hash — **if you change it or add another `is:inline`
+  script, update the hash in `vercel.json`**. No third-party scripts, fonts or iframes without
+  widening the CSP deliberately. JSON-LD / JSON data blocks are fine (not executed).
+- **Print:** `global.css` sets A4 pages and forces scroll-reveal content visible; hide chrome
+  with `print:hidden`.
 - **Sharp corners everywhere** (`border-radius: 0 !important`; Tailwind radius 0 except `full`).
 - Tailwind utility classes only — no inline `style=""`. Arbitrary values/properties are fine.
 - Mobile-first, must work at 375px with no horizontal page scroll. No `any`; props typed.
@@ -218,13 +230,15 @@ model is refreshed, update `lastUpdated`, `referencePrice`, `outputs` and (for a
 | :-- | :-- | :-- |
 | `/` | `index.astro` | Masthead, analyst profile + markets box, Profile (`#about`), Coverage (`#valuation`: lead note + table), Market notes (`#market-views`: chart + briefs). |
 | `/research` | `research.astro` | Sortable coverage table (price used, each method + implied move, low/high move; client-side sort with `aria-sort`) and the methods index. |
-| `/research/[slug]` | `research/[slug].astro` | Company report: fact file, dated-figures note, section index, football field + outputs table, thesis, assumptions, DCF sensitivity, conclusion, risks, model files, prev/next, Report JSON-LD. |
+| `/research/[slug]` | `research/[slug]/index.astro` | Company report: fact file, dated-figures note, section index, football field + outputs table, thesis, assumptions, DCF sensitivity, conclusion, risks, model files, prev/next, Report JSON-LD. |
 | `/research/dcf`, `/research/comparable-analysis`, `/research/precedent-transactions-lbo` | thin wrappers | render `<ValuationMethodPage groupId=…/>`. |
 | `/market-views` | `market-views/index.astro` | All notes by year with All/Weekly/Monthly filter, weekly-close chart. |
 | `/market-views/[slug]`, `/monthly-views/[slug]` | `*/[slug].astro` | Both render `broadsheet/MarketNote` from `lib/notes.ts` summaries: data band, cross-asset strip, daily chart, sticky "In this note" index, prev/next. |
 | `/monthly-views` | `monthly-views/index.astro` | Monthly notes only. |
 | `/contact`, `/disclaimer`, `/404` | static | |
-| `/rss.xml` | `rss.xml.js` | Weekly + monthly feed. |
+| `/research/[slug]/tear-sheet` | `research/[slug]/tear-sheet.astro` | One-page A4 summary; exported to `public/research/tear-sheets/<slug>.pdf` by `npm run tear-sheets` (builds, then prints with `playwright-core` + installed Chrome; `CHROME_PATH` overrides). **Re-run it whenever a model changes** and commit the PDFs; report pages link the PDF only if it exists. |
+| `/og/<path>.png` | `og/[...path].png.ts` | Build-time 1200×630 OG cards (satori + sharp, fonts from `@fontsource`) for every report and note. |
+| `/rss.xml` | `rss.xml.ts` | Weekly + monthly feed with full note HTML (`markdown-it` + `sanitize-html`). |
 
 Shared components: `ValuationMethodPage`, `DisclaimerBox`, `VnIndexChart`; the rest live under
 `components/broadsheet/` (§4).

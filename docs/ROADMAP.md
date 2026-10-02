@@ -107,18 +107,25 @@ scheduled workflows run from the default branch.
 
 ## P3 — Technical, SEO, polish
 
-- [ ] Dynamic OG images per note and report (build-time, satori)
-- [ ] `vercel.json`: security headers (CSP, `X-Content-Type-Options`, `Referrer-Policy`) and a
-      `www` → apex redirect
-- [ ] Load `lightweight-charts` (~160 KB) lazily when the chart scrolls into view
+- [x] Dynamic OG images per note and report (build-time satori + sharp, `src/pages/og/`)
+- [x] `vercel.json`: strict CSP (no `'unsafe-inline'`), nosniff, Referrer-Policy, X-Frame-Options,
+      Permissions-Policy, COOP, immutable `/_astro/` caching, `www` → apex redirect (verify the
+      redirect after the first production deploy)
+- [x] Fonts self-hosted (fontsource) and icons inlined as SVG — no Google Fonts requests
+- [x] Load `lightweight-charts` (~160 KB) lazily when the chart scrolls into view
 - [x] Refactor: shared `src/lib/format.ts` + `src/lib/notes.ts`; weekly and monthly detail pages
       share `broadsheet/MarketNote`; hard-coded `'2026-06-11'` fallbacks gone
 - [x] JSON-LD for report pages
-- [ ] RSS with full content
-- [ ] One-page PDF per company; convert `.xls` to `.xlsx`; show file sizes on download cards
+- [x] RSS with full content
+- [x] One-page PDF tear sheet per company (`npm run tear-sheets`) and file sizes on downloads
+- [ ] Convert the two LBO `.xls` files to `.xlsx` — **owner, in Excel**. A LibreOffice conversion
+      broke 1,168 cells (IRR → "NA", `#VALUE!`; the models' circular references), so it was not
+      shipped. Save As `.xlsx` in Excel, then update `href`/`format` in `valuation-models.ts`.
 - [x] Contact page title fixed
 - [ ] Contact page: phone number is public — owner to decide whether to keep it
-- [ ] Lighthouse and a11y pass at 375px
+- [x] Lighthouse (mobile) pass: accessibility 100 and SEO 100 on every page type checked; fixed
+      seal-label contrast and masthead tap targets. Best practices 96 locally only because
+      `/_vercel/insights/script.js` exists only on Vercel.
 
 ---
 

@@ -119,7 +119,7 @@ const methods = methodPages.map((page) => {
               {...Object.fromEntries(columns.map((column) => [`data-${column.method.toLowerCase()}`, row.byMethod[column.method]?.move ?? '']))}
             >
               <th scope="row" class="sticky left-0 z-10 bg-paper py-4 pr-4 text-left font-normal transition-colors group-hover:bg-paper-deep">
-                <a href={`/research/${row.model.slug}`} class="flex items-center gap-4" aria-label={`${row.model.company} report`}>
+                <a href={`/research/${row.model.slug}`} class="flex items-center gap-4">
                   <Seal label={row.model.ticker} size="sm" motion="hover" />
                   <span class="hidden sm:block">
                     <span class="block font-news text-news-h4 text-ink transition-colors group-hover:text-oxblood">{row.model.company}</span>
