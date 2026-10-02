@@ -3,26 +3,32 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { portfolioDisclaimer } from '../data/valuation-models';
 ---
 
-<BaseLayout title="Disclaimer - Nguyen Vu Truong Huy">
-  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap">
-    <a href="/" class="font-label-md uppercase text-label-md text-on-surface-variant hover:text-terminal-accent transition-colors">
-      &larr; Back to Home
-    </a>
+<BaseLayout title="Disclaimer | Truong Huy Research" description="Academic portfolio disclaimer for the valuation models and market notes on truonghuyresearch.xyz.">
+  <section class="mx-auto w-full max-w-container-max px-margin-mobile pb-16 pt-8 md:px-margin-desktop md:pt-10">
+    <div class="flex animate-rise flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b border-ink pb-2 font-news-mono text-news-label uppercase text-ink-muted">
+      <a href="/" class="news-link transition-colors hover:text-oxblood">← Front page</a>
+      <span>Academic portfolio</span>
+    </div>
 
-    <header class="mt-6 mb-10 max-w-3xl border-b border-outline-variant pb-8">
-      <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest mb-3">Academic portfolio</p>
-      <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-4">Disclaimer</h1>
+    <header class="border-b border-ink py-10">
+      <p class="animate-rise font-news-mono text-news-label uppercase text-oxblood">Disclosure</p>
+      <h1 class="mt-4 animate-rise font-news text-news-hero text-ink [animation-delay:80ms]">Disclaimer</h1>
     </header>
 
-    <article class="max-w-4xl space-y-6">
-      <section class="border border-terminal-border border-t-2 border-t-terminal-accent bg-terminal-card p-6">
-        <p class="font-body-lg text-body-lg text-terminal-text">{portfolioDisclaimer}</p>
-      </section>
-      <p class="font-body-md text-body-md text-terminal-text">
-        All models, market views, and equity research notes reflect personal academic work. They do not represent the views, official positions, or investment strategies of any current or past employer.
+    <article class="mt-10 max-w-3xl space-y-6 font-news text-news-body text-ink">
+      <p class="border-l-2 border-oxblood pl-4 font-news text-news-dek italic text-ink">{portfolioDisclaimer}</p>
+      <p>
+        All models, market views, and equity research notes reflect personal academic work. They do not represent the views,
+        official positions, or investment strategies of any current or past employer.
       </p>
-      <p class="font-body-md text-body-md text-terminal-text">
-        Readers should verify all assumptions, dates, market data, and workbook formulas independently before using any material for analysis or decision-making.
+      <p>
+        Valuation figures are as of the model date shown on each report and are not refreshed automatically. Market notes are
+        drafted with the help of automated data collection and a language model, then checked against the recorded market
+        data; figures marked with a dash were unavailable.
+      </p>
+      <p>
+        Readers should verify all assumptions, dates, market data, and workbook formulas independently before using any
+        material for analysis or decision-making.
       </p>
     </article>
   </section>

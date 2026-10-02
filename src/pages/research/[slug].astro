@@ -73,7 +73,6 @@ const jsonLd = {
 ---
 
 <BaseLayout
-  theme="broadsheet"
   title={`${model.ticker} Valuation Report | Truong Huy Research`}
   description={`${model.company} (${model.ticker}) valuation: ${model.report.stance}`}
 >
@@ -308,7 +307,7 @@ const jsonLd = {
     </nav>
 
     <div class="mt-12">
-      <DisclaimerBox variant="broadsheet" label={model.disclaimerLabel} text={model.report.disclaimer} />
+      <DisclaimerBox label={model.disclaimerLabel} text={model.report.disclaimer} />
     </div>
   </article>
 </BaseLayout>

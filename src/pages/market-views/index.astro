@@ -1,121 +1,52 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import DisclaimerBox from '../../components/DisclaimerBox.astro';
+import NoteList from '../../components/broadsheet/NoteList.astro';
+import VnIndexChart from '../../components/VnIndexChart.astro';
 import { getCollection } from 'astro:content';
+import { formatDate } from '../../lib/format';
+import { monthlySummary, weeklySummary } from '../../lib/notes';
 
-const weeklyViews = await getCollection('market-views');
-const monthlyViews = await getCollection('monthly-views');
-
-function fmtWeekRange(start: Date, end: Date): string {
-  const sDay = start.toLocaleDateString('en-GB', { day: '2-digit' });
-  const sMon = start.toLocaleDateString('en-GB', { month: 'short' });
-  const eDay = end.toLocaleDateString('en-GB', { day: '2-digit' });
-  const eMon = end.toLocaleDateString('en-GB', { month: 'short' });
-  const eYr = end.toLocaleDateString('en-GB', { year: 'numeric' });
-  if (sMon === eMon) return `${sDay}-${eDay} ${eMon} ${eYr}`;
-  return `${sDay} ${sMon}-${eDay} ${eMon} ${eYr}`;
-}
-
-function fmtMonth(start: Date): string {
-  return start.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-}
-
-const viewItems = [
-  ...weeklyViews.map((entry) => ({
-    kind: 'Weekly Market View',
-    period: fmtWeekRange(entry.data.week_start, entry.data.week_end),
-    href: `/market-views/${entry.slug}`,
-    title: entry.data.title,
-    date: entry.data.date,
-    vnIndexClose: entry.data.vn_index_close,
-    changePct: entry.data.vn_index_weekly_change_pct,
-    changeLabel: 'Weekly change',
-    tone: entry.data.session_tone,
-    isMonthly: false,
-  })),
-  ...monthlyViews.map((entry) => ({
-    kind: 'Monthly Market View',
-    period: fmtMonth(entry.data.month_start),
-    href: `/monthly-views/${entry.slug}`,
-    title: entry.data.title,
-    date: entry.data.date,
-    vnIndexClose: entry.data.vn_index_close,
-    changePct: entry.data.vn_index_monthly_change_pct,
-    changeLabel: 'Monthly change',
-    tone: entry.data.session_tone,
-    isMonthly: true,
-  })),
-].sort((a, b) => b.date.valueOf() - a.date.valueOf());
+const weekly = (await getCollection('market-views')).map(weeklySummary);
+const monthly = (await getCollection('monthly-views')).map(monthlySummary);
+const notes = [...weekly, ...monthly];
+const trend = [...weekly]
+  .sort((a, b) => a.date.valueOf() - b.date.valueOf())
+  .map((note) => ({ time: note.date.toISOString().slice(0, 10), value: note.close }));
+const latest = [...notes].sort((a, b) => b.date.valueOf() - a.date.valueOf())[0];
 ---
 
-<BaseLayout title="Market Views - Nguyen Vu Truong Huy">
-  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap">
-    <header class="mb-section-gap max-w-4xl border-b border-outline-variant pb-8">
-      <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest mb-3">Market Views</p>
-      <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-4">
-        Weekly and Monthly Market Views
-      </h1>
-      <p class="font-body-lg text-body-lg text-on-surface-variant">
-        Vietnam market notes with VN-Index levels, liquidity, foreign flow, and cross-asset context. Monthly notes use the filled amber label; weekly notes use the outlined label.
-      </p>
-      <div class="mt-6 flex flex-wrap gap-3 font-label-data text-label-data text-on-surface-variant">
-        <span class="border border-outline-variant px-3 py-1">{weeklyViews.length} weekly notes</span>
-        <span class="border border-terminal-accent px-3 py-1 text-terminal-accent">{monthlyViews.length} monthly notes</span>
-      </div>
-    </header>
-
-    <div class="flex flex-col gap-0">
-      {viewItems.map((entry) => {
-        const changeColor = entry.changePct >= 0 ? 'text-tertiary' : 'text-error';
-        const changeSign = entry.changePct >= 0 ? '+' : '';
-        const tone = entry.tone;
-        const toneBg = tone === 'positive' ? 'bg-tertiary' : tone === 'negative' ? 'bg-error' : 'bg-terminal-accent';
-        return (
-          <a href={entry.href} class:list={['group block py-8 journal-rule', entry.isMonthly ? 'bg-terminal-card px-4 md:px-5 border-l-4 border-terminal-accent' : '']}>
-            <div class="flex flex-col md:flex-row gap-4 md:gap-8 items-start md:items-baseline">
-              <div class="shrink-0 w-full md:w-56">
-                <span class:list={[
-                  'inline-flex px-3 py-2 font-label-md uppercase text-label-md',
-                  entry.isMonthly
-                    ? 'bg-terminal-accent text-terminal-bg'
-                    : 'border border-terminal-accent text-terminal-accent bg-terminal-bg',
-                ]}>
-                  {entry.kind}
-                </span>
-                <time class="mt-3 block font-label-data text-label-data text-on-surface-variant" datetime={entry.date.toISOString()}>
-                  {entry.period.toUpperCase()}
-                </time>
-              </div>
-
-              <div class="flex-grow">
-                <div class="flex flex-wrap items-center gap-3 mb-3">
-                  <span class:list={['inline-block w-2 h-2', toneBg]}></span>
-                  <span class="font-label-md uppercase text-label-md text-on-surface-variant">{tone}</span>
-                </div>
-                <h2 class="font-headline-md text-headline-md text-terminal-text mb-4 group-hover:text-terminal-accent transition-colors">
-                  {entry.title}
-                </h2>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                  <div>
-                    <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">VN-Index</p>
-                    <p class="font-mono-data text-mono-data text-terminal-text">{entry.vnIndexClose.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-                  </div>
-                  <div>
-                    <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">{entry.changeLabel}</p>
-                    <p class:list={['font-mono-data text-mono-data', changeColor]}>{changeSign}{entry.changePct.toFixed(2)}%</p>
-                  </div>
-                  <div>
-                    <p class="font-label-md uppercase text-label-md text-on-surface-variant mb-1">Type</p>
-                    <p class="font-mono-data text-mono-data text-terminal-accent">{entry.isMonthly ? 'Monthly' : 'Weekly'}</p>
-                  </div>
-                </div>
-                <span class="inline-flex items-center gap-1 font-label-md uppercase text-label-md text-terminal-accent group-hover:text-on-primary transition-colors">
-                  Read Full Note <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
-                </span>
-              </div>
-            </div>
-          </a>
-        );
-      })}
+<BaseLayout
+  title="Market Notes | Truong Huy Research"
+  description="Weekly and monthly Vietnam market notes: VN-Index levels, liquidity, foreign flow, sector rotation and cross-asset context."
+>
+  <section class="mx-auto w-full max-w-container-max px-margin-mobile pt-8 md:px-margin-desktop md:pt-10">
+    <div class="flex animate-rise flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b border-ink pb-2 font-news-mono text-news-label uppercase text-ink-muted">
+      <span>Section III · Market Views</span>
+      {latest && <span>Latest note · {formatDate(latest.date)}</span>}
     </div>
+    <div class="grid grid-cols-1 gap-10 border-b border-ink py-10 lg:grid-cols-12 lg:gap-0">
+      <div class="lg:col-span-6 lg:pr-10">
+        <h1 class="animate-rise font-news text-news-hero text-ink [animation-delay:80ms]">Market notes</h1>
+        <p class="mt-6 max-w-xl animate-rise font-news text-news-dek italic text-ink-soft [animation-delay:160ms]">
+          Weekly and monthly reads on the Vietnam tape: VN-Index levels, liquidity, foreign flow, sector rotation, and what
+          the dollar, oil, and gold mean for local equities.
+        </p>
+      </div>
+      {trend.length > 0 && (
+        <figure class="animate-rise [animation-delay:240ms] lg:col-span-6 lg:border-l lg:border-ink/25 lg:pl-10">
+          <VnIndexChart trendData={trend} label="VN-Index · weekly close" />
+          <figcaption class="mt-3 font-news text-news-data italic text-ink-muted">Weekly closes taken from the notes below.</figcaption>
+        </figure>
+      )}
+    </div>
+  </section>
+
+  <section class="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop">
+    <NoteList notes={notes} filter />
+  </section>
+
+  <section class="mx-auto w-full max-w-container-max px-margin-mobile pb-16 pt-8 md:px-margin-desktop">
+    <DisclaimerBox />
   </section>
 </BaseLayout>

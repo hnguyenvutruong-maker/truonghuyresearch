@@ -1,0 +1,152 @@
+---
+// Detail page body for a weekly or monthly market note: data band, cross-asset strip,
+// optional daily chart, the note itself with a section index, and prev/next links.
+import type { MarkdownHeading } from 'astro';
+import DisclaimerBox from '../DisclaimerBox.astro';
+import VnIndexChart from '../VnIndexChart.astro';
+import { formatIndex, formatNumber, signedNumber, signedPct, toneClass } from '../../lib/format';
+import type { NoteSummary } from '../../lib/notes';
+
+interface Props {
+  note: NoteSummary;
+  headings: MarkdownHeading[];
+  prev: NoteSummary | null;
+  next: NoteSummary | null;
+  listHref: string;
+}
+
+const { note, headings, prev, next, listHref } = Astro.props;
+const unit = note.kind === 'Weekly' ? 'week' : 'month';
+const toc = headings.filter((heading) => heading.depth === 2);
+// Weekly notes written before October 2026 stored the final session's move as the
+// "weekly" macro change (a bot error since fixed); say so rather than mislabel it.
+const legacyWeeklyMacro = note.kind === 'Weekly' && note.date < new Date('2026-10-01T00:00:00Z');
+const macroBasis = legacyWeeklyMacro
+  ? "In notes before October 2026 these changes may be the final session's move rather than week-on-week (a calculation error since corrected)."
+  : `Changes are ${unit}-on-${unit}.`;
+const toneLabel = { positive: 'Positive tone', negative: 'Negative tone', neutral: 'Neutral tone' }[note.tone];
+
+const figures = [
+  { label: 'High', value: formatIndex(note.high) },
+  { label: 'Low', value: formatIndex(note.low) },
+  { label: 'Open', value: formatIndex(note.open) },
+  { label: 'Avg liquidity, bn VND', value: formatNumber(note.liquidity, 0) },
+  ...note.extras,
+];
+---
+
+<article class="mx-auto w-full max-w-container-max px-margin-mobile pb-16 pt-8 md:px-margin-desktop md:pt-10">
+  <div class="flex animate-rise flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b border-ink pb-2 font-news-mono text-news-label uppercase text-ink-muted">
+    <a href={listHref} class="news-link transition-colors hover:text-oxblood">← Market notes</a>
+    <span>{note.kind} note · {toneLabel}</span>
+  </div>
+
+  <header class="border-b border-ink py-10">
+    <p class:list={['animate-rise font-news-mono text-news-label uppercase', note.kind === 'Monthly' ? 'text-oxblood' : 'text-ink']}>
+      {note.kind} market view · <span class="text-ink-muted">{note.period}</span>
+    </p>
+    <h1 class="mt-4 max-w-5xl animate-rise text-balance font-news text-news-h2 text-ink [animation-delay:80ms]">{note.headline}</h1>
+  </header>
+
+  <!-- Data band -->
+  <section aria-label="Market data" class="grid grid-cols-1 gap-8 border-b border-ink/25 py-8 lg:grid-cols-12 lg:gap-0">
+    <div class="lg:col-span-4 lg:border-r lg:border-ink/25 lg:pr-10">
+      <p class="font-news-mono text-news-label uppercase text-ink-muted">VN-Index close</p>
+      <p class="mt-1 font-news text-news-figure lining-nums text-ink">{formatIndex(note.close)}</p>
+      <p class:list={['mt-2 font-news-mono text-news-data tabular-nums', toneClass(note.change)]}>
+        {signedPct(note.change)} on the {unit}
+      </p>
+    </div>
+    <dl class="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3 lg:col-span-5 lg:px-10">
+      {figures.map((figure) => (
+        <div>
+          <dt class="font-news-mono text-news-label uppercase text-ink-muted">{figure.label}</dt>
+          <dd class="mt-0.5 font-news text-lg lining-nums tabular-nums text-ink">{figure.value}</dd>
+        </div>
+      ))}
+    </dl>
+    <div class="lg:col-span-3 lg:border-l lg:border-ink/25 lg:pl-10">
+      <p class="font-news-mono text-news-label uppercase text-ink-muted">Foreign net, bn VND</p>
+      {note.foreignNet != null ? (
+        <>
+          <p class:list={['mt-1 font-news text-[2rem] leading-none lining-nums tabular-nums', toneClass(note.foreignNet)]}>{signedNumber(note.foreignNet)}</p>
+          {note.foreignBuy != null && note.foreignSell != null && (
+            <p class="mt-2 font-news-mono text-news-data tabular-nums text-ink-muted">
+              Buy {formatNumber(note.foreignBuy, 0)} · Sell {formatNumber(note.foreignSell, 0)}
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          <p class="mt-1 font-news text-[2rem] leading-none text-ink-muted">—</p>
+          <p class="mt-2 font-news text-news-data italic text-ink-muted">Foreign flow was not collected for this {unit}.</p>
+        </>
+      )}
+    </div>
+  </section>
+
+  <!-- Cross-asset strip -->
+  <section aria-label="Cross-asset" class="border-b border-ink/25 py-4">
+    <dl class="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-5">
+      {note.macro.map((row) => (
+        <div class="flex flex-wrap items-baseline gap-x-2">
+          <dt class="font-news-mono text-news-label uppercase text-ink-muted">{row.label}</dt>
+          <dd class="font-news-mono text-news-data tabular-nums text-ink">
+            {formatNumber(row.value, row.decimals)}
+            <span class:list={['ml-1', toneClass(row.change)]}>{signedPct(row.change)}</span>
+          </dd>
+        </div>
+      ))}
+    </dl>
+    <p class="mt-3 font-news text-news-data italic text-ink-muted">{macroBasis} A dash means the figure was unavailable when the note was written.</p>
+  </section>
+
+  {note.daily.length > 0 && (
+    <section class="mt-8">
+      <VnIndexChart candleData={note.daily} label={`VN-Index · daily, ${note.period}`} />
+    </section>
+  )}
+
+  <!-- Note body -->
+  <div class="mt-12 grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-0">
+    {toc.length > 0 && (
+      <aside class="lg:col-span-3 lg:pr-10">
+        <nav aria-label="In this note" class="lg:sticky lg:top-20">
+          <p class="border-b-2 border-ink pb-2 font-news-mono text-news-label uppercase text-ink">In this note</p>
+          <ol class="mt-2">
+            {toc.map((heading) => (
+              <li class="border-b border-ink/15">
+                <a href={`#${heading.slug}`} class="block py-2 font-news text-news-small text-ink-soft transition-colors hover:text-oxblood">{heading.text}</a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      </aside>
+    )}
+    <div class:list={['lg:border-ink/25', toc.length > 0 ? 'lg:col-span-9 lg:border-l lg:pl-10' : 'lg:col-span-12']}>
+      <div class="prose prose-lg max-w-[70ch] font-news prose-headings:scroll-mt-20 prose-headings:font-news prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-ink prose-h2:mt-12 prose-h2:border-t prose-h2:border-ink prose-h2:pt-4 prose-h2:text-[1.625rem] prose-h3:text-xl prose-p:text-ink prose-a:text-oxblood prose-a:decoration-oxblood/40 hover:prose-a:text-oxblood-deep prose-blockquote:border-l-2 prose-blockquote:border-oxblood prose-blockquote:font-normal prose-blockquote:text-ink-soft prose-strong:font-semibold prose-strong:text-ink prose-em:text-ink prose-li:text-ink prose-li:marker:text-oxblood prose-hr:border-ink/25 prose-th:font-news-mono prose-th:text-news-label prose-th:uppercase prose-th:text-ink-muted prose-td:text-ink prose-code:text-ink">
+        <slot />
+      </div>
+    </div>
+  </div>
+
+  <!-- Prev / next -->
+  <nav aria-label={`${note.kind} notes`} class="mt-16 grid grid-cols-2 border-y border-ink">
+    {prev ? (
+      <a href={prev.href} class="group flex flex-col gap-1 py-5 pr-4">
+        <span class="font-news-mono text-news-label uppercase text-ink-muted">← Older · {prev.period}</span>
+        <span class="font-news text-news-h4 text-ink transition-colors group-hover:text-oxblood">{prev.headline}</span>
+      </a>
+    ) : <span></span>}
+    {next ? (
+      <a href={next.href} class="group flex flex-col items-end gap-1 border-l border-ink/25 py-5 pl-4 text-right">
+        <span class="font-news-mono text-news-label uppercase text-ink-muted">Newer · {next.period} →</span>
+        <span class="font-news text-news-h4 text-ink transition-colors group-hover:text-oxblood">{next.headline}</span>
+      </a>
+    ) : <span></span>}
+  </nav>
+
+  <div class="mt-12">
+    <DisclaimerBox />
+  </div>
+</article>

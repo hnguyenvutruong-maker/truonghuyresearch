@@ -31,7 +31,6 @@ const reports = valuationModels
 ---
 
 <BaseLayout
-  theme="broadsheet"
   title={`${group.title} | Valuation Methods | Truong Huy Research`}
   description={`${group.title}: ${group.description} Reports and workbooks for ${reports.map(({ model }) => model.ticker).join(', ')}.`}
 >
@@ -102,6 +101,6 @@ const reports = valuationModels
   </section>
 
   <section class="mx-auto w-full max-w-container-max px-margin-mobile pb-16 md:px-margin-desktop">
-    <DisclaimerBox variant="broadsheet" />
+    <DisclaimerBox />
   </section>
 </BaseLayout>

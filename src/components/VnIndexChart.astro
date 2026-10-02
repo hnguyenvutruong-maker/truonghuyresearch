@@ -16,11 +16,9 @@ interface Props {
   trendData?: TrendPoint[];
   candleData?: CandlePoint[];
   label?: string;
-  theme?: 'terminal' | 'broadsheet';
 }
 
-const { trendData = [], candleData = [], label = 'VN-INDEX TREND', theme = 'terminal' } = Astro.props;
-const isBroadsheet = theme === 'broadsheet';
+const { trendData = [], candleData = [], label = 'VN-Index trend' } = Astro.props;
 
 const hasTrend = trendData.length > 0;
 const hasCandle = candleData.length > 0;
@@ -28,21 +26,11 @@ const hasData = hasTrend || hasCandle;
 ---
 
 {hasData && (
-  <div class:list={[
-    isBroadsheet
-      ? 'border-t-2 border-ink pt-3'
-      : 'bg-terminal-bg border border-terminal-border border-t-2 border-t-terminal-accent p-4',
-  ]}>
-    <p class:list={[
-      'mb-3',
-      isBroadsheet
-        ? 'font-news-mono text-news-label uppercase text-ink-muted'
-        : 'font-label-md uppercase text-label-md text-on-surface-variant',
-    ]}>{label}</p>
+  <div class="border-t-2 border-ink pt-3">
+    <p class="mb-3 font-news-mono text-news-label uppercase text-ink-muted">{label}</p>
     <div
       id="vni-chart"
-      class:list={['w-full', isBroadsheet ? 'h-[280px]' : 'h-[200px]']}
-      data-theme={theme}
+      class="h-[280px] w-full"
       data-trend={JSON.stringify(trendData)}
       data-candle={JSON.stringify(candleData)}
     ></div>
@@ -59,12 +47,8 @@ const hasData = hasTrend || hasCandle;
     const trendData: { time: string; value: number }[] = JSON.parse(trendRaw);
     const candleData: { time: string; open: number; high: number; low: number; close: number }[] = JSON.parse(candleRaw);
 
-    const palettes = {
-      terminal: { bg: '#0d1117', text: '#8b949e', grid: '#30363d', line: '#f0a500', up: '#84e588', down: '#ffb4ab', font: 'JetBrains Mono, monospace' },
-      broadsheet: { bg: 'rgba(0, 0, 0, 0)', text: '#6B6259', grid: 'rgba(25, 23, 20, 0.09)', line: '#191714', up: '#1E6B52', down: '#8E1B1B', font: 'Geist Mono, monospace' },
-    } as const;
-    const isBroadsheet = container.dataset.theme === 'broadsheet';
-    const palette = isBroadsheet ? palettes.broadsheet : palettes.terminal;
+    // Broadsheet tokens: ink line, ledger gains, oxblood losses, transparent over the paper
+    const palette = { bg: 'rgba(0, 0, 0, 0)', text: '#6B6259', grid: 'rgba(25, 23, 20, 0.09)', line: '#191714', up: '#1E6B52', down: '#8E1B1B', font: 'Geist Mono, monospace' } as const;
 
     const chart = createChart(container, {
       width: container.clientWidth,
@@ -95,7 +79,7 @@ const hasData = hasTrend || hasCandle;
         wickDownColor: palette.down,
       });
       candleSeries.setData(candleData);
-    } else if (trendData.length > 0 && isBroadsheet) {
+    } else if (trendData.length > 0) {
       const areaSeries = chart.addAreaSeries({
         lineColor: palette.line,
         topColor: 'rgba(25, 23, 20, 0.14)',
@@ -106,15 +90,6 @@ const hasData = hasTrend || hasCandle;
         crosshairMarkerVisible: true,
       });
       areaSeries.setData(trendData);
-    } else if (trendData.length > 0) {
-      const lineSeries = chart.addLineSeries({
-        color: '#f0a500',
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: true,
-        crosshairMarkerVisible: true,
-      });
-      lineSeries.setData(trendData);
     }
 
     chart.timeScale().fitContent();

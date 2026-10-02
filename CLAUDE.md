@@ -41,7 +41,7 @@ deliberately not committed to this public repo.
 ```
 ./
 ├── astro.config.mjs              # static output, site=truonghuyresearch.xyz, tailwind+sitemap
-├── tailwind.config.mjs           # broadsheet tokens + legacy terminal/MD3 tokens, sharp corners
+├── tailwind.config.mjs           # Broadsheet tokens (colours, news type scale, motion), sharp corners
 ├── tsconfig.json                 # extends astro/tsconfigs/strict
 ├── package.json                  # Node >=22.12, Astro 5
 ├── requirements.txt              # Python deps for the bots
@@ -60,10 +60,12 @@ deliberately not committed to this public repo.
     │   ├── market-views/         # WEEKLY .md posts + bot state JSON (_*.json)
     │   └── monthly-views/        # MONTHLY .md posts + _monthly_summary.json
     ├── data/valuation-models.ts  # ★ the "research"/valuation data (NOT a collection)
-    ├── layouts/BaseLayout.astro  # shell: head/meta, theme switch, header/footer
-    ├── styles/stichui.css        # global reset, terminal base styles, broadsheet theme block
-    ├── components/               # shared components (see §7)
-    │   └── broadsheet/           # broadsheet-theme header/footer/seal/section head/motion
+    ├── lib/format.ts             # shared number/date formatters (UTC dates, signed %, VND k)
+    ├── lib/notes.ts              # normalises weekly + monthly entries into one NoteSummary
+    ├── layouts/BaseLayout.astro  # shell: head/meta, fonts, header/footer, motion, mobile menu
+    ├── styles/global.css         # sharp corners, paper grain, .news-link, scroll reveal
+    ├── components/               # DisclaimerBox, VnIndexChart, ValuationMethodPage (see §7)
+    │   └── broadsheet/           # header/footer, Seal, SectionHead, Motion, charts, note views
     └── pages/                    # routes (see §7)
 ```
 
@@ -90,18 +92,15 @@ deliberately not committed to this public repo.
 
 ---
 
-## 4. Design system — two themes, migrating to Broadsheet
+## 4. Design system — Broadsheet
 
-`BaseLayout` takes `theme?: 'terminal' | 'broadsheet'` (default `terminal`) and sets
-`<html data-theme=…>`. **Broadsheet is the chosen direction (Oct 2026); only the homepage uses
-it so far.** Next step is rolling it out page by page, then deleting the terminal theme.
-
-### 4a. Broadsheet (new — use for all new work)
 Financial-newspaper front page: newsprint paper, ink rules, oxblood accent, a cinnabar seal.
+It is the only theme (chosen Oct 2026; the dark "terminal" theme was deleted on 2026-10-02).
+`BaseLayout` takes `title`, `description`, `image`, `type` and always renders
+`components/broadsheet/SiteHeader` + `SiteFooter`, loads Fraunces + Geist Mono (+ a Material
+Symbols subset — add an icon's name to the `icon_names` list in the font URL before using it),
+adds `<html class="js">`, and mounts `broadsheet/Motion` (scroll reveal + count-up).
 
-- **Opt in:** `<BaseLayout theme="broadsheet" …>`. This swaps in `components/broadsheet/SiteHeader`
-  + `SiteFooter`, loads Fraunces + Geist Mono, adds `<html class="js">`, and mounts
-  `broadsheet/Motion` (scroll reveal + count-up).
 - **Color tokens** (`tailwind.config.mjs`):
   `paper` #F2E8DA (`paper-deep` #E9DCC7 hover rows, `paper-light`), `ink` #191714
   (`ink-soft` #3D3731 secondary text, `ink-muted` #6B6259 labels/captions),
@@ -112,31 +111,30 @@ Financial-newspaper front page: newsprint paper, ink rules, oxblood accent, a ci
   (Geist Mono — labels, kickers, data only). Pair with the `text-news-*` scale:
   `masthead, hero, h2, h3, h4, dek, body, small, figure, label, data`.
   Use `lining-nums tabular-nums` on figures.
-- **Components:** `Seal` (square cinnabar con dấu; `motion="hover"` stamps on `group-hover`,
-  `"load"` stamps on page load), `SectionHead` (double rule + "Section N · Label" + h2, has an
-  `aside` slot), `SiteHeader` (wordmark hidden on `/` until the element marked `data-masthead`
-  scrolls away), `SiteFooter`, `Motion`.
+- **Components** (`components/broadsheet/`): `Seal` (square cinnabar con dấu; `motion="hover"`
+  stamps on `group-hover`, `"load"` on page load), `SectionHead` (double rule + "Section N ·
+  Label" + h2, `aside` slot), `SiteHeader` (wordmark hidden on `/` until `data-masthead` scrolls
+  away), `SiteFooter`, `Motion`, `FootballField` (method ranges vs the model's reference price,
+  inline SVG), `SensitivityTable` (two-way DCF grid, diverging shading around the reference
+  price), `MarketNote` (weekly/monthly detail body), `NoteList` (notes by year, optional
+  All/Weekly/Monthly filter synced to `?kind=`).
 - **Motion:** `animate-rise` (+ `[animation-delay:…]`) for above-the-fold load stagger,
   `animate-rule` for rules drawing in, `animate-stamp` for seals, `data-reveal` for scroll reveal,
   `data-countup="N"` on figures inside a revealed block. Content is fully visible without JS;
-  `prefers-reduced-motion` is respected.
-- **CSS** (`stichui.css`, "Broadsheet theme" block): `:where()` resets so headings/p/a inherit and
-  never outrank utilities; `.news-link` (ink underline drawing in on hover); paper grain on body.
-  Because a global `a:hover` rule exists, **give every link an explicit `hover:text-…` class.**
-- **Variants on shared components:** `VnIndexChart theme="broadsheet"` (ink area chart,
-  transparent bg), `DisclaimerBox variant="broadsheet"` (ruled disclosure strip).
+  `prefers-reduced-motion` drops durations and delays.
+- **CSS** (`global.css`): sharp corners, paper grain, selection/focus colours, `.news-link` (ink
+  underline drawing in on hover), scroll reveal. Tailwind preflight makes headings/links inherit;
+  still **give every link an explicit `hover:text-…` class.**
+- **Charts:** `VnIndexChart` (lightweight-charts; ink area for weekly closes, ledger/oxblood
+  candles when `vn_index_daily` exists). Hand-built charts are inline SVG with marks on a fixed
+  viewBox and all text in HTML; no inline `style`.
 - **Layout idiom:** columns separated by vertical `border-l/border-r border-ink/25` rules, not
   boxed cards; kickers in mono uppercase oxblood; dotted leaders for data rows
   (`after:border-dotted` on `dt`); one fact box (`border border-ink` + ink header band) per section max.
+  Page header pattern: mono strip (back link · context) over a `border-b border-ink`, then kicker,
+  `text-news-hero` h1 and an italic `text-news-dek`.
 
-### 4b. Terminal (legacy — every page except `/`)
-Bloomberg-style dark: `terminal-bg` #0d1117, `terminal-card` #161b22, `terminal-border` #30363d,
-`terminal-text` #e6edf3, `terminal-muted` #8b949e, `terminal-accent` #f0a500 (amber), plus an
-MD3 dark palette (`tertiary` = gains, `error` = losses, `on-surface-variant`/`outline-variant`
-muted). JetBrains Mono + Inter, `font-*`/`text-*` token pairs, 2px amber top border on cards.
-Letter-spacing is locked to 0 **only** in this theme.
-
-### 4c. Global rules (both themes)
+### Global rules
 - **Sharp corners everywhere** (`border-radius: 0 !important`; Tailwind radius 0 except `full`).
 - Tailwind utility classes only — no inline `style=""`. Arbitrary values/properties are fine.
 - Mobile-first, must work at 375px with no horizontal page scroll. No `any`; props typed.
@@ -182,37 +180,52 @@ State JSON (managed by the bots, never hand-edit except to merge data):
 The valuation section is a **typed TypeScript module, not a content collection.**
 
 Exports: `portfolioDisclaimer`, `valuationGroups` (`dcf`, `comparable`, `transaction-lbo`),
-`valuationModels` (**5 companies**: `hpg`, `bid`, `fpt`, `bmp`, `pnj`), and types
-`ValuationModel`, `ValuationGroup`, `ValuationDownload`, `ValuationNote`, `ReportPoint`,
-`ValuationReport`, `ValuationGroupId`, `ProjectStatus`.
+`methodPages` (group → route), `valuationModels` (**5 companies**: `hpg`, `bid`, `fpt`, `bmp`,
+`pnj`), helpers `outputCentre`, `impliedMovePct`, `formatOutput`, `outputMethodLabel`,
+`STALE_AFTER_DAYS` (90), and the types (`ValuationModel`, `ValuationOutput`, `ReferencePrice`,
+`SensitivityGrid`, `ValuationGroup`, `ValuationDownload`, `ValuationNote`, `ReportPoint`,
+`ValuationReport`, `ValuationGroupId`, `ProjectStatus`, `OutputMethod`).
 
 Each `ValuationModel` carries `slug`, `ticker`, `company`, `sector`, `status`, `lastUpdated`,
 `outputRange`, `investmentQuestion`, `keyAssumptions[]`, `methods[]`, `summary`, `conclusion`,
 `valuationNotes[]`, a `report{ headline, stance, thesis[], assumptions[], valuationResult[],
 interpretation[], risks[], disclaimer }`, and `downloads[]` (→ `public/research/valuation-models/`).
-The homepage coverage table reads `report.valuationResult` entries whose label ends in "output".
+Plus the numeric layer the charts and tables use:
+- `referencePrice { value, asOf, source }` — the share price the model pack used as its market
+  input, read from the workbooks' "Valuation Summary" / `TargetCo!E17` cells. All five are as of
+  2026-06-11. **It is not a live price**; every implied move is against it, and pages show a
+  "Dated figures" note once a model is older than `STALE_AFTER_DAYS`.
+- `outputs[] { method, low, high, base?, approximate?, basis }` in VND per share (low = high for a
+  point estimate). DCF ranges span the sensitivity grid's corners; `base` is the model output.
+- `sensitivity?` — WACC × exit EV/EBITDA grid (VND thousands) for HPG and FPT, **recomputed from
+  the DCF workbook** (same UFCF, mid-year discounting, net debt, shares; centre cell = model
+  output). The workbooks' own Excel data tables are empty (never recalculated) — don't read them.
 
-**To add/edit a company report, edit this file** — pages and method pages derive from it.
-All models are dated 2026-06-11 and carry no current market price yet (see ROADMAP P1).
+The homepage coverage table reads `report.valuationResult` entries whose label ends in "output";
+`/research` and the report pages read `outputs`.
+
+**To add/edit a company report, edit this file** — pages and method pages derive from it. When a
+model is refreshed, update `lastUpdated`, `referencePrice`, `outputs` and (for a DCF) regenerate
+`sensitivity` from the new workbook so the centre cell matches the model output.
 
 ---
 
 ## 7. Pages & components
 
-| Route | File | Theme | Notes |
-| :-- | :-- | :-- | :-- |
-| `/` | `index.astro` | broadsheet | Masthead, analyst profile + markets box, Profile (`#about`), Coverage (`#valuation`: lead note + table), Market notes (`#market-views`: chart + briefs). |
-| `/research` | `research.astro` | terminal | Valuation hub, client-side Company ⇄ Method toggle. |
-| `/research/[slug]` | `research/[slug].astro` | terminal | Company report; `getStaticPaths` from `valuationModels`. |
-| `/research/dcf`, `/research/comparable-analysis`, `/research/precedent-transactions-lbo` | thin wrappers | terminal | render `<ValuationMethodPage groupId=…/>`. |
-| `/market-views`, `/market-views/[slug]` | `market-views/*` | terminal | Combined weekly+monthly list; weekly detail with prev/next links. |
-| `/monthly-views`, `/monthly-views/[slug]` | `monthly-views/*` | terminal | Monthly equivalents. |
-| `/contact`, `/disclaimer`, `/404` | static | terminal | |
-| `/rss.xml` | `rss.xml.js` | — | Weekly + monthly feed. |
+| Route | File | Notes |
+| :-- | :-- | :-- |
+| `/` | `index.astro` | Masthead, analyst profile + markets box, Profile (`#about`), Coverage (`#valuation`: lead note + table), Market notes (`#market-views`: chart + briefs). |
+| `/research` | `research.astro` | Sortable coverage table (price used, each method + implied move, low/high move; client-side sort with `aria-sort`) and the methods index. |
+| `/research/[slug]` | `research/[slug].astro` | Company report: fact file, dated-figures note, section index, football field + outputs table, thesis, assumptions, DCF sensitivity, conclusion, risks, model files, prev/next, Report JSON-LD. |
+| `/research/dcf`, `/research/comparable-analysis`, `/research/precedent-transactions-lbo` | thin wrappers | render `<ValuationMethodPage groupId=…/>`. |
+| `/market-views` | `market-views/index.astro` | All notes by year with All/Weekly/Monthly filter, weekly-close chart. |
+| `/market-views/[slug]`, `/monthly-views/[slug]` | `*/[slug].astro` | Both render `broadsheet/MarketNote` from `lib/notes.ts` summaries: data band, cross-asset strip, daily chart, sticky "In this note" index, prev/next. |
+| `/monthly-views` | `monthly-views/index.astro` | Monthly notes only. |
+| `/contact`, `/disclaimer`, `/404` | static | |
+| `/rss.xml` | `rss.xml.js` | Weekly + monthly feed. |
 
-Shared components: `ValuationMethodPage`, `ProjectCard`, `DownloadCard`, `AssumptionTable`,
-`ValuationSnapshot`, `RiskList`, `StatusBadge`, `DisclaimerBox`, `VnIndexChart`; broadsheet-only
-components under `components/broadsheet/` (§4a).
+Shared components: `ValuationMethodPage`, `DisclaimerBox`, `VnIndexChart`; the rest live under
+`components/broadsheet/` (§4).
 
 ---
 

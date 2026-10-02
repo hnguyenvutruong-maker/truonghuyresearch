@@ -1,0 +1,89 @@
+/*
+ * Broadsheet — the site's only theme.
+ * Newsprint paper, ink, oxblood, ledger green, cinnabar seal. Fraunces + Geist Mono.
+ * Tailwind preflight already makes headings, paragraphs and links inherit, so this file
+ * only adds what utilities cannot: the paper grain, selection/focus colours, the
+ * drawn underline, scroll reveal, and the global sharp-corner rule.
+ */
+
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+}
+
+html {
+  color-scheme: light;
+  scroll-behavior: smooth;
+  background-color: #F2E8DA;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Fine paper grain */
+body {
+  background-color: #F2E8DA;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.10 0 0 0 0 0.08 0 0 0 0 0.06 0 0 0 0.10 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  color: #191714;
+}
+
+::selection {
+  background-color: #8E1B1B;
+  color: #F2E8DA;
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid #8E1B1B;
+  outline-offset: 3px;
+}
+
+/* Ink underline that draws in from the left on hover */
+.news-link {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  padding-bottom: 1px;
+  transition: background-size 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.2s ease;
+}
+
+.news-link:hover,
+.news-link:focus-visible,
+.news-link[aria-current="page"] {
+  background-size: 100% 1px;
+}
+
+/* Scroll reveal — only hidden once JS has marked <html class="js"> */
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) var(--reveal-delay, 0ms),
+    transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) var(--reveal-delay, 0ms);
+}
+
+.js [data-reveal].is-revealed {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .js [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+}

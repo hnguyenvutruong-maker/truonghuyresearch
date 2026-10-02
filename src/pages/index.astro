@@ -6,6 +6,8 @@ import SectionHead from '../components/broadsheet/SectionHead.astro';
 import Seal from '../components/broadsheet/Seal.astro';
 import { getCollection } from 'astro:content';
 import { valuationModels } from '../data/valuation-models';
+import { formatDate, formatIndex, formatMonth, formatNumber, formatWeek, signedPct, toneClass } from '../lib/format';
+import { headlineOf } from '../lib/notes';
 
 const allMarketViews = await getCollection('market-views');
 const allMonthlyViews = await getCollection('monthly-views');
@@ -87,37 +89,16 @@ const credentials = [
   { label: 'Toolkit', value: 'Excel · Power BI · Stata' },
 ];
 
-const formatDate = (date: Date) =>
-  date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-
-const formatWeek = (start: Date, end: Date) => {
-  const sDay = start.toLocaleDateString('en-GB', { day: '2-digit' });
-  const sMon = start.toLocaleDateString('en-GB', { month: 'short' });
-  const eDay = end.toLocaleDateString('en-GB', { day: '2-digit' });
-  const eMon = end.toLocaleDateString('en-GB', { month: 'short' });
-  const eYear = end.toLocaleDateString('en-GB', { year: 'numeric' });
-  return sMon === eMon ? `${sDay}–${eDay} ${eMon} ${eYear}` : `${sDay} ${sMon}–${eDay} ${eMon} ${eYear}`;
-};
-
-const formatIndex = (value: number) => value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const formatBn = (value: number) => value.toLocaleString('en-US', { maximumFractionDigits: 0 });
+const formatBn = (value: number) => formatNumber(value, 0);
 const signed = (value: number, text: string) => `${value >= 0 ? '+' : '−'}${text}`;
-const signedPct = (value: number) => signed(value, `${Math.abs(value).toFixed(2)}%`);
-const toneClass = (value: number) => (value >= 0 ? 'text-ledger' : 'text-oxblood');
-
-// Strip the repeated "Weekly Market View: 25/05 – 29/05 —" prefixes; the kicker already says it
-const briefTitle = (title: string) =>
-  title
-    .replace(/^(Weekly|Monthly) Market View:\s*/i, '')
-    .replace(/^\d{2}\/\d{2}\s*[–-]\s*\d{2}\/\d{2}\s*—\s*/, '');
 
 const briefs = [
   ...(latestMonthly
     ? [{
         kind: 'Monthly',
-        period: latestMonthly.data.month_start.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }),
+        period: formatMonth(latestMonthly.data.month_start),
         href: `/monthly-views/${latestMonthly.slug}`,
-        title: briefTitle(latestMonthly.data.title),
+        title: headlineOf(latestMonthly.data.title),
         close: latestMonthly.data.vn_index_close,
         change: latestMonthly.data.vn_index_monthly_change_pct,
         monthly: true,
@@ -127,7 +108,7 @@ const briefs = [
     kind: 'Weekly',
     period: formatWeek(entry.data.week_start, entry.data.week_end),
     href: `/market-views/${entry.slug}`,
-    title: briefTitle(entry.data.title),
+    title: headlineOf(entry.data.title),
     close: entry.data.vn_index_close,
     change: entry.data.vn_index_weekly_change_pct,
     monthly: false,
@@ -151,7 +132,6 @@ const marketRows = latestWeekly
 ---
 
 <BaseLayout
-  theme="broadsheet"
   title="Nguyen Vu Truong Huy | Vietnam Equity Research Portfolio"
   description="Vietnam equity research, valuation modeling, capital markets notes, and downloadable Excel models by Nguyen Vu Truong Huy, who has passed Level II of the CFA Program."
 >
@@ -422,7 +402,7 @@ const marketRows = latestWeekly
     <div class="mt-10 grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-0">
       {trendData.length > 0 && (
         <figure class="lg:col-span-7 lg:pr-10" data-reveal>
-          <VnIndexChart theme="broadsheet" trendData={trendData} label="VN-Index · weekly close" />
+          <VnIndexChart trendData={trendData} label="VN-Index · weekly close" />
           <figcaption class="mt-3 font-news text-news-data italic text-ink-muted">
             Weekly closes from {trendData[0].time} to {trendData[trendData.length - 1].time}, taken from the weekly market notes.
           </figcaption>
@@ -460,6 +440,6 @@ const marketRows = latestWeekly
   </section>
 
   <section class="mx-auto w-full max-w-container-max px-margin-mobile pb-16 md:px-margin-desktop">
-    <DisclaimerBox variant="broadsheet" />
+    <DisclaimerBox />
   </section>
 </BaseLayout>

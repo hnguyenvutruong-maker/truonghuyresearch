@@ -32,12 +32,11 @@ code works, this file for where things stand.
 
 ## Recommended next steps (in order)
 
-1. **Roll the Broadsheet theme out** to `/research`, `/research/[slug]`, the three method pages,
-   `/market-views`, `/monthly-views` and their detail pages, `/contact`, `/disclaimer`, `/404`.
-   Then delete the terminal tokens, `.stich-*` classes, and the terminal header/footer markup in
-   `BaseLayout`, and update CLAUDE.md §4.
-2. **Fix the bot pipeline (P0 below)** so content resumes, then backfill.
-3. Work through P1 → P3.
+1. ~~Roll the Broadsheet theme out~~ — done 2026-10-02; the terminal theme is deleted.
+2. **Finish P0**: the owner fixes the LLM key/vars, merges the bot fixes to `master`, then backfills.
+3. **Refresh the valuation models** (P1 leftover): new prices and estimates, then update
+   `referencePrice`, `outputs` and `sensitivity` in `valuation-models.ts`.
+4. Work through what is left of P2 → P3.
 
 ---
 
@@ -82,26 +81,29 @@ scheduled workflows run from the default branch.
 ## P1 — Visible impact and research credibility
 
 - [x] Homepage redesign (Broadsheet) with hierarchy, motion, and a real section structure
-- [ ] Broadsheet on every page (see "Recommended next steps")
-- [ ] Valuation: add `currentPrice`, `priceDate`, implied upside/downside per model; show staleness
-      (all models are dated 2026-06-11)
-- [ ] **Football-field chart** per company (method ranges vs current price), inline SVG
-- [ ] Remove the visible placeholders on report pages: HPG "Sensitivity Needed — Placeholder"
-      boxes (`research/[slug].astro`) and BID's "Metrics needed" list. Build the WACC × exit-multiple
-      table from the workbook, or hide the sections
-- [ ] Unify weekly title format (currently three styles); the bot prompt should enforce one
-- [ ] Coverage table on `/research` that can be sorted
+- [x] Broadsheet on every page (2026-10-02); terminal tokens, CSS, header/footer and six unused
+      components deleted
+- [x] Valuation: `referencePrice` (the price each workbook used, 11 Jun 2026), implied move per
+      method, and a "Dated figures" note on stale models. ⚠️ These are **model-date prices, not
+      live prices** — no live price feed was available. Refreshing the models is the real fix.
+- [x] **Football-field chart** per company (method ranges vs the reference price), inline SVG
+- [x] Placeholders removed. HPG and FPT get a real WACC × exit-multiple table, recomputed from
+      the DCF workbooks (centre cell = model output to the dong); BID's "metrics needed" chips
+      are gone (the limitation note already lists them)
+- [ ] Unify weekly title format (currently three styles); the bot prompt should enforce one —
+      deferred with the bot work
+- [x] Sortable coverage table on `/research` (price used, each method, low/high implied move)
 
 ## P2 — UX and navigation
 
 - [ ] Command palette (`Ctrl+K` / `/`): jump to tickers, method pages, notes, CV
-- [ ] `/market-views`: Weekly/Monthly filter tabs, group by year (it'll pass 50 entries a year)
-- [ ] Note detail pages: H1 above the data card, per-page meta descriptions, sticky TOC, reading
-      progress bar
-- [ ] Report pages: section TOC, sensitivity heatmap
-- [ ] `/research` tabs: `role="tab"`, keyboard support, state kept in the URL hash
-- [ ] Mobile menu closes on link click or Esc (terminal header; the broadsheet header needs the same)
-- [ ] Replace the "tracking from Jun 2026" label shown when foreign flow is missing
+- [x] `/market-views`: All/Weekly/Monthly filter (synced to `?kind=`), grouped by year
+- [x] Note detail pages: H1 above the data card, per-page meta descriptions, sticky TOC
+- [ ] Note detail pages: reading progress bar
+- [x] Report pages: section index, sensitivity table (HPG, FPT)
+- [x] ~~`/research` tabs~~ — replaced by one page (table + methods index); no tabs left
+- [x] Mobile menu closes on link click or Esc
+- [x] Missing foreign flow now reads "not collected for this week/month"
 
 ## P3 — Technical, SEO, polish
 
@@ -109,12 +111,13 @@ scheduled workflows run from the default branch.
 - [ ] `vercel.json`: security headers (CSP, `X-Content-Type-Options`, `Referrer-Policy`) and a
       `www` → apex redirect
 - [ ] Load `lightweight-charts` (~160 KB) lazily when the chart scrolls into view
-- [ ] Refactor: shared `src/lib/format.ts` (date and number formatters are duplicated in 5+ files),
-      merge the near-identical weekly and monthly `[slug]` pages, drop the hard-coded `'2026-06-11'`
-      fallbacks
-- [ ] JSON-LD for report pages, RSS with full content
+- [x] Refactor: shared `src/lib/format.ts` + `src/lib/notes.ts`; weekly and monthly detail pages
+      share `broadsheet/MarketNote`; hard-coded `'2026-06-11'` fallbacks gone
+- [x] JSON-LD for report pages
+- [ ] RSS with full content
 - [ ] One-page PDF per company; convert `.xls` to `.xlsx`; show file sizes on download cards
-- [ ] Contact page: phone number is public; page title still says "NVTH Capital Markets"
+- [x] Contact page title fixed
+- [ ] Contact page: phone number is public — owner to decide whether to keep it
 - [ ] Lighthouse and a11y pass at 375px
 
 ---
@@ -127,3 +130,8 @@ scheduled workflows run from the default branch.
   signature accent. B was built on branch `redesign/son-mai` and is kept for reference only.
 - **2026-10-01 — CFA wording** follows CFA Institute guidance ("Passed Level II of the CFA Program").
 - **2026-10-01 — Foreign-flow merge:** CI values win where the PC and CI disagree.
+- **2026-10-02 — Valuation prices:** pages compare against each workbook's own market-input
+  price (11 Jun 2026), labelled as such, rather than a live price; no live feed is available and
+  inventing one is not an option. Methods are never blended into a single target.
+- **2026-10-02 — Weekly macro changes:** notes before Oct 2026 may show one-day moves as
+  "weekly"; the note pages say so instead of rewriting stored figures.

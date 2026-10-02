@@ -1,26 +1,34 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Seal from '../components/broadsheet/Seal.astro';
+
+const links = [
+  { label: 'Front page', href: '/' },
+  { label: 'Coverage', href: '/research' },
+  { label: 'Market notes', href: '/market-views' },
+];
 ---
 
-<BaseLayout title="404 — Page Not Found | Truong Huy Research" description="The page you're looking for doesn't exist.">
-  <section class="w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-section-gap flex flex-col items-center justify-center min-h-[60vh] text-center">
-    <p class="font-label-md uppercase text-label-md text-on-surface-variant tracking-widest mb-4">Error 404</p>
-    <h1 class="font-display-xl-mobile md:font-display-xl text-display-xl-mobile md:text-display-xl text-terminal-accent mb-6">
-      Page Not Found
-    </h1>
-    <p class="font-body-lg text-body-lg text-terminal-text mb-10 max-w-xl">
-      The page you requested does not exist or has been moved. Use the links below to navigate back.
+<BaseLayout title="Page Not Found | Truong Huy Research" description="The page you are looking for does not exist.">
+  <section class="mx-auto flex min-h-[60vh] w-full max-w-container-max flex-col items-center justify-center px-margin-mobile py-16 text-center md:px-margin-desktop">
+    <Seal label="404" size="lg" motion="load" decorative />
+    <p class="mt-8 font-news-mono text-news-label uppercase text-oxblood">Correction</p>
+    <h1 class="mt-4 font-news text-news-h2 text-ink">This page did not go to print</h1>
+    <p class="mt-5 max-w-xl font-news text-news-dek italic text-ink-soft">
+      The address may have changed, or the page never existed. Try one of the sections below.
     </p>
-    <div class="flex flex-wrap justify-center gap-4">
-      <a href="/" class="inline-flex min-h-12 items-center justify-center px-6 py-3 bg-terminal-accent text-terminal-bg font-label-md uppercase text-label-md hover:bg-on-primary hover:text-terminal-accent transition-colors">
-        Home
-      </a>
-      <a href="/research" class="inline-flex min-h-12 items-center justify-center px-6 py-3 border border-terminal-accent text-terminal-accent font-label-md uppercase text-label-md hover:bg-terminal-card transition-colors">
-        Valuation
-      </a>
-      <a href="/market-views" class="inline-flex min-h-12 items-center justify-center px-6 py-3 border border-outline-variant text-terminal-text font-label-md uppercase text-label-md hover:border-terminal-accent hover:text-terminal-accent transition-colors">
-        Market Views
-      </a>
-    </div>
+    <nav aria-label="Sections" class="mt-10 flex flex-wrap justify-center gap-3">
+      {links.map((link, index) => (
+        <a
+          href={link.href}
+          class:list={[
+            'inline-flex min-h-12 items-center px-6 py-3 font-news-mono text-news-label uppercase transition-colors',
+            index === 0 ? 'bg-ink text-paper hover:bg-oxblood hover:text-paper' : 'border border-ink text-ink hover:bg-ink hover:text-paper',
+          ]}
+        >
+          {link.label}
+        </a>
+      ))}
+    </nav>
   </section>
 </BaseLayout>
