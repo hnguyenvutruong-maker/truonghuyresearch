@@ -1,5 +1,6 @@
 # The Python content bots run in GitHub Actions, not on Vercel; keep them out of the static build.
-*.py
-requirements.txt
-__pycache__/
-data/
+# Patterns are anchored with "/" on purpose: an unanchored "data/" also matched src/data/ and broke the build.
+/*.py
+/requirements.txt
+/__pycache__/
+/data/

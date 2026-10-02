@@ -308,3 +308,5 @@ Frontmatter numbers are the ground truth; LLM prose drifts. When reviewing or re
   Only say "Level III Candidate" once the owner confirms registration for the Level III exam.
 - `public/cv.pdf` is maintained by the owner outside the repo.
 - Line endings: repo stores LF; Windows checkout uses `core.autocrlf=true`.
+- `.vercelignore` keeps the Python bots out of Vercel builds. Anchor every pattern with `/` —
+  an unanchored `data/` also matched `src/data/` and deleted `valuation-models.ts` from the build.
