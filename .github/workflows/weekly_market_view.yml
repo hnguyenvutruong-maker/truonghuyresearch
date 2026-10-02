@@ -1,59 +1,72 @@
-﻿name: Weekly Market View
+name: Weekly Market View
 
 on:
   schedule:
     # 10:00 UTC Friday = 17:00 ICT Friday
     - cron: '0 10 * * 5'
   workflow_dispatch:
+    inputs:
+      week:
+        description: 'Target Friday (YYYY-MM-DD) for a backfill; empty = latest week'
+        required: false
+        default: ''
 
 concurrency:
   group: market-bot
   cancel-in-progress: false
 
 jobs:
-  collect-foreign-flow:
+  generate:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
+      issues: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Branch tip, not the triggering SHA: an earlier queued bot run may have pushed since.
+          ref: ${{ github.ref }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Collect today foreign flow
+        # Best effort: the daily workflow reports collection failures; the note can still be written.
+        continue-on-error: true
+        timeout-minutes: 5
         run: python weekly_bot.py --collect-foreign-flow
-      - name: Commit cache
-        run: |
-          git config user.name "Market Bot"
-          git config user.email "bot@truonghuyresearch.xyz"
-          git add -A
-          git diff --staged --quiet || git commit -m "cache: foreign flow"
-          git push
-
-  generate:
-    needs: collect-foreign-flow
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Install dependencies
-        run: pip install -r requirements.txt
       - name: Generate weekly market view
         env:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY || secrets.OPENAI_API_KEY }}
           LLM_BASE_URL: ${{ vars.LLM_BASE_URL || 'https://api.openai.com/v1' }}
           LLM_MODEL: ${{ vars.LLM_MODEL || 'gpt-5.2' }}
-        run: python weekly_bot.py
+          WEEK: ${{ inputs.week }}
+        run: python weekly_bot.py ${WEEK:+--week "$WEEK"}
       - name: Commit and push if new content
         run: |
           git config user.name "Market Bot"
           git config user.email "bot@truonghuyresearch.xyz"
-          git add -A
-          git diff --staged --quiet || git commit -m "weekly: market view"
-          git push
+          # Stage bot output only; tools must never sweep other files into the repo.
+          git add -- src/content/market-views src/content/monthly-views
+          if git diff --staged --quiet; then echo "No changes"; exit 0; fi
+          git commit -m "weekly: market view"
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"
+      - name: Report failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Market bot failing: $GITHUB_WORKFLOW"
+          body="Run failed on $(date -u +%Y-%m-%dT%H:%MZ) ($GITHUB_EVENT_NAME): $RUN_URL"
+          num=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$num" ]; then
+            gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body
+
+          Each further failure adds a comment here. Close this issue once the workflow is green again."
+          fi

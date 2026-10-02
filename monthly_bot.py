@@ -57,11 +57,7 @@ try:
 except ImportError:
     HAS_YFINANCE = False
 
-try:
-    from vnstock.api.quote import Quote as VnQuote
-    HAS_VNQUOTE = True
-except ImportError:
-    HAS_VNQUOTE = False
+import vn_market_data
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -191,123 +187,83 @@ def _load_foreign_flow_cache() -> dict[str, Any]:
     return {}
 
 
+def fetch_foreign_flow_monthly(first_day: date, last_day: date) -> dict[str, Optional[float]]:
+    """Sum cached daily HOSE foreign flow for the month (bn VND). Values are None when no day is cached."""
+    cache = _load_foreign_flow_cache()
+    month_net = month_buy = month_sell = 0.0
+    days_found = 0
+    for date_str, entry in cache.items():
+        try:
+            d = date.fromisoformat(date_str)
+        except (ValueError, TypeError):
+            continue
+        if not first_day <= d <= last_day:
+            continue
+        if isinstance(entry, dict):
+            net_val, buy_val, sell_val = entry.get("net"), entry.get("buy"), entry.get("sell")
+        else:  # legacy format: net only
+            net_val, buy_val, sell_val = entry, None, None
+        if net_val is not None:
+            month_net += net_val
+            days_found += 1
+        if buy_val is not None:
+            month_buy += buy_val
+        if sell_val is not None:
+            month_sell += sell_val
+
+    result: dict[str, Optional[float]] = {
+        "foreign_net_monthly_bn_vnd": None,
+        "foreign_buy_monthly_bn_vnd": None,
+        "foreign_sell_monthly_bn_vnd": None,
+    }
+    if days_found == 0:
+        log("1/7", "  Foreign flow: no cached days in this month")
+        return result
+    result["foreign_net_monthly_bn_vnd"] = round(month_net, 2)
+    has_buy_sell = month_buy != 0 or month_sell != 0
+    if has_buy_sell:
+        result["foreign_buy_monthly_bn_vnd"] = round(month_buy, 2)
+        result["foreign_sell_monthly_bn_vnd"] = round(month_sell, 2)
+    log("1/7", f"  Foreign flow from cache: {days_found} days, net={month_net:+,.2f} bn VND" +
+         (f", buy={month_buy:,.2f}/sell={month_sell:,.2f}" if has_buy_sell else ""))
+    return result
+
+
 def fetch_vnindex_monthly(
     first_day: date, last_day: date
-) -> dict[str, Any]:
-    """Fetch VN-Index OHLC + volume for the entire month."""
+) -> Optional[dict[str, Any]]:
+    """Fetch VN-Index OHLC + liquidity + foreign flow for the month from real sources.
+
+    Returns None when the index or its liquidity cannot be sourced; the caller
+    must stop rather than publish a note without real index data.
+    """
     log("1/7", f"Fetching VN-Index monthly data ({first_day} to {last_day})...")
 
+    rows, source = vn_market_data.fetch_vnindex_daily(first_day, last_day, log)
+    if not rows:
+        log("1/7", "  ERROR: no VN-Index source returned data for this month")
+        return None
+
+    summary = vn_market_data.summarize(rows)
+    liquidity = vn_market_data.avg_daily_liquidity_bn(rows, _fetch_hose_avg_share_price())
+    if liquidity is None:
+        log("1/7", "  ERROR: could not derive average daily liquidity (CafeF HOSE value/volume)")
+        return None
+    log("1/7", f"  [{source}] VN-Index: Open {summary['open']}, Close {summary['close']}, "
+         f"High {summary['high']}, Low {summary['low']}, Days {summary['trading_days']}; "
+         f"liquidity {liquidity:,.0f} bn VND/day")
+
     result: dict[str, Any] = {
-        "open": None, "high": None, "low": None, "close": None,
-        "monthly_change_pct": None, "avg_daily_liquidity_bn_vnd": None,
-        "foreign_net_monthly_bn_vnd": None, "foreign_buy_monthly_bn_vnd": None, "foreign_sell_monthly_bn_vnd": None, "trading_days": 0,
-        "daily_data": [],
+        "open": summary["open"],
+        "high": summary["high"],
+        "low": summary["low"],
+        "close": summary["close"],
+        "monthly_change_pct": summary["change_pct"],
+        "avg_daily_liquidity_bn_vnd": liquidity,
+        "trading_days": summary["trading_days"],
+        "daily_data": rows,
     }
-
-    if HAS_VNQUOTE:
-        try:
-            q = VnQuote(symbol="VNINDEX", source="VCI")
-            df = q.history(start=first_day.isoformat(), end=last_day.isoformat(), interval="1d")
-            if df is not None and not df.empty:
-                import pandas as pd
-                df["time"] = pd.to_datetime(df["time"])
-                df = df[(df["time"] >= pd.Timestamp(first_day)) & (df["time"] <= pd.Timestamp(last_day))]
-
-                result["open"] = safe_num(df.iloc[0].get("open", df.iloc[0].get("Open")))
-                result["high"] = safe_num(df["high"].max() if "high" in df.columns else df["High"].max())
-                result["low"] = safe_num(df["low"].min() if "low" in df.columns else df["Low"].min())
-                result["close"] = safe_num(df.iloc[-1].get("close", df.iloc[-1].get("Close")))
-                result["trading_days"] = len(df)
-
-                if result["open"] and result["close"]:
-                    result["monthly_change_pct"] = round(
-                        (result["close"] - result["open"]) / result["open"] * 100, 2
-                    )
-
-                # Liquidity via CafeF ratio
-                vol_col = "volume" if "volume" in df.columns else "Volume"
-                if vol_col in df.columns:
-                    avg_price = _fetch_hose_avg_share_price()
-                    if avg_price:
-                        per_day_bn = (df[vol_col] * avg_price) / 1e9
-                        result["avg_daily_liquidity_bn_vnd"] = round(per_day_bn.mean(), 2)
-                        log("1/7", f"  Avg daily liquidity: {result['avg_daily_liquidity_bn_vnd']:,.0f} bn VND")
-
-                # Foreign flow from cache (with buy/sell breakdown)
-                cache = _load_foreign_flow_cache()
-                month_net = 0.0
-                month_buy = 0.0
-                month_sell = 0.0
-                days_found = 0
-                for date_str, entry in cache.items():
-                    try:
-                        d = date.fromisoformat(date_str)
-                        if isinstance(entry, dict):
-                            net_val = entry.get("net")
-                            buy_val = entry.get("buy")
-                            sell_val = entry.get("sell")
-                        else:
-                            # Legacy format
-                            net_val = entry
-                            buy_val = None
-                            sell_val = None
-                        if first_day <= d <= last_day:
-                            if net_val is not None:
-                                month_net += net_val
-                                days_found += 1
-                            if buy_val is not None:
-                                month_buy += buy_val
-                            if sell_val is not None:
-                                month_sell += sell_val
-                    except (ValueError, TypeError):
-                        continue
-                if days_found > 0:
-                    result["foreign_net_monthly_bn_vnd"] = round(month_net, 2)
-                    has_buy_sell = (month_buy != 0 or month_sell != 0)
-                    if has_buy_sell:
-                        result["foreign_buy_monthly_bn_vnd"] = round(month_buy, 2)
-                        result["foreign_sell_monthly_bn_vnd"] = round(month_sell, 2)
-                    log("1/7", f"  Foreign flow from cache: {days_found} days, net={month_net:+,.2f} bn VND" +
-                         (f", buy={month_buy:,.2f}/sell={month_sell:,.2f}" if has_buy_sell else ""))
-
-                result["daily_data"] = df.to_dict("records")
-                log("1/7", f"  VN-Index: Open {result['open']}, Close {result['close']}, "
-                     f"High {result['high']}, Low {result['low']}, Days {result['trading_days']}")
-                return result
-        except Exception as e:
-            log("1/7", f"  vnstock failed: {e}")
-
-    # Fallback: yfinance
-    if HAS_YFINANCE:
-        try:
-            ticker = yf.Ticker("^VNINDEX.VN")
-            df = ticker.history(start=first_day, end=last_day + timedelta(days=1))
-            if df is not None and not df.empty:
-                result["open"] = safe_num(df.iloc[0]["Open"])
-                result["high"] = safe_num(df["High"].max())
-                result["low"] = safe_num(df["Low"].min())
-                result["close"] = safe_num(df.iloc[-1]["Close"])
-                result["trading_days"] = len(df)
-                if result["open"] and result["close"]:
-                    result["monthly_change_pct"] = round(
-                        (result["close"] - result["open"]) / result["open"] * 100, 2
-                    )
-                total_vol = df["Volume"].sum()
-                days = max(len(df), 1)
-                avg_price = _fetch_hose_avg_share_price()
-                if avg_price:
-                    result["avg_daily_liquidity_bn_vnd"] = round(total_vol * avg_price / days / 1e9, 2)
-                else:
-                    result["avg_daily_liquidity_bn_vnd"] = round(
-                        total_vol * (result["close"] or 1200) / days / 1e9, 2
-                    )
-                result["daily_data"] = df.reset_index().to_dict("records")
-                log("1/7", f"  [yfinance] VN-Index: Open {result['open']}, Close {result['close']}")
-                return result
-        except Exception as e:
-            log("1/7", f"  yfinance fallback failed: {e}")
-
-    log("1/7", "  WARNING: Could not fetch VN-Index data")
+    result.update(fetch_foreign_flow_monthly(first_day, last_day))
     return result
 
 
@@ -350,60 +306,59 @@ def fetch_sector_performance_monthly(
     return sectors_list
 
 
-def fetch_week_recap(first_day: date, last_day: date) -> list[dict[str, Any]]:
-    """Build a week-by-week recap for the month from VN-Index data."""
+def build_week_recap(daily_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Week-by-week VN-Index recap for the month from daily rows.
+
+    Each week's change is its last close vs the previous week's last close
+    (the first week is measured from the month's first open).
+    """
     log("3/7", "Building week recap...")
 
+    groups: dict[tuple[int, int], list[dict[str, Any]]] = {}
+    for row in daily_rows:
+        iso = date.fromisoformat(row["time"]).isocalendar()
+        groups.setdefault((iso[0], iso[1]), []).append(row)
+
     weeks: list[dict[str, Any]] = []
-
-    if HAS_VNQUOTE:
-        try:
-            q = VnQuote(symbol="VNINDEX", source="VCI")
-            df = q.history(start=first_day.isoformat(), end=last_day.isoformat(), interval="1d")
-            if df is not None and not df.empty:
-                import pandas as pd
-                df["time"] = pd.to_datetime(df["time"])
-                df = df[(df["time"] >= pd.Timestamp(first_day)) & (df["time"] <= pd.Timestamp(last_day))]
-
-                # Group by ISO week
-                df["week_num"] = df["time"].dt.isocalendar().week.astype(int)
-                for week_num, week_df in df.groupby("week_num"):
-                    week_open = safe_num(week_df.iloc[0].get("close", week_df.iloc[0].get("Close")))
-                    week_close = safe_num(week_df.iloc[-1].get("close", week_df.iloc[-1].get("Close")))
-                    if week_open and week_close:
-                        chg = round((week_close - week_open) / week_open * 100, 2)
-                    else:
-                        chg = None
-                    week_start = week_df["time"].min().strftime("%d/%m")
-                    week_end = week_df["time"].max().strftime("%d/%m")
-                    weeks.append({
-                        "label": f"{week_start} – {week_end}",
-                        "change_pct": chg,
-                        "trading_days": len(week_df),
-                    })
-        except Exception as e:
-            log("3/7", f"  Week recap failed: {e}")
+    prev_close: Optional[float] = None
+    for key in sorted(groups):
+        week_rows = groups[key]
+        base = prev_close if prev_close is not None else week_rows[0]["open"]
+        close = week_rows[-1]["close"]
+        start = date.fromisoformat(week_rows[0]["time"]).strftime("%d/%m")
+        end = date.fromisoformat(week_rows[-1]["time"]).strftime("%d/%m")
+        weeks.append({
+            "label": f"{start} – {end}",
+            "change_pct": round((close - base) / base * 100, 2) if base else None,
+            "trading_days": len(week_rows),
+        })
+        prev_close = close
 
     if weeks:
         log("3/7", f"  {len(weeks)} weeks recap: " +
              ", ".join(f"{w['label']}={fmt_pct(w['change_pct'])}" for w in weeks))
-
     return weeks
 
 
 def fetch_macro_monthly(
     first_day: date, last_day: date
 ) -> dict[str, Any]:
-    """Fetch global macro data (DXY, Gold, WTI, BTC, USD/VND) for the month."""
+    """Fetch DXY, Gold, WTI, BTC, USD/VND month-end closes and month-over-month changes.
+
+    Changes are measured against the previous month's last close. Missing
+    values stay None (the site renders "—"); never fill them with estimates.
+    """
     log("4/7", "Fetching macro data...")
 
     result: dict[str, Any] = {}
+    # Start before the month so the prior month-end close is available.
+    lookback = first_day - timedelta(days=10)
     if HAS_YFINANCE:
         import time as _time
         try:
             data = yf.download(
                 ["DX-Y.NYB", "GC=F", "CL=F", "BTC-USD"],
-                start=first_day, end=last_day + timedelta(days=1),
+                start=lookback, end=last_day + timedelta(days=1),
                 group_by="ticker", auto_adjust=True, progress=False,
             )
             for ticker, key_close, key_chg in [
@@ -413,16 +368,10 @@ def fetch_macro_monthly(
                 ("BTC-USD", "btc_close", "btc_monthly_change_pct"),
             ]:
                 try:
-                    if data.columns.nlevels > 1:
-                        sub = data[ticker]["Close"].dropna()
-                    else:
-                        sub = data["Close"].dropna()
-                    if len(sub) >= 2:
-                        result[key_close] = round(safe_num(sub.iloc[-1]), 2)
-                        result[key_chg] = round((sub.iloc[-1] / sub.iloc[0] - 1) * 100, 2)
-                    elif len(sub) == 1:
-                        result[key_close] = round(safe_num(sub.iloc[-1]), 2)
-                        result[key_chg] = None
+                    series = data[ticker]["Close"] if data.columns.nlevels > 1 else data["Close"]
+                    result[key_close], result[key_chg] = vn_market_data.close_and_change(
+                        series, first_day, last_day
+                    )
                 except Exception:
                     continue
             _time.sleep(0.5)
@@ -431,16 +380,11 @@ def fetch_macro_monthly(
 
         # USD/VND
         try:
-            t = yf.Ticker("USDVND=X")
-            hist = t.history(start=first_day, end=last_day + timedelta(days=1))
+            hist = yf.Ticker("USDVND=X").history(start=lookback, end=last_day + timedelta(days=1))
             if hist is not None and not hist.empty:
-                close = safe_num(hist.iloc[-1]["Close"])
-                result["usd_vnd"] = round(close, 2) if close else None
-                if len(hist) >= 2:
-                    prev = safe_num(hist.iloc[0]["Open"])
-                    result["usd_vnd_monthly_change_pct"] = round(
-                        (close - prev) / prev * 100, 2
-                    ) if (close and prev) else None
+                result["usd_vnd"], result["usd_vnd_monthly_change_pct"] = vn_market_data.close_and_change(
+                    hist["Close"], first_day, last_day
+                )
         except Exception as e:
             log("4/7", f"  USD/VND failed: {e}")
 
@@ -624,6 +568,8 @@ def generate_commentary(
             return f"{val:,.2f}"
         return str(val)
 
+    raw = vn_market_data.yaml_scalar  # frontmatter: no thousands separators
+
     m_label = month_label(first_day, last_day)
 
     system_prompt = textwrap.dedent("""\
@@ -754,31 +700,31 @@ DO NOT wrap output in code fences. Output raw markdown.
           month_start: "{first_day.isoformat()}"
           month_end: "{last_day.isoformat()}"
           session_tone: "{tone}"
-          vn_index_open: {n(fm['open'])}
-          vn_index_high: {n(fm['high'])}
-          vn_index_low: {n(fm['low'])}
-          vn_index_close: {n(fm['close'])}
-          vn_index_monthly_change_pct: {n(fm['change_pct'])}
-          avg_daily_liquidity_bn_vnd: {n(fm['liquidity'])}
-          foreign_net_monthly_bn_vnd: {n(fm['foreign_net'])}
-          foreign_buy_monthly_bn_vnd: {n(fm['foreign_buy'])}
-          foreign_sell_monthly_bn_vnd: {n(fm['foreign_sell'])}
+          vn_index_open: {raw(fm['open'])}
+          vn_index_high: {raw(fm['high'])}
+          vn_index_low: {raw(fm['low'])}
+          vn_index_close: {raw(fm['close'])}
+          vn_index_monthly_change_pct: {raw(fm['change_pct'])}
+          avg_daily_liquidity_bn_vnd: {raw(fm['liquidity'])}
+          foreign_net_monthly_bn_vnd: {raw(fm['foreign_net'])}
+          foreign_buy_monthly_bn_vnd: {raw(fm['foreign_buy'])}
+          foreign_sell_monthly_bn_vnd: {raw(fm['foreign_sell'])}
           foreign_net_estimated: {str(fm['foreign_net_estimated']).lower()}
           trading_days: {fm['trading_days']}
           best_sector: {fm['best_sector'] or 'null'}
-          best_sector_change_pct: {n(fm['best_sector_chg'])}
+          best_sector_change_pct: {raw(fm['best_sector_chg'])}
           worst_sector: {fm['worst_sector'] or 'null'}
-          worst_sector_change_pct: {n(fm['worst_sector_chg'])}
-          dxy_close: {n(fm['dxy'])}
-          dxy_monthly_change_pct: {n(fm['dxy_chg'])}
-          usd_vnd: {n(fm['usd_vnd'])}
-          usd_vnd_monthly_change_pct: {n(fm['usd_vnd_chg'])}
-          btc_close: {n(fm['btc'])}
-          btc_monthly_change_pct: {n(fm['btc_chg'])}
-          gold_close: {n(fm['gold'])}
-          gold_monthly_change_pct: {n(fm['gold_chg'])}
-          wti_close: {n(fm['wti'])}
-          wti_monthly_change_pct: {n(fm['wti_chg'])}
+          worst_sector_change_pct: {raw(fm['worst_sector_chg'])}
+          dxy_close: {raw(fm['dxy'])}
+          dxy_monthly_change_pct: {raw(fm['dxy_chg'])}
+          usd_vnd: {raw(fm['usd_vnd'])}
+          usd_vnd_monthly_change_pct: {raw(fm['usd_vnd_chg'])}
+          btc_close: {raw(fm['btc'])}
+          btc_monthly_change_pct: {raw(fm['btc_chg'])}
+          gold_close: {raw(fm['gold'])}
+          gold_monthly_change_pct: {raw(fm['gold_chg'])}
+          wti_close: {raw(fm['wti'])}
+          wti_monthly_change_pct: {raw(fm['wti_chg'])}
         ---
 
         ## Executive Summary
@@ -809,7 +755,38 @@ DO NOT wrap output in code fences. Output raw markdown.
         350-500 words.
     """)
 
-    return call_llm(system_prompt, user_prompt, temperature=0.7, max_tokens=24000)
+    response = call_llm(system_prompt, user_prompt, temperature=0.7, max_tokens=24000)
+    return vn_market_data.enforce_frontmatter(response, {
+        "date": last_day.isoformat(),
+        "month_start": first_day.isoformat(),
+        "month_end": last_day.isoformat(),
+        "session_tone": tone,
+        "vn_index_open": fm["open"],
+        "vn_index_high": fm["high"],
+        "vn_index_low": fm["low"],
+        "vn_index_close": fm["close"],
+        "vn_index_monthly_change_pct": fm["change_pct"],
+        "avg_daily_liquidity_bn_vnd": fm["liquidity"],
+        "foreign_net_monthly_bn_vnd": fm["foreign_net"],
+        "foreign_buy_monthly_bn_vnd": fm["foreign_buy"],
+        "foreign_sell_monthly_bn_vnd": fm["foreign_sell"],
+        "foreign_net_estimated": fm["foreign_net_estimated"],
+        "trading_days": fm["trading_days"],
+        "best_sector": fm["best_sector"],
+        "best_sector_change_pct": fm["best_sector_chg"],
+        "worst_sector": fm["worst_sector"],
+        "worst_sector_change_pct": fm["worst_sector_chg"],
+        "dxy_close": fm["dxy"],
+        "dxy_monthly_change_pct": fm["dxy_chg"],
+        "usd_vnd": fm["usd_vnd"],
+        "usd_vnd_monthly_change_pct": fm["usd_vnd_chg"],
+        "btc_close": fm["btc"],
+        "btc_monthly_change_pct": fm["btc_chg"],
+        "gold_close": fm["gold"],
+        "gold_monthly_change_pct": fm["gold_chg"],
+        "wti_close": fm["wti"],
+        "wti_monthly_change_pct": fm["wti_chg"],
+    })
 
 
 def update_monthly_summary_via_llm(
@@ -911,10 +888,11 @@ def _inject_daily_data(markdown: str, daily_data: list[Any]) -> str:
     daily_block = "\n".join(yaml_lines)
 
     return re.sub(
-        r"(\nsession_tone:[^\n]*\n)---",
-        lambda m: m.group(1) + daily_block + "\n---",
+        r"\A(\s*---\s*\n.*?)\n---",
+        lambda m: m.group(1) + "\n" + daily_block + "\n---",
         markdown,
         count=1,
+        flags=re.DOTALL,
     )
 
 
@@ -1001,8 +979,11 @@ def main() -> None:
 
     # ── Fetch data ──
     market_data = fetch_vnindex_monthly(first_day, last_day)
+    if market_data is None:
+        print("\n  ABORT: no real VN-Index data for this month — nothing was written.")
+        sys.exit(1)
     sectors = fetch_sector_performance_monthly(first_day, last_day)
-    week_recap = fetch_week_recap(first_day, last_day)
+    week_recap = build_week_recap(market_data["daily_data"])
     macro_data = fetch_macro_monthly(first_day, last_day)
 
     # ── Load monthly summary ──

@@ -33,7 +33,7 @@ from market_memory import (
 )
 
 # ── Reconfigure stdout/stderr to UTF-8 (Windows console default is cp1252/charmap,
-#    which breaks when vnstock or feedparser prints Vietnamese characters) ──
+#    which breaks when feedparser prints Vietnamese characters) ──
 for _stream_name in ("stdout", "stderr"):
     _stream = getattr(sys, _stream_name, None)
     if _stream is not None and hasattr(_stream, "reconfigure"):
@@ -68,17 +68,7 @@ try:
 except ImportError:
     HAS_YFINANCE = False
 
-try:
-    from vnstock import Vnstock
-    HAS_VNSTOCK = True
-except ImportError:
-    HAS_VNSTOCK = False
-
-try:
-    from vnstock.api.quote import Quote as VnQuote
-    HAS_VNQUOTE = True
-except ImportError:
-    HAS_VNQUOTE = False
+import vn_market_data
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -462,8 +452,8 @@ def collect_foreign_flow_today() -> Optional[dict[str, Any]]:
 
     cache = _load_foreign_flow_cache()
     cache[trade_date_str] = {"net": net_bn, "buy": buy_bn, "sell": sell_bn}
-    cutoff = (today_ict() - timedelta(days=60)).isoformat()
-    cache = {k: v for k, v in cache.items() if k >= cutoff}
+    # Keep every day: there is no historical foreign-flow API, so a pruned day
+    # is gone for good (backfills and monthly notes need the full history).
     _save_foreign_flow_cache(cache)
 
     log("FF", f"  HOSE foreign flow for {trade_date_str} [{source}]: "
@@ -535,237 +525,49 @@ def fetch_foreign_flow_weekly(monday: date, friday: date) -> Optional[dict[str, 
 
 def fetch_vnindex_weekly(
     monday: date, friday: date
-) -> dict[str, Any]:
+) -> Optional[dict[str, Any]]:
     """
-    Fetch VN-Index OHLC + volume for the week.
+    Fetch VN-Index OHLC + liquidity for the week from real sources only.
+
     Returns dict with: open, high, low, close, weekly_change_pct,
-    avg_daily_liquidity_bn_vnd, foreign_net_weekly_bn_vnd.
+    avg_daily_liquidity_bn_vnd, daily_data, source — or None when the index
+    or its liquidity cannot be sourced. The caller must stop in that case:
+    a weekly note without real index data must not be published.
     """
     log("1/8", "Fetching VN-Index weekly data...")
 
-    result: dict[str, Any] = {
-        "open": None, "high": None, "low": None, "close": None,
-        "weekly_change_pct": None, "avg_daily_liquidity_bn_vnd": None,
-        "foreign_net_weekly_bn_vnd": None, "daily_data": [],
-    }
+    rows, source = vn_market_data.fetch_vnindex_daily(monday, friday, log)
+    if not rows:
+        log("1/8", "  ERROR: no VN-Index source returned data for this week")
+        return None
 
-    # Try vnstock v4.0 API first (Quote class)
-    if HAS_VNQUOTE:
-        try:
-            q = VnQuote(symbol="VNINDEX", source="VCI")
-            df = q.history(start=monday.isoformat(), end=friday.isoformat(), interval="1d")
-            if df is not None and not df.empty:
-                # vnstock may include rows before the target week; filter to [monday, friday]
-                date_col = "time" if "time" in df.columns else "date" if "date" in df.columns else "Date"
-                if date_col in df.columns:
-                    df[date_col] = df[date_col].apply(
-                        lambda v: date.fromisoformat(str(v)[:10]) if isinstance(v, str)
-                        else v.date() if hasattr(v, "date") else v
-                    )
-                    df = df[(df[date_col] >= monday) & (df[date_col] <= friday)]
-                if df is not None and not df.empty:
-                    result["open"] = safe_num(df.iloc[0].get("open", df.iloc[0].get("Open")))
-                    result["high"] = safe_num(df["high"].max() if "high" in df.columns else df["High"].max())
-                    result["low"] = safe_num(df["low"].min() if "low" in df.columns else df["Low"].min())
-                    result["close"] = safe_num(df.iloc[-1].get("close", df.iloc[-1].get("Close")))
-                    if result["open"] and result["close"]:
-                        result["weekly_change_pct"] = round(
-                            (result["close"] - result["open"]) / result["open"] * 100, 2
-                        )
-                    # Liquidity: VCI `volume` is total HOSE shares traded.
-                    # VN-Index `close` is an index level (~1840), NOT an average share
-                    # price (~28,000 VND). Multiplying shares × index_close gives a
-                    # value that is ~16× too low. Instead, fetch the actual HOSE trading
-                    # value (tỷ VND) from CafeF banggia API and derive the avg share
-                    # price, then apply to each day's volume.
-                    vol_col = "volume" if "volume" in df.columns else "Volume"
-                    if vol_col in df.columns:
-                        avg_price = _fetch_hose_avg_share_price()
-                        if avg_price:
-                            per_day_bn = (df[vol_col] * avg_price) / 1e9
-                            result["avg_daily_liquidity_bn_vnd"] = round(
-                                per_day_bn.mean(), 2
-                            )
-                            log('1/8', f"  Liquidity via CafeF ratio (avg price {avg_price:,.0f} VND/share): "
-                                 f"{result['avg_daily_liquidity_bn_vnd']:,.0f} bn VND/day")
-                        else:
-                            # Fallback: use index_close as last resort (known ~16× low)
-                            close_col = "close" if "close" in df.columns else "Close"
-                            if close_col in df.columns:
-                                per_day_vnd = (df[vol_col] * df[close_col]) / 1e9
-                                result["avg_daily_liquidity_bn_vnd"] = round(per_day_vnd.mean(), 2)
-                                log('1/8', "  WARNING: Liquidity estimated via volume×close (~16× low, no CafeF data)")
-                    # Store daily rows for chart
-                    result["daily_data"] = df.to_dict("records")
-                    log("1/8", f"  [vnstock v4] VN-Index: Open {result['open']}, Close {result['close']}, "
-                         f"High {result['high']}, Low {result['low']}")
-                    return result
-        except Exception as e:
-            log("1/8", f"  vnstock v4 Quote failed: {e}, trying yfinance fallback...")
+    summary = vn_market_data.summarize(rows)
+    liquidity = vn_market_data.avg_daily_liquidity_bn(rows, _fetch_hose_avg_share_price())
+    if liquidity is None:
+        log("1/8", "  ERROR: could not derive average daily liquidity (CafeF HOSE value/volume)")
+        return None
 
-    # Fallback: yfinance (correct ticker is ^VNINDEX.VN, not ^VNINDEX)
-    if HAS_YFINANCE:
-        try:
-            ticker = yf.Ticker("^VNINDEX.VN")
-            df = ticker.history(start=monday, end=friday + timedelta(days=1))
-            if df is not None and not df.empty:
-                result["open"] = safe_num(df.iloc[0]["Open"])
-                result["high"] = safe_num(df["High"].max())
-                result["low"] = safe_num(df["Low"].min())
-                result["close"] = safe_num(df.iloc[-1]["Close"])
-                if result["open"] and result["close"]:
-                    result["weekly_change_pct"] = round(
-                        (result["close"] - result["open"]) / result["open"] * 100, 2
-                    )
-                total_vol = df["Volume"].sum()
-                days = max(len(df), 1)
-                # VN-Index volume is in shares; use CafeF avg share price for conversion
-                avg_price = _fetch_hose_avg_share_price()
-                if avg_price:
-                    result["avg_daily_liquidity_bn_vnd"] = round(
-                        total_vol * avg_price / days / 1e9, 2
-                    )
-                else:
-                    # Fallback: index_close is ~16× too low as share price proxy
-                    result["avg_daily_liquidity_bn_vnd"] = round(
-                        total_vol * (result["close"] or 1200) / days / 1e9, 2
-                    )
-                result["daily_data"] = df.reset_index().to_dict("records")
-                log("1/8", f"  [yfinance] VN-Index: Open {result['open']}, Close {result['close']}")
-                return result
-        except Exception as e:
-            log("1/8", f"  yfinance fallback also failed: {e}")
-
-    # ── Final fallback: synthesize plausible data ──────────────────────────
-    # Used when no real source is available (CI sandbox, future dates, network blocked).
-    # Drift is deterministic from ISO week so each Friday gets a unique value.
-    log("1/8", "  All sources failed — synthesizing plausible data based on last-known close")
-    return _synthesize_vnindex(monday, friday)
-
-
-def _synthesize_vnindex(monday: date, friday: date) -> dict[str, Any]:
-    """
-    Generate plausible VN-Index OHLCV when all real sources fail.
-
-    Uses a deterministic seed (week number + year) so each Friday gets consistent
-    values across re-runs. Anchored to a "last known close" of 1830 (approximate
-    VN-Index level mid-2026) with weekly drift of ±1.5%.
-    """
-    import random as _r
-    seed = friday.year * 100 + friday.isocalendar().week
-    rng = _r.Random(seed)
-    base_close = 1830.0
-    weekly_drift = rng.uniform(-1.5, 1.5)  # ±1.5%
-    open_px = base_close + rng.uniform(-20, 20)
-    close_px = round(open_px * (1 + weekly_drift / 100), 2)
-    high_px = round(max(open_px, close_px) + rng.uniform(5, 25), 2)
-    low_px = round(min(open_px, close_px) - rng.uniform(5, 25), 2)
-    change_pct = round((close_px - open_px) / open_px * 100, 2)
-    liquidity_bn = round(rng.uniform(16000, 22000), 0)
-    # Build 5-day OHLCV for chart
-    daily: list[dict[str, Any]] = []
-    px = open_px
-    for i in range(5):
-        day_open = px
-        day_close = round(px * (1 + rng.uniform(-1.2, 1.2) / 100), 2)
-        day_high = round(max(day_open, day_close) + rng.uniform(2, 12), 2)
-        day_low = round(min(day_open, day_close) - rng.uniform(2, 12), 2)
-        daily.append({
-            "time": (monday + timedelta(days=i)).isoformat(),
-            "open": day_open, "high": day_high, "low": day_low, "close": day_close,
-            "volume": int(rng.uniform(8e7, 1.5e8)),
-        })
-        px = day_close
+    log("1/8", f"  [{source}] VN-Index: Open {summary['open']}, Close {summary['close']}, "
+         f"High {summary['high']}, Low {summary['low']}, {summary['trading_days']} sessions; "
+         f"liquidity {liquidity:,.0f} bn VND/day")
     return {
-        "open": round(open_px, 2),
-        "high": high_px,
-        "low": low_px,
-        "close": close_px,
-        "weekly_change_pct": change_pct,
-        "avg_daily_liquidity_bn_vnd": liquidity_bn,
-        "foreign_net_weekly_bn_vnd": None,  # filled by fetch_foreign_flow
-        "foreign_buy_weekly_bn_vnd": None,  # filled by fetch_foreign_flow
-        "foreign_sell_weekly_bn_vnd": None,  # filled by fetch_foreign_flow
-        "daily_data": daily,
-        "_estimated": True,  # marker so caller can note in commentary
+        "open": summary["open"],
+        "high": summary["high"],
+        "low": summary["low"],
+        "close": summary["close"],
+        "weekly_change_pct": summary["change_pct"],
+        "avg_daily_liquidity_bn_vnd": liquidity,
+        "foreign_net_weekly_bn_vnd": None,
+        "daily_data": rows,
+        "source": source,
     }
-
-
-def _synthesize_foreign_flow(seed_int: int) -> int:
-    """Deterministic plausible foreign net flow in bn VND."""
-    import random as _r
-    rng = _r.Random(seed_int)
-    return int(round(rng.uniform(-2500, 2500), 0))
-
-
-def _synthesize_macro_snapshot(seed_int: int) -> dict[str, Any]:
-    """Deterministic plausible macro data (USD/VND, DXY, Gold, WTI, BTC) when feeds fail."""
-    import random as _r
-    rng = _r.Random(seed_int)
-    usd_vnd = round(rng.uniform(25200, 25800), 0)
-    usd_vnd_chg = round(rng.uniform(-0.3, 0.3), 2)
-    dxy = round(rng.uniform(100.0, 106.0), 2)
-    dxy_chg = round(rng.uniform(-1.0, 1.0), 2)
-    gold = round(rng.uniform(3800, 4500), 2)
-    gold_chg = round(rng.uniform(-1.5, 1.5), 2)
-    wti = round(rng.uniform(60, 78), 2)
-    wti_chg = round(rng.uniform(-3.0, 3.0), 2)
-    btc = round(rng.uniform(95000, 110000), 2)
-    btc_chg = round(rng.uniform(-4.0, 4.0), 2)
-    return {
-        "usd_vnd_close": usd_vnd, "usd_vnd_change_pct": usd_vnd_chg,
-        "dxy_close": dxy, "dxy_change_pct": dxy_chg,
-        "gold_close": gold, "gold_change_pct": gold_chg,
-        "wti_close": wti, "wti_change_pct": wti_chg,
-        "btc_close": btc, "btc_change_pct": btc_chg,
-        "_estimated": True,
-    }
-
-
-def _synthesize_sectors(seed_int: int) -> list[dict[str, Any]]:
-    """Deterministic plausible sector performance for top 5 sectors."""
-    import random as _r
-    rng = _r.Random(seed_int)
-    pool = [
-        "Banking", "Real Estate", "Steel", "Securities", "Retail",
-        "Technology", "Oil & Gas", "Food & Beverage", "Aviation", "Construction",
-        "Insurance", "Utilities", "Healthcare",
-    ]
-    # Sample 5 sectors with random change between -3% and +3%
-    selected = rng.sample(pool, 5)
-    sectors = [
-        {"sector": s, "change_pct": round(rng.uniform(-3.0, 3.0), 2)}
-        for s in selected
-    ]
-    sectors.sort(key=lambda x: x["change_pct"], reverse=True)
-    return sectors
 
 
 def fetch_sector_performance(monday: date, friday: date) -> list[dict[str, Any]]:
     """Fetch sector performance ranking for the week. Returns list of {sector, change_pct}."""
     log("2/8", "Fetching sector performance...")
 
-    if HAS_VNSTOCK:
-        try:
-            stock = Vnstock()
-            # Try to get industry/sector data
-            sectors_raw = stock.stock.symbols.industries(source="VCI")
-            if sectors_raw is not None and not sectors_raw.empty:
-                # We get the industry list; for weekly change we need price data
-                # Build a simplified sector ranking from the data available
-                sectors_list: list[dict[str, Any]] = []
-                for _, row in sectors_raw.head(30).iterrows():
-                    sector_name = row.get("industry_name", row.get("Industry", "Unknown"))
-                    change = safe_num(row.get("change_percent", row.get("ChangePct", 0)), 0)
-                    sectors_list.append({"sector": sector_name, "change_pct": change})
-                if sectors_list:
-                    sectors_list.sort(key=lambda x: x["change_pct"], reverse=True)
-                    log("2/8", f"  Got {len(sectors_list)} sectors from vnstock")
-                    return sectors_list
-        except Exception as e:
-            log("2/8", f"  vnstock sectors failed: {e}")
-
-    # Fallback: try yfinance for some Vietnam ETFs as sector proxies
+    # Sector-leading stocks as proxies (yfinance). Proxies, not sector indices.
     if HAS_YFINANCE:
         try:
             # VN30 as major index proxy, plus some individual sector-leading stocks
@@ -811,9 +613,9 @@ def fetch_foreign_flow(monday: date, friday: date) -> tuple[Optional[float], Opt
 
     Strategy (in priority order):
     1. Sum cached daily values from _foreign_flow_cache.json (REAL data
-       collected daily via CafeF banggia API + --collect-foreign-flow).
-    2. Fallback: try vnstock foreign_flow API (often NotImplementedError).
-    3. Fallback: return None values with is_estimated flag.
+       collected daily via HSX / CafeF + --collect-foreign-flow).
+    2. Fallback: return None values with is_estimated flag. There is no
+       historical foreign-flow source; never invent these numbers.
 
     Returns (net_bn_vnd, buy_bn_vnd, sell_bn_vnd, is_estimated).
     buy/sell may be None even when net has a value (legacy cache format).
@@ -830,30 +632,7 @@ def fetch_foreign_flow(monday: date, friday: date) -> tuple[Optional[float], Opt
              f", buy={buy_val:,.2f}" if buy_val else f"  Foreign net (cached/real): {net_val:+,.2f} bn VND")
         return net_val, buy_val, sell_val, False
 
-    # 2. Try vnstock API
-    if HAS_VNSTOCK:
-        try:
-            stock = Vnstock()
-            df = stock.trading.foreign_flow(
-                symbol="VNINDEX",
-                start=monday.isoformat(),
-                end=friday.isoformat(),
-                source="VCI",
-            )
-            if df is not None and not df.empty:
-                net_col = None
-                for col in ["net_val", "NetVal", "net_value", "NetForeignValue"]:
-                    if col in df.columns:
-                        net_col = col
-                        break
-                if net_col:
-                    net = round(safe_num(df[net_col].sum(), 0) / 1e9, 2)
-                    log("3/8", f"  Foreign net (vnstock): {net:+,.2f} bn VND")
-                    return net, None, None, False
-        except Exception as e:
-            log("3/8", f"  vnstock foreign flow failed: {e}")
-
-    # 3. Fallback: return None values
+    # 2. Fallback: return None values
     log("3/8", "  WARNING: No real foreign flow data available")
     return None, None, None, True
 
@@ -861,9 +640,9 @@ def fetch_foreign_flow(monday: date, friday: date) -> tuple[Optional[float], Opt
 
 
 def fetch_usd_vnd(
-    monday: Optional[date] = None, friday: Optional[date] = None
+    monday: date, friday: date
 ) -> tuple[Optional[float], Optional[float]]:
-    """Fetch USD/VND rate and weekly change. Returns (rate, weekly_change_pct)."""
+    """Fetch USD/VND close and week-over-week change. Returns (rate, weekly_change_pct)."""
     log("4/8", "Fetching USD/VND...")
 
     if HAS_YFINANCE:
@@ -871,20 +650,15 @@ def fetch_usd_vnd(
         for attempt in range(3):
             try:
                 # Let yfinance manage its own session (curl_cffi on newer versions).
-                t = yf.Ticker("USDVND=X")
-                if monday and friday:
-                    hist = t.history(start=monday, end=friday + timedelta(days=1))
-                else:
-                    hist = t.history(period="1wk")
+                # Start a week early so the prior Friday's close is available.
+                hist = yf.Ticker("USDVND=X").history(
+                    start=monday - timedelta(days=7), end=friday + timedelta(days=1)
+                )
                 if hist is not None and not hist.empty:
-                    close = safe_num(hist.iloc[-1]["Close"])
-                    if len(hist) >= 2:
-                        prev = safe_num(hist.iloc[-2]["Close"])
-                        chg = round((close - prev) / prev * 100, 2) if prev else None
-                    else:
-                        chg = None
-                    log("4/8", f"  USD/VND: {close} ({fmt_pct(chg)})")
-                    return close, chg
+                    close, chg = vn_market_data.close_and_change(hist["Close"], monday, friday)
+                    if close is not None:
+                        log("4/8", f"  USD/VND: {close} ({fmt_pct(chg)} w/w)")
+                        return close, chg
             except Exception as e:
                 log("4/8", f"  yfinance USD/VND attempt {attempt+1}/3 failed: {e}")
                 if attempt < 2:
@@ -894,45 +668,12 @@ def fetch_usd_vnd(
     return None, None
 
 
-def fetch_global_macro(
-    symbol: str,
-    monday: Optional[date] = None,
-    friday: Optional[date] = None,
-) -> tuple[Optional[float], Optional[float]]:
-    """Fetch a global symbol's close and weekly change via yfinance, with retry."""
-    try:
-        if not HAS_YFINANCE:
-            return None, None
-        import time as _time
-        for attempt in range(3):
-            try:
-                # Let yfinance manage its own session (curl_cffi on newer versions).
-                t = yf.Ticker(symbol)
-                if monday and friday:
-                    hist = t.history(start=monday, end=friday + timedelta(days=1))
-                else:
-                    hist = t.history(period="1wk")
-                if hist is not None and not hist.empty:
-                    close = safe_num(hist.iloc[-1]["Close"])
-                    if len(hist) >= 2:
-                        prev = safe_num(hist.iloc[-2]["Close"])
-                        chg = round((close - prev) / prev * 100, 2) if prev else None
-                    else:
-                        chg = None
-                    return close, chg
-            except Exception as e:
-                log("5/8", f"  {symbol} attempt {attempt+1}/3 failed: {e}")
-                if attempt < 2:
-                    _time.sleep(2 ** attempt)
-    except Exception:
-        pass
-    return None, None
+def fetch_all_macro(monday: date, friday: date) -> dict[str, Any]:
+    """Fetch DXY, Gold, WTI, BTC closes and week-over-week changes via yf.download().
 
-
-def fetch_all_macro(
-    monday: Optional[date] = None, friday: Optional[date] = None
-) -> dict[str, Any]:
-    """Fetch DXY, Gold, WTI, BTC in one batch using yf.download() with retry."""
+    Missing values stay None: the site renders them as "—". Never fill them
+    with estimates.
+    """
     log("5/8", "Fetching global macro (DXY, Gold, WTI, BTC)...")
 
     symbols = {
@@ -950,21 +691,14 @@ def fetch_all_macro(
             try:
                 # Let yfinance manage its own session (curl_cffi on newer versions).
                 # Do NOT pass a custom requests.Session — yfinance 0.2.55+ requires curl_cffi.
-                if monday and friday:
-                    data = yf.download(
-                        list(symbols.values()),
-                        start=monday,
-                        end=friday + timedelta(days=1),
-                        progress=False,
-                        threads=False,
-                    )
-                else:
-                    data = yf.download(
-                        list(symbols.values()),
-                        period="1wk",
-                        progress=False,
-                        threads=False,
-                    )
+                # Start a week early so the prior week's close is available.
+                data = yf.download(
+                    list(symbols.values()),
+                    start=monday - timedelta(days=7),
+                    end=friday + timedelta(days=1),
+                    progress=False,
+                    threads=False,
+                )
                 if data is not None and not data.empty:
                     break
             except Exception as e:
@@ -978,24 +712,19 @@ def fetch_all_macro(
             close_df = data["Close"] if "Close" in data.columns else None
             for key, sym in symbols.items():
                 if close_df is not None and sym in close_df.columns:
-                    series = close_df[sym].dropna()
-                    if len(series) >= 1:
-                        results[f"{key}_close"] = safe_num(series.iloc[-1])
-                        if len(series) >= 2:
-                            prev = safe_num(series.iloc[-2])
-                            curr = safe_num(series.iloc[-1])
-                            if prev and curr:
-                                results[f"{key}_change_pct"] = round((curr - prev) / prev * 100, 2)
+                    close, chg = vn_market_data.close_and_change(close_df[sym], monday, friday)
+                    results[f"{key}_close"] = close
+                    results[f"{key}_change_pct"] = chg
 
     # Fill missing keys with None
     for key in symbols:
         results.setdefault(f"{key}_close", None)
         results.setdefault(f"{key}_change_pct", None)
 
-    for key, sym in symbols.items():
+    for key in symbols:
         close_val = results.get(f"{key}_close")
         chg_val = results.get(f"{key}_change_pct")
-        log("5/8", f"  {key.upper()}: {close_val} ({fmt_pct(chg_val)})" if close_val else f"  {key.upper()}: unavailable")
+        log("5/8", f"  {key.upper()}: {close_val} ({fmt_pct(chg_val)} w/w)" if close_val else f"  {key.upper()}: unavailable")
 
     return results
 
@@ -1345,20 +1074,20 @@ def generate_commentary(
             return f"{val:,.2f}"
         return str(val)
 
+    raw = vn_market_data.yaml_scalar  # frontmatter: no thousands separators
+
     friday_iso = friday.isoformat()
     monday_iso = monday.isoformat()
     date_range_label = f"{monday.strftime('%d/%m')} – {friday.strftime('%d/%m')}"
 
-    # Data-quality note for synthesized fields
+    # Data-quality note for unavailable fields
     estimated_note = ""
     if estimated_fields:
         estimated_note = (
-            f"\n\nDATA QUALITY NOTE: The following fields could not be retrieved from real-time "
-            f"sources this run and were filled with synthetic estimates (deterministic from "
-            f"the week, NOT market-confirmed): {', '.join(estimated_fields)}. "
-            f"Use these values for narrative continuity but explicitly note in the commentary "
-            f"body that real-time data was unavailable for these fields. Do NOT claim them as "
-            f"market-confirmed facts."
+            f"\n\nDATA QUALITY NOTE: The following fields could not be retrieved from real "
+            f"sources this run and are null: {', '.join(estimated_fields)}. Keep them null in "
+            f"the frontmatter, do not estimate or invent values for them, and say briefly in "
+            f"the body that the data was unavailable."
         )
 
     system_msg = f"""You are Nguyen Vu Truong Huy, a Vietnam capital markets analyst (passed Level II of the CFA Program,
@@ -1413,26 +1142,26 @@ title: "Weekly Market View: {date_range_label} — [DESCRIPTIVE HEADLINE]"
 date: "{friday_iso}"
 week_start: "{monday_iso}"
 week_end: "{friday_iso}"
-vn_index_open: {n(fm['open'])}
-vn_index_high: {n(fm['high'])}
-vn_index_low: {n(fm['low'])}
-vn_index_close: {n(fm['close'])}
-vn_index_weekly_change_pct: {n(fm['change_pct'])}
-avg_daily_liquidity_bn_vnd: {n(fm['liquidity'])}
-foreign_net_weekly_bn_vnd: {n(fm['foreign_net'])}
-foreign_buy_weekly_bn_vnd: {n(fm['foreign_buy'])}
-foreign_sell_weekly_bn_vnd: {n(fm['foreign_sell'])}
+vn_index_open: {raw(fm['open'])}
+vn_index_high: {raw(fm['high'])}
+vn_index_low: {raw(fm['low'])}
+vn_index_close: {raw(fm['close'])}
+vn_index_weekly_change_pct: {raw(fm['change_pct'])}
+avg_daily_liquidity_bn_vnd: {raw(fm['liquidity'])}
+foreign_net_weekly_bn_vnd: {raw(fm['foreign_net'])}
+foreign_buy_weekly_bn_vnd: {raw(fm['foreign_buy'])}
+foreign_sell_weekly_bn_vnd: {raw(fm['foreign_sell'])}
 foreign_net_estimated: {str(fm['foreign_net_estimated']).lower()}
-dxy_close: {n(fm['dxy'])}
-dxy_weekly_change_pct: {n(fm['dxy_chg'])}
-usd_vnd: {n(fm['usd_vnd'])}
-usd_vnd_weekly_change_pct: {n(fm['usd_vnd_chg'])}
-btc_close: {n(fm['btc'])}
-btc_weekly_change_pct: {n(fm['btc_chg'])}
-gold_close: {n(fm['gold'])}
-gold_weekly_change_pct: {n(fm['gold_chg'])}
-wti_close: {n(fm['wti'])}
-wti_weekly_change_pct: {n(fm['wti_chg'])}
+dxy_close: {raw(fm['dxy'])}
+dxy_weekly_change_pct: {raw(fm['dxy_chg'])}
+usd_vnd: {raw(fm['usd_vnd'])}
+usd_vnd_weekly_change_pct: {raw(fm['usd_vnd_chg'])}
+btc_close: {raw(fm['btc'])}
+btc_weekly_change_pct: {raw(fm['btc_chg'])}
+gold_close: {raw(fm['gold'])}
+gold_weekly_change_pct: {raw(fm['gold_chg'])}
+wti_close: {raw(fm['wti'])}
+wti_weekly_change_pct: {raw(fm['wti_chg'])}
 session_tone: "{tone}"
 ---
 
@@ -1469,7 +1198,32 @@ RULES:
 - CRITICAL: foreign_net_weekly_bn_vnd, foreign_buy_weekly_bn_vnd, and foreign_sell_weekly_bn_vnd MUST be null when no real foreign flow data is available. Do NOT invent or estimate these values. If the provided data shows null, output null."""
 
     response = call_llm(system_msg, user_msg, temperature=0.7, max_tokens=16000)
-    return response
+    return vn_market_data.enforce_frontmatter(response, {
+        "date": friday_iso,
+        "week_start": monday_iso,
+        "week_end": friday_iso,
+        "vn_index_open": fm["open"],
+        "vn_index_high": fm["high"],
+        "vn_index_low": fm["low"],
+        "vn_index_close": fm["close"],
+        "vn_index_weekly_change_pct": fm["change_pct"],
+        "avg_daily_liquidity_bn_vnd": fm["liquidity"],
+        "foreign_net_weekly_bn_vnd": fm["foreign_net"],
+        "foreign_buy_weekly_bn_vnd": fm["foreign_buy"],
+        "foreign_sell_weekly_bn_vnd": fm["foreign_sell"],
+        "foreign_net_estimated": fm["foreign_net_estimated"],
+        "dxy_close": fm["dxy"],
+        "dxy_weekly_change_pct": fm["dxy_chg"],
+        "usd_vnd": fm["usd_vnd"],
+        "usd_vnd_weekly_change_pct": fm["usd_vnd_chg"],
+        "btc_close": fm["btc"],
+        "btc_weekly_change_pct": fm["btc_chg"],
+        "gold_close": fm["gold"],
+        "gold_weekly_change_pct": fm["gold_chg"],
+        "wti_close": fm["wti"],
+        "wti_weekly_change_pct": fm["wti_chg"],
+        "session_tone": tone,
+    })
 
 
 def update_quarterly_summary_via_llm(
@@ -1627,7 +1381,7 @@ def _inject_daily_data(markdown: str, daily_data: list[Any]) -> str:
         else:
             time_str = str(time_val)[:10]
 
-        # Map column names (vnstock lowercase or yfinance capitalised)
+        # Map column names (lowercase or yfinance capitalised)
         def _f(row: dict, *keys: str) -> float | None:
             for k in keys:
                 v = row.get(k)
@@ -1660,12 +1414,13 @@ def _inject_daily_data(markdown: str, daily_data: list[Any]) -> str:
         )
     daily_block = "\n".join(yaml_lines)
 
-    # Insert before the closing --- of frontmatter
+    # Insert before the closing --- of the frontmatter
     return re.sub(
-        r"(\nsession_tone:[^\n]*\n)---",
-        lambda m: m.group(1) + daily_block + "\n---",
+        r"\A(\s*---\s*\n.*?)\n---",
+        lambda m: m.group(1) + "\n" + daily_block + "\n---",
         markdown,
         count=1,
+        flags=re.DOTALL,
     )
 
 
@@ -1824,8 +1579,8 @@ def main() -> None:
     parser.add_argument(
         "--deploy",
         action="store_true",
-        help="After generation, git commit everything and push to GitHub. "
-             "GitHub Actions will auto-build and deploy to Vercel.",
+        help="After generation, commit the generated content and push to GitHub. "
+             "Vercel deploys pushes to master.",
     )
 
     args = parser.parse_args()
@@ -1853,6 +1608,7 @@ def main() -> None:
             print(f"\n  Done. Today's foreign net: {ff_result['net']:+,.2f} bn VND (cached)")
         else:
             print("\n  Failed to collect foreign flow data.")
+            sys.exit(1)
         return
 
     # ── Determine target week ───────────────────────────────────────────────
@@ -1866,22 +1622,23 @@ def main() -> None:
 
     # ── Fetch data ──────────────────────────────────────────────────────────
     vn_data = fetch_vnindex_weekly(monday, friday)
+    if vn_data is None:
+        print("\n  ABORT: no real VN-Index data for this week — nothing was written.")
+        sys.exit(1)
     sectors = fetch_sector_performance(monday, friday)
 
     # Collect today's foreign flow into cache (best-effort, non-blocking)
     collect_foreign_flow_today()
 
-    # Track which fields are estimated for the LLM prompt
+    # Fields with no real data this run. They stay null in frontmatter (the
+    # site shows "—") and the LLM is told not to discuss them as facts.
     estimated_fields: list[str] = []
 
     # Foreign flow — merge into vn_data
     foreign, foreign_buy, foreign_sell, foreign_is_estimated = fetch_foreign_flow(monday, friday)
-    if foreign is not None and vn_data.get("foreign_net_weekly_bn_vnd") is None:
-        vn_data["foreign_net_weekly_bn_vnd"] = foreign
-    if foreign_buy is not None and vn_data.get("foreign_buy_weekly_bn_vnd") is None:
-        vn_data["foreign_buy_weekly_bn_vnd"] = foreign_buy
-    if foreign_sell is not None and vn_data.get("foreign_sell_weekly_bn_vnd") is None:
-        vn_data["foreign_sell_weekly_bn_vnd"] = foreign_sell
+    vn_data["foreign_net_weekly_bn_vnd"] = foreign
+    vn_data["foreign_buy_weekly_bn_vnd"] = foreign_buy
+    vn_data["foreign_sell_weekly_bn_vnd"] = foreign_sell
     if foreign_is_estimated:
         estimated_fields.append("foreign_net_weekly_bn_vnd")
 
@@ -1890,46 +1647,17 @@ def main() -> None:
 
     # Global macro: DXY, Gold, WTI, BTC
     macro_data = fetch_all_macro(monday, friday)
-    # Add USD/VND
     macro_data["usd_vnd_close"] = usd_vnd_rate
     macro_data["usd_vnd_change_pct"] = usd_vnd_chg
 
-    # ── Synthesis fallback for any missing fields ──────────────────────────
-    # When real data sources fail (CI sandbox, future dates, network blocks),
-    # fill remaining gaps with deterministic plausible values so the LLM has
-    # something concrete to work with. Mark estimated fields in commentary.
-    seed = friday.year * 100 + friday.isocalendar().week
-    if 'estimated_fields' not in dir() or not isinstance(estimated_fields, list):
-        estimated_fields: list[str] = []
-
-    if vn_data.get("foreign_net_weekly_bn_vnd") is None:
-        # No real foreign flow data available — leave as None rather than
-        # synthesizing fake data. Frontend displays "—" / "data unavailable".
-        log("3/8", "  No real foreign flow data; field will be null in frontmatter")
-    if foreign_buy is not None and vn_data.get("foreign_buy_weekly_bn_vnd") is None:
-        vn_data["foreign_buy_weekly_bn_vnd"] = foreign_buy
-    if foreign_sell is not None and vn_data.get("foreign_sell_weekly_bn_vnd") is None:
-        vn_data["foreign_sell_weekly_bn_vnd"] = foreign_sell
-
     if not sectors:
-        sectors = _synthesize_sectors(seed)
         estimated_fields.append("sectors")
-        log("2/8", f"  Sector performance synthesized ({len(sectors)} sectors)")
-
-    # If any global macro field is None, fill from synthesis
-    macro_synth = _synthesize_macro_snapshot(seed)
-    for key, val in macro_synth.items():
-        if key.startswith("_"):
-            continue
-        if macro_data.get(key) is None:
-            macro_data[key] = val
-            estimated_fields.append(key)
-            log("SYN", f"  {key}: {val} (synthesized)")
+    estimated_fields += [k for k, v in macro_data.items() if v is None]
 
     if estimated_fields:
-        log("SYN", f"Synthesized estimates for: {', '.join(estimated_fields)}")
+        log("DATA", f"Unavailable this run (left null): {', '.join(estimated_fields)}")
     else:
-        log("SYN", "All data from real sources — no synthesis needed")
+        log("DATA", "All fields from real sources")
 
     # ── Load / prepare quarterly summary ────────────────────────────────────
     current_quarter = get_quarter(friday)
@@ -2021,13 +1749,12 @@ def main() -> None:
         log("DEPLOY", "Committing and pushing to GitHub...")
         deploy_result = _git_deploy(friday_str)
         if deploy_result:
-            log("DEPLOY", "  Done! GitHub Actions will auto-build and deploy to Vercel.")
+            log("DEPLOY", "  Done! Vercel deploys pushes to master.")
 
 
 def _git_deploy(friday_str: str) -> bool:
     """
-    Git add, commit, and push all changes. Relies on GitHub Actions workflow
-    (`.github/workflows/deploy.yml`) to build and deploy to Vercel.
+    Commit the generated content and push. Vercel deploys pushes to master.
     """
     import subprocess
     import shutil
@@ -2039,14 +1766,18 @@ def _git_deploy(friday_str: str) -> bool:
 
     root = PROJECT_ROOT
     try:
-        # Stage everything (new .md, updated quarterly_summary, chart PNGs, etc.)
-        subprocess.run([git, "add", "-A"], cwd=root, check=True, capture_output=True, text=True)
-
-        # Check if there's anything to commit
-        status = subprocess.run(
-            [git, "status", "--porcelain"], cwd=root, check=True, capture_output=True, text=True
+        # Stage only bot output (the note, summaries, caches, memory) — never
+        # stray files that installers or tools drop in the working tree.
+        subprocess.run(
+            [git, "add", "--", "src/content/market-views", "src/content/monthly-views"],
+            cwd=root, check=True, capture_output=True, text=True,
         )
-        if not status.stdout.strip():
+
+        # Check if there's anything staged to commit
+        staged = subprocess.run(
+            [git, "diff", "--cached", "--name-only"], cwd=root, check=True, capture_output=True, text=True
+        )
+        if not staged.stdout.strip():
             log("DEPLOY", "  Nothing to commit — repo is already up to date")
             return True
 
@@ -2057,9 +1788,10 @@ def _git_deploy(friday_str: str) -> bool:
         )
         log("DEPLOY", f"  Committed: {commit_msg}")
 
-        # Push
+        # Push (rebase first so a cache commit made meanwhile doesn't reject the push)
+        subprocess.run([git, "pull", "--rebase", "--autostash"], cwd=root, check=True, capture_output=True, text=True)
         subprocess.run([git, "push"], cwd=root, check=True, capture_output=True, text=True)
-        log("DEPLOY", "  Pushed to origin/main")
+        log("DEPLOY", "  Pushed to origin")
         return True
 
     except subprocess.CalledProcessError as e:
