@@ -4,10 +4,9 @@ import DatedNote from '../../../components/ui/DatedNote.astro';
 import Disclaimer from '../../../components/ui/Disclaimer.astro';
 import FootballField from '../../../components/ui/FootballField.astro';
 import Icon from '../../../components/ui/Icon.astro';
-import PageHeader from '../../../components/ui/PageHeader.astro';
-import Panel from '../../../components/ui/Panel.astro';
+import PageHead from '../../../components/ui/PageHead.astro';
 import SensitivityTable from '../../../components/ui/SensitivityTable.astro';
-import Tick from '../../../components/ui/Tick.astro';
+import Ticker from '../../../components/ui/Ticker.astro';
 import {
   STALE_AFTER_DAYS,
   formatOutput,
@@ -46,16 +45,13 @@ const modelDate = model.lastUpdated ?? reference.asOf;
 const ageDays = daysBetween(modelDate, new Date());
 const isStale = ageDays > STALE_AFTER_DAYS;
 
-const outputRows = model.outputs.map((output) => ({
-  output,
-  move: impliedMovePct(output, reference),
-}));
+const outputRows = model.outputs.map((output) => ({ output, move: impliedMovePct(output, reference) }));
 
 const facts = [
   { label: 'Price used', value: `VND ${formatVndK(reference.value)}` },
   { label: 'Price date', value: formatDate(reference.asOf) },
   { label: 'Model date', value: formatDate(modelDate) },
-  { label: 'Methods', value: model.methods.join(' · ') },
+  { label: 'Methods', value: model.methods.join(', ') },
   { label: 'Files', value: `${model.downloads.length} workbook${model.downloads.length === 1 ? '' : 's'}` },
 ];
 
@@ -81,235 +77,257 @@ const jsonLd = {
 ---
 
 <BaseLayout
-  title={`${model.ticker} Valuation Report | Truong Huy Research`}
+  title={`${model.company} (${model.ticker}) valuation report | Truong Huy Research`}
   image={`/og/research/${model.slug}.png`}
   description={`${model.company} (${model.ticker}) valuation: ${model.report.stance}`}
 >
   <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />
 
-  <div class="mx-auto w-full max-w-container-max space-y-4 px-margin-mobile py-6 md:px-margin-desktop md:py-8">
-    <PageHeader
-      tone="value"
-      kicker={`Valuation report · ${model.sector}`}
-      title={model.company}
-      lead={model.report.headline}
-      back={{ href: '/research', label: 'Coverage' }}
-      context={`Model ${formatDate(modelDate)}`}
-    >
-      <Tick slot="before" label={model.ticker} size="lg" class="mb-4" />
-      <div slot="aside" class="space-y-3">
-        <div class="border border-line">
-          <p class="bg-panel-alt px-4 py-2 font-mono text-label uppercase text-value-ink">Fact file</p>
-          <dl class="divide-y divide-line px-4">
-            {facts.map((fact) => (
-              <div class="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-4 py-2.5">
-                <dt class="pt-0.5 font-mono text-label uppercase text-fg-muted">{fact.label}</dt>
-                <dd class="text-small font-semibold text-fg">{fact.value}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-        {tearSheetSize && (
-          <a href={tearSheetHref} download class="flex min-h-11 w-full items-center justify-between gap-3 bg-value px-4 py-2 font-mono text-[0.8125rem] font-semibold text-white transition-colors hover:bg-[#0A858D] hover:text-white">
-            <span class="inline-flex items-center gap-2"><Icon name="download" size={18} /> One-page tear sheet</span>
-            <span class="opacity-90">PDF · {tearSheetSize}</span>
-          </a>
-        )}
-      </div>
-    </PageHeader>
+  <PageHead label={`Valuation report · ${model.sector}`} title={model.company} lead={model.report.headline} back={{ href: '/research', label: 'Research coverage' }}>
+    <Ticker slot="before" label={model.ticker} size="lg" class="mb-6" />
+    <div slot="aside" class="card">
+      <dl class="m-0">
+        {facts.map((fact, index) => (
+          <div class:list={['grid grid-cols-[7rem_minmax(0,1fr)] gap-4 py-3', index > 0 && 'border-t border-line']}>
+            <dt class="t-label pt-0.5 text-ink-muted">{fact.label}</dt>
+            <dd class="t-small m-0 font-medium text-ink">{fact.value}</dd>
+          </div>
+        ))}
+      </dl>
+      {tearSheetSize && (
+        <a href={tearSheetHref} download class="btn btn--secondary mt-4 w-full justify-between">
+          <span class="inline-flex items-center gap-2"><Icon name="download" size={18} /> Download the tear sheet</span>
+          <span class="font-mono text-[0.8125rem] opacity-80">PDF, {tearSheetSize}</span>
+        </a>
+      )}
+    </div>
+  </PageHead>
 
-    {isStale && (
+  <nav aria-label="Report sections" class="border-y border-line bg-ground-card">
+    <ul class="wrap flex gap-6 overflow-x-auto py-0">
+      {sections.map((section) => (
+        <li class="list-none"><a href={`#${section.id}`} class="inline-flex min-h-12 items-center whitespace-nowrap text-[0.9375rem] font-medium text-ink no-underline transition-colors hover:text-action">{section.label}</a></li>
+      ))}
+    </ul>
+  </nav>
+
+  {isStale && (
+    <div class="wrap pt-10">
       <DatedNote>
         This model was last updated on {formatDate(modelDate)}, {ageDays} days before this page was built. Prices, estimates
-        and peer multiples have not been refreshed since, so the implied moves below compare against the
-        {' '}{formatDate(reference.asOf)} price, not today's.
+        and peer multiples have not been refreshed, so the implied moves below compare against the {formatDate(reference.asOf)}
+        price, not today's.
       </DatedNote>
-    )}
+    </div>
+  )}
 
-    <nav aria-label="Report sections" class="flex flex-wrap gap-2">
-      {sections.map((section) => (
-        <a href={`#${section.id}`} class="border border-line bg-panel px-3 py-1.5 font-mono text-[0.8125rem] font-medium text-fg shadow-panel transition-colors hover:border-value hover:text-link">{section.label}</a>
-      ))}
-    </nav>
+  {model.investmentQuestion && (
+    <section class="section section--tight" aria-label="The question">
+      <div class="wrap">
+        <p class="t-label text-ink-muted">The question</p>
+        <p class="t-h2 mt-3 max-w-[30ch]">{model.investmentQuestion}</p>
+      </div>
+    </section>
+  )}
 
-    {model.investmentQuestion && (
-      <Panel title="The question" tone="value" reveal>
-        <p class="max-w-4xl text-balance font-display text-h2 text-fg">{model.investmentQuestion}</p>
-      </Panel>
-    )}
-
-    <Panel id="range" title="Valuation range" meta={model.report.stance} tone="value" reveal>
-      <div class="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        <div class="min-w-0 lg:col-span-7">
+  <section id="range" class="section section--alt" aria-labelledby="range-title">
+    <div class="wrap">
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-end">
+        <h2 id="range-title" class="t-h2 lg:col-span-7">Valuation range</h2>
+        <p class="t-small text-ink-muted lg:col-span-5">{model.report.stance}</p>
+      </div>
+      <div class="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
+        <div class="card min-w-0 lg:col-span-7">
           <FootballField outputs={model.outputs} reference={reference} ticker={model.ticker} />
         </div>
         <div class="min-w-0 lg:col-span-5">
-          <table class="w-full border-collapse border border-line">
-            <caption class="pb-2 text-left font-mono text-label uppercase text-fg">Outputs, VND per share</caption>
+          <table class="w-full border-collapse">
+            <caption class="t-label pb-3 text-left">Outputs, VND per share</caption>
             <thead>
-              <tr class="bg-panel-alt font-mono text-label uppercase text-fg-muted">
-                <th scope="col" class="border-b border-line-strong px-3 py-2 text-left">Method</th>
-                <th scope="col" class="border-b border-line-strong px-3 py-2 text-right">Value</th>
-                <th scope="col" class="border-b border-line-strong px-3 py-2 text-right">vs price</th>
+              <tr>
+                <th scope="col" class="t-label border-b border-line-strong py-2 pr-3 text-left text-ink-muted">Method</th>
+                <th scope="col" class="t-label border-b border-line-strong px-3 py-2 text-right text-ink-muted">Value</th>
+                <th scope="col" class="t-label border-b border-line-strong py-2 pl-3 text-right text-ink-muted">Against price</th>
               </tr>
             </thead>
             <tbody>
               {outputRows.map(({ output, move }) => (
                 <tr class="border-b border-line align-top">
-                  <th scope="row" class="px-3 py-3 text-left font-normal">
-                    <span class="block text-small font-semibold text-fg">{outputMethodLabel[output.method]}</span>
-                    <span class="mt-0.5 block text-[0.8125rem] text-fg-muted">{output.basis}</span>
+                  <th scope="row" class="py-3 pr-3 text-left font-normal">
+                    <span class="block font-medium text-ink">{outputMethodLabel[output.method]}</span>
+                    <span class="t-label mt-0.5 block font-normal text-ink-muted">{output.basis}</span>
                   </th>
-                  <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-[0.9375rem] font-semibold tabular-nums text-fg">{formatOutput(output)}</td>
-                  <td class="whitespace-nowrap px-3 py-3 text-right">
-                    <span class:list={['inline-block px-1.5 py-0.5 font-mono text-[0.8125rem] font-semibold tabular-nums', move >= 0 ? 'bg-up-soft text-up' : 'bg-down-soft text-down']}>{signedPct(move, 1)}</span>
-                  </td>
+                  <td class="t-data whitespace-nowrap px-3 py-3 text-right font-medium text-ink">{formatOutput(output)}</td>
+                  <td class="whitespace-nowrap py-3 pl-3 text-right"><span class:list={['pill', move >= 0 ? 'pill--up' : 'pill--down']}>{signedPct(move, 1)}</span></td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <dl class="mt-5 space-y-4">
+          <dl class="mt-8 space-y-5">
             {model.report.valuationResult.map((point) => (
-              <div class="border-l-4 border-value pl-3">
-                <dt class="font-mono text-label uppercase text-fg-muted">{point.label} · <span class="text-fg">{point.value}</span></dt>
-                <dd class="mt-1 text-small text-fg">{point.detail}</dd>
+              <div>
+                <dt class="t-label text-ink-muted">{point.label}: <span class="text-ink">{point.value}</span></dt>
+                <dd class="t-small m-0 mt-1 text-ink">{point.detail}</dd>
               </div>
             ))}
           </dl>
         </div>
       </div>
-    </Panel>
+    </div>
+  </section>
 
-    <Panel id="thesis" title="Executive view" tone="value" reveal>
-      <div class="grid grid-cols-1 gap-x-10 gap-y-4 text-body text-fg md:grid-cols-2">
-        {model.report.thesis.map((paragraph) => <p>{paragraph}</p>)}
+  <section id="thesis" class="section" aria-labelledby="thesis-title">
+    <div class="wrap grid grid-cols-1 gap-8 lg:grid-cols-12">
+      <h2 id="thesis-title" class="t-h2 lg:col-span-4">Executive view</h2>
+      <div class="t-body space-y-4 lg:col-span-8">
+        {model.report.thesis.map((paragraph) => <p class="measure">{paragraph}</p>)}
       </div>
-    </Panel>
+    </div>
+  </section>
 
-    <Panel id="assumptions" title="Key assumptions" tone="value" flush reveal>
-      <dl>
+  <section id="assumptions" class="section section--alt" aria-labelledby="assumptions-title">
+    <div class="wrap">
+      <h2 id="assumptions-title" class="t-h2">Key assumptions</h2>
+      <dl class="rows mt-10">
         {assumptionItems.map((item) => (
-          <div class="grid grid-cols-1 gap-x-6 gap-y-1 border-b border-line px-4 py-3.5 last:border-b-0 md:grid-cols-12 md:px-5">
-            <dt class="text-small font-semibold text-fg md:col-span-3">{item.label}</dt>
-            <dd class="font-mono text-[0.9375rem] font-semibold tabular-nums text-value-ink md:col-span-3">{item.value}</dd>
-            <dd class="text-small text-fg-muted md:col-span-6">{item.detail}</dd>
+          <div class="grid grid-cols-1 gap-x-6 gap-y-1 py-4 md:grid-cols-12">
+            <dt class="font-medium text-ink md:col-span-3">{item.label}</dt>
+            <dd class="t-data m-0 font-medium text-action md:col-span-3">{item.value}</dd>
+            <dd class="t-small m-0 text-ink-muted md:col-span-6">{item.detail}</dd>
           </div>
         ))}
       </dl>
       {model.limitation && (
-        <div class="border-t border-line bg-panel-alt px-4 py-4 md:px-5">
-          <p class="font-mono text-label uppercase text-market-ink">Method limitation</p>
-          <p class="mt-1 text-small text-fg">{model.limitation}</p>
+        <div class="card mt-8">
+          <p class="t-label text-amber">Method limitation</p>
+          <p class="t-small mt-1 text-ink">{model.limitation}</p>
         </div>
       )}
-    </Panel>
+    </div>
+  </section>
 
-    {model.sensitivity && (
-      <Panel id="sensitivity" title="DCF sensitivity" meta="WACC × exit EV/EBITDA" tone="value" reveal>
-        <p class="mb-4 font-display text-h3 text-fg">How the DCF value moves with the discount rate and the exit multiple</p>
-        <div class="max-w-3xl">
+  {model.sensitivity && (
+    <section id="sensitivity" class="section" aria-labelledby="sensitivity-title">
+      <div class="wrap grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-start">
+        <div class="lg:col-span-4">
+          <h2 id="sensitivity-title" class="t-h2">DCF sensitivity</h2>
+          <p class="t-body mt-4 text-ink-muted">How the DCF value moves with the discount rate and the exit multiple.</p>
+        </div>
+        <div class="card min-w-0 lg:col-span-8">
           <SensitivityTable grid={model.sensitivity} reference={reference} />
         </div>
-      </Panel>
-    )}
-
-    <Panel id="conclusion" title="Conclusion" tone="value" reveal>
-      <p class="max-w-4xl text-lead font-semibold text-fg">{model.conclusion}</p>
-      <div class="mt-4 max-w-4xl space-y-3 text-body text-fg">
-        {model.report.interpretation.map((paragraph) => <p>{paragraph}</p>)}
       </div>
-    </Panel>
+    </section>
+  )}
 
-    <Panel id="risks" title="Risks and checks" tone="market" flush reveal>
-      <ol class="grid grid-cols-1 md:grid-cols-2">
+  <section id="conclusion" class:list={['section', model.sensitivity ? 'section--alt' : '']} aria-labelledby="conclusion-title">
+    <div class="wrap grid grid-cols-1 gap-8 lg:grid-cols-12">
+      <h2 id="conclusion-title" class="t-h2 lg:col-span-4">Conclusion</h2>
+      <div class="lg:col-span-8">
+        <p class="t-lead measure font-medium text-ink">{model.conclusion}</p>
+        <div class="t-body mt-5 space-y-4">
+          {model.report.interpretation.map((paragraph) => <p class="measure">{paragraph}</p>)}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="risks" class:list={['section', model.sensitivity ? '' : 'section--alt']} aria-labelledby="risks-title">
+    <div class="wrap">
+      <h2 id="risks-title" class="t-h2">Risks and checks</h2>
+      <ol class="mt-10 grid grid-cols-1 gap-x-6 p-0 md:grid-cols-2">
         {model.report.risks.map((risk, index) => (
-          <li class="flex gap-3 border-b border-line px-4 py-3.5 md:odd:border-r">
-            <span class="flex h-6 w-6 shrink-0 items-center justify-center bg-market font-mono text-[0.75rem] font-semibold text-white">{index + 1}</span>
-            <span class="text-small text-fg">{risk}</span>
+          <li class="flex list-none gap-4 border-t border-line py-4">
+            <span class="t-data w-6 shrink-0 text-ink-muted">{String(index + 1).padStart(2, '0')}</span>
+            <span class="t-small text-ink">{risk}</span>
           </li>
         ))}
       </ol>
-    </Panel>
+    </div>
+  </section>
 
-    <Panel id="files" title="Model files" tone="value" flush reveal>
-      <ul>
+  <section id="files" class="section section--alt" aria-labelledby="files-title">
+    <div class="wrap">
+      <h2 id="files-title" class="t-h2">Model files</h2>
+      <ul class="rows mt-10 p-0">
         {tearSheetSize && (
-          <li class="grid grid-cols-1 gap-x-6 gap-y-3 border-b border-line px-4 py-4 md:grid-cols-12 md:items-center md:px-5">
+          <li class="grid list-none grid-cols-1 gap-x-6 gap-y-3 py-5 md:grid-cols-12 md:items-center">
             <div class="md:col-span-4">
-              <p class="font-display text-h3 text-fg">One-page tear sheet</p>
-              <p class="mt-1 font-mono text-[0.8125rem] text-fg-muted">PDF · {tearSheetSize} · A4</p>
+              <p class="t-h3">One-page tear sheet</p>
+              <p class="t-label mt-1 text-ink-muted">PDF, {tearSheetSize}, A4</p>
             </div>
-            <p class="text-small text-fg md:col-span-5">
-              Outputs against the price used, key assumptions, conclusion and risks on one page.
-              {' '}<a href={`/research/${model.slug}/tear-sheet`} class="u-link text-link transition-colors hover:text-fg">Printable web version</a>.
+            <p class="t-small text-ink md:col-span-5">
+              Outputs against the price used, key assumptions, the conclusion and risks on one page. Also as a
+              {' '}<a href={`/research/${model.slug}/tear-sheet`} class="link">printable web page</a>.
             </p>
             <div class="md:col-span-3 md:text-right">
-              <a href={tearSheetHref} download class="inline-flex min-h-11 items-center gap-2 bg-value px-4 py-2 font-mono text-[0.8125rem] font-semibold text-white transition-colors hover:bg-[#0A858D] hover:text-white">
-                <Icon name="download" size={18} /> Download PDF
-              </a>
+              <a href={tearSheetHref} download class="btn btn--secondary"><Icon name="download" size={18} /> Download the PDF</a>
             </div>
           </li>
         )}
         {model.downloads.map((download) => (
-          <li class="grid grid-cols-1 gap-x-6 gap-y-3 border-b border-line px-4 py-4 last:border-b-0 md:grid-cols-12 md:items-center md:px-5">
+          <li class="grid list-none grid-cols-1 gap-x-6 gap-y-3 py-5 md:grid-cols-12 md:items-center">
             <div class="md:col-span-4">
-              <p class="font-display text-h3 text-fg">{download.modelType ?? download.label}</p>
-              <p class="mt-1 font-mono text-[0.8125rem] text-fg-muted">{[download.format, publicFileSize(download.href), formatDate(download.lastUpdated ?? modelDate)].filter(Boolean).join(' · ')}</p>
+              <p class="t-h3">{download.modelType ?? download.label}</p>
+              <p class="t-label mt-1 text-ink-muted">{[download.format, publicFileSize(download.href), formatDate(download.lastUpdated ?? modelDate)].filter(Boolean).join(', ')}</p>
             </div>
-            <p class="text-small text-fg md:col-span-5">{download.description ?? `Sheets: ${download.sheets.join(', ')}.`}</p>
+            <p class="t-small text-ink md:col-span-5">{download.description ?? `Sheets: ${download.sheets.join(', ')}.`}</p>
             <div class="md:col-span-3 md:text-right">
-              <a href={download.href} download class="inline-flex min-h-11 items-center gap-2 border border-line-strong px-4 py-2 font-mono text-[0.8125rem] font-semibold text-fg transition-colors hover:border-fg hover:bg-panel-alt">
-                <Icon name="download" size={18} /> Download {download.format}
-              </a>
+              <a href={download.href} download class="btn btn--secondary"><Icon name="download" size={18} /> Download the {download.format}</a>
             </div>
           </li>
         ))}
       </ul>
-    </Panel>
 
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <Panel title="Method pages" tone="neutral" level={3} flush>
-        <ul>
-          {groups.map((group) => (
-            <li class="border-b border-line last:border-b-0">
-              <a href={group.href} class="group flex items-baseline justify-between gap-4 px-4 py-3 transition-colors hover:bg-panel-alt">
-                <span class="text-small font-semibold text-fg transition-colors group-hover:text-link">{group.title}</span>
-                <span class="font-mono text-[0.75rem] text-fg-muted">{group.eyebrow}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </Panel>
-      {upgradeItems && (
-        <Panel title="Next model upgrades" tone="neutral" level={3} flush>
-          <ul>
-            {upgradeItems.map((item) => <li class="border-b border-line px-4 py-2.5 text-small text-fg last:border-b-0">{item}</li>)}
+      <div class="mt-16 grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div>
+          <h3 class="t-label text-ink-muted">Methods used here</h3>
+          <ul class="rows mt-3 p-0">
+            {groups.map((group) => (
+              <li class="list-none">
+                <a href={group.href} class="group flex items-baseline justify-between gap-4 py-3 no-underline">
+                  <span class="font-medium text-ink transition-colors group-hover:text-action">{group.title}</span>
+                  <span class="t-label text-ink-muted">{group.eyebrow}</span>
+                </a>
+              </li>
+            ))}
           </ul>
-        </Panel>
-      )}
+        </div>
+        {upgradeItems && (
+          <div>
+            <h3 class="t-label text-ink-muted">Next model upgrades</h3>
+            <ul class="rows mt-3 p-0">
+              {upgradeItems.map((item) => <li class="t-small list-none py-3 text-ink">{item}</li>)}
+            </ul>
+          </div>
+        )}
+      </div>
     </div>
+  </section>
 
-    <nav aria-label="Other reports" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      {prev ? (
-        <a href={`/research/${prev.slug}`} class="group flex items-center gap-3 border border-line bg-panel p-4 shadow-panel transition-colors hover:border-value">
-          <Tick label={prev.ticker} />
-          <span>
-            <span class="block font-mono text-label uppercase text-value-ink">← Previous report</span>
-            <span class="block font-display text-h3 text-fg transition-colors group-hover:text-link">{prev.company}</span>
-          </span>
-        </a>
-      ) : <span class="hidden sm:block"></span>}
-      {next ? (
-        <a href={`/research/${next.slug}`} class="group flex items-center justify-end gap-3 border border-line bg-panel p-4 text-right shadow-panel transition-colors hover:border-value">
-          <span>
-            <span class="block font-mono text-label uppercase text-value-ink">Next report →</span>
-            <span class="block font-display text-h3 text-fg transition-colors group-hover:text-link">{next.company}</span>
-          </span>
-          <Tick label={next.ticker} />
-        </a>
-      ) : <span class="hidden sm:block"></span>}
-    </nav>
-
-    <Disclaimer label={model.disclaimerLabel} text={model.report.disclaimer} />
-  </div>
+  <section class="section section--tight" aria-label="Other reports">
+    <div class="wrap">
+      <nav aria-label="Other reports" class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        {prev ? (
+          <a href={`/research/${prev.slug}`} class="card group flex items-center gap-4">
+            <Icon name="arrow_left" size={20} class="text-action" />
+            <span>
+              <span class="t-label block text-ink-muted">Previous report</span>
+              <span class="t-h3 block transition-colors group-hover:text-action">{prev.company}</span>
+            </span>
+          </a>
+        ) : <span class="hidden sm:block"></span>}
+        {next ? (
+          <a href={`/research/${next.slug}`} class="card group flex items-center justify-end gap-4 text-right">
+            <span>
+              <span class="t-label block text-ink-muted">Next report</span>
+              <span class="t-h3 block transition-colors group-hover:text-action">{next.company}</span>
+            </span>
+            <Icon name="arrow_right" size={20} class="text-action" />
+          </a>
+        ) : <span class="hidden sm:block"></span>}
+      </nav>
+      <Disclaimer label={model.disclaimerLabel} text={model.report.disclaimer} />
+    </div>
+  </section>
 </BaseLayout>

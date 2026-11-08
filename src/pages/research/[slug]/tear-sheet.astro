@@ -4,9 +4,9 @@
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import FootballField from '../../../components/ui/FootballField.astro';
 import Icon from '../../../components/ui/Icon.astro';
-import Tick from '../../../components/ui/Tick.astro';
+import Ticker from '../../../components/ui/Ticker.astro';
 import { formatOutput, impliedMovePct, outputMethodLabel, portfolioDisclaimer, valuationModels } from '../../../data/valuation-models';
-import { formatDate, formatVndK, signedPct, toneClass } from '../../../lib/format';
+import { formatDate, formatVndK, signedPct } from '../../../lib/format';
 
 export function getStaticPaths() {
   return valuationModels.map((model) => ({ params: { slug: model.slug }, props: { model } }));
@@ -17,33 +17,33 @@ const reference = model.referencePrice;
 const modelDate = model.lastUpdated ?? reference.asOf;
 const assumptions = (model.keyAssumptions ?? model.report.assumptions).slice(0, 5);
 const risks = model.report.risks.slice(0, 3);
+const head = 'border-b border-ink pb-1 text-[0.8125rem] font-semibold text-ink';
 ---
 
 <BaseLayout
-  title={`${model.ticker} Tear Sheet | Truong Huy Research`}
-  description={`One-page summary of the ${model.company} (${model.ticker}) valuation: methods, outputs versus the price used, key assumptions and risks.`}
+  title={`${model.company} (${model.ticker}) tear sheet | Truong Huy Research`}
+  description={`One-page summary of the ${model.company} (${model.ticker}) valuation: methods, outputs against the price used, key assumptions and risks.`}
   image={`/og/research/${model.slug}.png`}
+  close={false}
 >
-  <div class="mx-auto w-full max-w-[210mm] px-margin-mobile pb-16 pt-8 print:max-w-none print:p-0">
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
-      <a href={`/research/${model.slug}`} class="u-link font-mono text-label uppercase text-fg-muted transition-colors hover:text-value-ink">← Full report</a>
-      <button type="button" data-print class="inline-flex min-h-11 items-center gap-2 bg-chrome px-4 py-2 font-mono text-label uppercase text-white transition-colors hover:bg-value hover:text-white">
-        <Icon name="download" size={18} /> Print / save as PDF
-      </button>
+  <div class="tear mx-auto w-full max-w-[210mm] px-5 pb-20 print:max-w-none print:p-0">
+    <div class="no-print mb-6 flex flex-wrap items-center justify-between gap-3">
+      <a href={`/research/${model.slug}`} class="crumb"><Icon name="arrow_left" size={18} /> Full report</a>
+      <button type="button" data-print class="btn btn--secondary"><Icon name="download" size={18} /> Print or save as PDF</button>
     </div>
 
-    <article class="bg-panel p-8 shadow-panel border border-line print:bg-transparent print:p-0 print:shadow-none">
-      <header class="flex items-center justify-between border-b-2 border-fg pb-2 font-mono text-[0.625rem] uppercase tracking-[0.12em] text-fg-muted">
-        <span class="font-display text-base font-extrabold normal-case tracking-tight text-fg">Truong Huy <span class="text-value-ink">Research</span></span>
-        <span>Tear sheet · model {formatDate(modelDate)}</span>
+    <article class="card p-8 print:border-0 print:p-0">
+      <header class="flex items-baseline justify-between border-b-2 border-ink pb-2">
+        <span class="font-display text-base font-semibold text-ink">Truong Huy <span class="font-normal text-ink-muted">Research</span></span>
+        <span class="text-[0.8125rem] text-ink-muted">Tear sheet, model of {formatDate(modelDate)}</span>
       </header>
 
       <div class="mt-5 flex items-start gap-4">
-        <Tick label={model.ticker} size="lg" />
+        <Ticker label={model.ticker} size="lg" />
         <div class="min-w-0">
-          <p class="font-mono text-[0.625rem] uppercase tracking-[0.12em] text-value-ink">{model.sector} · {model.methods.join(' · ')}</p>
-          <h1 class="mt-1 font-display text-[2.25rem] font-extrabold leading-none tracking-tight text-fg">{model.company}</h1>
-          <p class="mt-2 font-sans text-[0.9375rem] italic leading-snug text-fg-muted">{model.report.headline}</p>
+          <p class="text-[0.8125rem] text-ink-muted">{model.sector} · {model.methods.join(', ')}</p>
+          <h1 class="mt-1 font-display text-[2.125rem] font-semibold leading-none tracking-tight text-ink">{model.company}</h1>
+          <p class="mt-2 text-[0.9375rem] leading-snug text-ink-muted">{model.report.headline}</p>
         </div>
       </div>
 
@@ -51,68 +51,63 @@ const risks = model.report.risks.slice(0, 3);
         <FootballField outputs={model.outputs} reference={reference} ticker={model.ticker} compact />
       </section>
 
-      <div class="mt-4 grid grid-cols-2 gap-6">
+      <div class="mt-5 grid grid-cols-2 gap-6">
         <section>
-          <p class="border-b border-fg pb-1 font-mono text-[0.625rem] uppercase tracking-[0.12em] text-fg">Outputs, VND per share</p>
+          <p class={head}>Outputs, VND per share</p>
           <table class="w-full border-collapse text-[0.8125rem]">
             <tbody>
               {model.outputs.map((output) => {
                 const move = impliedMovePct(output, reference);
                 return (
                   <tr class="border-b border-line">
-                    <th scope="row" class="py-1.5 pr-2 text-left font-sans font-semibold text-fg">{outputMethodLabel[output.method]}</th>
-                    <td class="py-1.5 text-right font-sans tabular-nums text-fg">{formatOutput(output)}</td>
-                    <td class:list={['py-1.5 pl-2 text-right font-mono text-[0.75rem] tabular-nums', toneClass(move)]}>{signedPct(move, 1)}</td>
+                    <th scope="row" class="py-1.5 pr-2 text-left font-medium text-ink">{outputMethodLabel[output.method]}</th>
+                    <td class="py-1.5 text-right font-mono tabular-nums text-ink">{formatOutput(output)}</td>
+                    <td class:list={['py-1.5 pl-2 text-right font-mono tabular-nums', move >= 0 ? 'text-up' : 'text-down']}>{signedPct(move, 1)}</td>
                   </tr>
                 );
               })}
               <tr>
-                <th scope="row" class="py-1.5 pr-2 text-left font-sans font-normal italic text-fg-muted">Price used</th>
-                <td class="py-1.5 text-right font-sans tabular-nums text-fg-muted">{formatVndK(reference.value)}</td>
-                <td class="py-1.5 pl-2 text-right font-mono text-[0.75rem] text-fg-muted">{formatDate(reference.asOf)}</td>
+                <th scope="row" class="py-1.5 pr-2 text-left font-normal text-ink-muted">Price used</th>
+                <td class="py-1.5 text-right font-mono tabular-nums text-amber">{formatVndK(reference.value)}</td>
+                <td class="py-1.5 pl-2 text-right text-ink-muted">{formatDate(reference.asOf)}</td>
               </tr>
             </tbody>
           </table>
-          {model.investmentQuestion && (
-            <p class="mt-3 border-l-2 border-value pl-3 font-sans text-[0.8125rem] italic leading-snug text-fg">{model.investmentQuestion}</p>
-          )}
+          {model.investmentQuestion && <p class="mt-3 border-l-2 border-action pl-3 text-[0.8125rem] leading-snug text-ink">{model.investmentQuestion}</p>}
         </section>
-
         <section>
-          <p class="border-b border-fg pb-1 font-mono text-[0.625rem] uppercase tracking-[0.12em] text-fg">Key assumptions</p>
-          <dl class="text-[0.8125rem]">
+          <p class={head}>Key assumptions</p>
+          <dl class="m-0 text-[0.8125rem]">
             {assumptions.map((item) => (
               <div class="flex items-baseline gap-2 border-b border-line py-1.5">
-                <dt class="flex-1 font-sans text-fg-muted">{item.label}</dt>
-                <dd class="text-right font-sans font-semibold text-fg">{item.value}</dd>
+                <dt class="flex-1 text-ink-muted">{item.label}</dt>
+                <dd class="m-0 text-right font-medium text-ink">{item.value}</dd>
               </div>
             ))}
           </dl>
         </section>
       </div>
 
-      <section class="mt-4">
-        <p class="border-b border-fg pb-1 font-mono text-[0.625rem] uppercase tracking-[0.12em] text-fg">Conclusion</p>
-        <p class="mt-2 font-sans text-[0.875rem] leading-snug text-fg">{model.conclusion}</p>
+      <section class="mt-5">
+        <p class={head}>Conclusion</p>
+        <p class="mt-2 text-[0.875rem] leading-snug text-ink">{model.conclusion}</p>
       </section>
 
-      <section class="mt-4">
-        <p class="border-b border-fg pb-1 font-mono text-[0.625rem] uppercase tracking-[0.12em] text-fg">Key risks</p>
-        <ol class="mt-1 text-[0.8125rem] leading-snug">
+      <section class="mt-5">
+        <p class={head}>Key risks</p>
+        <ol class="mt-1 p-0 text-[0.8125rem] leading-snug">
           {risks.map((risk, index) => (
-            <li class="flex gap-2 border-b border-line py-1.5">
-              <span class="w-4 shrink-0 font-sans italic text-value-ink">{index + 1}</span>
-              <span class="font-sans text-fg">{risk}</span>
+            <li class="flex list-none gap-2 border-b border-line py-1.5">
+              <span class="w-5 shrink-0 font-mono text-ink-muted">{index + 1}</span>
+              <span class="text-ink">{risk}</span>
             </li>
           ))}
         </ol>
       </section>
 
-      <footer class="mt-4 border-t-2 border-fg pt-2 font-sans text-[0.6875rem] italic leading-snug text-fg-muted">
+      <footer class="mt-5 border-t-2 border-ink pt-2 text-[0.8125rem] leading-snug text-ink-muted">
         <p>{portfolioDisclaimer} Figures are as of the model date and are not refreshed automatically.</p>
-        <p class="mt-1 font-mono not-italic uppercase tracking-[0.12em]">
-          Nguyen Vu Truong Huy · truonghuyresearch.xyz/research/{model.slug}
-        </p>
+        <p class="mt-1">Nguyen Vu Truong Huy · truonghuyresearch.xyz/research/{model.slug}</p>
       </footer>
     </article>
   </div>

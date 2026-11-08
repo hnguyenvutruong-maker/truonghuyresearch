@@ -1,7 +1,7 @@
 ---
-// Two-way DCF sensitivity as a ruled table. Cells are shaded on a diverging scale
-// around the model's reference price (green above, red below, none within ±2%);
-// every value is printed, so the shading is never the only channel.
+// Two-way DCF sensitivity as a ruled table. Cells are shaded on a diverging scale around the
+// price the model used (green above, red below, none within ±2%); every value is printed, so
+// colour is never the only channel. The base case is outlined.
 import type { ReferencePrice, SensitivityGrid } from '../../data/valuation-models';
 import { formatDate, formatVndK } from '../../lib/format';
 
@@ -18,36 +18,36 @@ const fmtAxis = (value: number, format: SensitivityGrid['rowFormat']) =>
 const refK = reference.value / 1000;
 const shade = (valueK: number) => {
   const move = (valueK / refK - 1) * 100;
-  if (move >= 10) return 'bg-up/30';
-  if (move >= 2) return 'bg-up/15';
-  if (move > -2) return '';
-  if (move > -10) return 'bg-down/15';
-  return 'bg-down/25';
+  if (move >= 10) return 'bg-up-mid';
+  if (move >= 2) return 'bg-up-soft';
+  if (move > -2) return 'bg-ground-card';
+  if (move > -10) return 'bg-down-soft';
+  return 'bg-down-mid';
 };
 ---
 
-<figure>
+<figure class="m-0">
   <div class="overflow-x-auto" tabindex="0" role="region" aria-label={`${grid.title}, scrolls sideways`}>
-    <table class="w-full min-w-[22rem] border-collapse border border-line">
-      <caption class="pb-3 text-left font-mono text-label uppercase text-fg">{grid.title}</caption>
+    <table class="w-full min-w-[24rem] border-collapse">
+      <caption class="t-label pb-3 text-left">{grid.title}</caption>
       <thead>
-        <tr class="bg-panel-alt font-mono text-label uppercase text-fg-muted">
-          <th scope="col" class="border-b border-line-strong px-3 py-2 text-left">{grid.rowLabel} ↓ · {grid.colLabel} →</th>
+        <tr>
+          <th scope="col" class="t-label border-b border-line-strong px-3 py-2 text-left text-ink-muted">{grid.rowLabel} by {grid.colLabel}</th>
           {grid.cols.map((col, j) => (
-            <th scope="col" class:list={['border-b border-line-strong px-2 py-2 text-right', j === grid.baseCol && 'text-fg']}>{fmtAxis(col, grid.colFormat)}</th>
+            <th scope="col" class:list={['t-data border-b border-line-strong px-2 py-2 text-right text-[0.8125rem]', j === grid.baseCol ? 'text-ink' : 'text-ink-muted']}>{fmtAxis(col, grid.colFormat)}</th>
           ))}
         </tr>
       </thead>
       <tbody>
         {grid.values.map((row, i) => (
-          <tr class="border-b border-line">
-            <th scope="row" class:list={['bg-panel-alt px-3 py-2 text-left font-mono text-[0.875rem] font-medium tabular-nums', i === grid.baseRow ? 'text-fg' : 'text-fg-muted']}>
+          <tr class="border-b border-ground">
+            <th scope="row" class:list={['t-data px-3 py-2 text-left text-[0.8125rem]', i === grid.baseRow ? 'text-ink' : 'text-ink-muted']}>
               {fmtAxis(grid.rows[i], grid.rowFormat)}
             </th>
             {row.map((value, j) => {
               const isBase = i === grid.baseRow && j === grid.baseCol;
               return (
-                <td class:list={['px-2 py-2 text-right font-mono text-[0.9375rem] tabular-nums text-fg', shade(value), isBase && 'font-bold outline outline-2 -outline-offset-2 outline-fg']}>
+                <td class:list={['t-data px-2 py-2 text-right text-ink', shade(value), isBase && 'font-semibold outline outline-2 -outline-offset-2 outline-ink']}>
                   {value.toFixed(1)}
                 </td>
               );
@@ -57,10 +57,10 @@ const shade = (valueK: number) => {
       </tbody>
     </table>
   </div>
-  <figcaption class="mt-3 space-y-1 text-[0.875rem] text-fg-muted">
+  <figcaption class="t-small mt-4 space-y-1 text-ink-muted">
     <p>
-      Outlined cell: model base case. Green cells sit above, red cells below, the {formatVndK(reference.value)} price used on
-      {' '}{formatDate(reference.asOf)} (unshaded within ±2%; darker beyond ±10%).
+      Values in VND thousands per share. Outlined: the model's base case. Green cells sit above and red cells below the
+      {' '}{formatVndK(reference.value)} price used on {formatDate(reference.asOf)}; unshaded within ±2%, darker beyond ±10%.
     </p>
     <p>{grid.note}</p>
   </figcaption>

@@ -41,7 +41,8 @@ deliberately not committed to this public repo.
 ```
 ./
 ├── astro.config.mjs              # static output, site=truonghuyresearch.xyz, tailwind+sitemap
-├── tailwind.config.mjs           # Desk tokens (CSS-variable colours, type scale, motion), sharp corners
+├── tailwind.config.mjs           # layout layer; colours/type/radii point at global.css tokens
+├── design-system/                # the design system record (UI/UX Pro Max MASTER.md)
 ├── tsconfig.json                 # extends astro/tsconfigs/strict
 ├── package.json                  # Node >=22.12, Astro 5
 ├── requirements.txt              # Python deps for the bots
@@ -65,12 +66,10 @@ deliberately not committed to this public repo.
     ├── lib/format.ts             # shared number/date formatters (UTC dates, signed %, VND k)
     ├── lib/notes.ts              # normalises weekly + monthly entries into one NoteSummary
     ├── lib/files.ts              # build-time sizes of public/ downloads
-    ├── lib/tone.ts               # Tone = neutral | profile | value | market (panel colours)
-    ├── scripts/theme.ts          # day/night theme engine (auto by local hour, toggle, clock switch)
-    ├── layouts/BaseLayout.astro  # shell: head/meta, fonts, header/footer, motion, mobile menu
-    ├── styles/global.css         # colour tokens (day :root / night [data-theme=dark]), .u-link, reveal, print
+    ├── layouts/BaseLayout.astro  # shell: head/meta, fonts, header, main, footer
+    ├── styles/global.css         # Ledger tokens + component classes (see §4), print
     ├── components/               # ValuationMethodPage (see §7)
-    │   └── ui/                   # Panel, header/tape/footer, SkyIntro, charts, tables, note views
+    │   └── ui/                   # header/footer, PageHead, CoverageStrip, charts, tables, note views
     └── pages/                    # routes (see §7)
 ```
 
@@ -98,88 +97,57 @@ deliberately not committed to this public repo.
 
 ---
 
-## 4. Design system — Desk (day / night)
+## 4. Design system: Ledger (2026-11)
 
-Bloomberg-style desk: a dark navy header and market tape over framed panels, one colour per
-section, so text always sits on a solid panel, never on the page background. Chosen 2026-10-02
-(replacing Broadsheet). `BaseLayout` takes `title`, `description`, `image` (OG card path), `type`
-and always renders `ui/SiteHeader`, `ui/MarketTape` (latest weekly close, foreign flow, macro),
-`ui/SiteFooter`, `ui/Motion` (scroll reveal + count-up), `ui/CommandPalette` and `ui/SkyIntro`.
-Fonts are self-hosted: `@fontsource-variable/archivo` (wdth), `@fontsource-variable/source-sans-3`,
-`@fontsource/ibm-plex-mono` 400/500/600 (no Google Fonts). Icons are inline SVG via `ui/Icon`.
+Rebuilt from two design skills: **UI/UX Pro Max** (pattern Portfolio Grid, style Swiss
+Modernism 2.0, institutional navy + research amber, serif headings over IBM Plex) and **Taste**
+(one system, a 90–95% neutral interface with one accent, light grade only, hero alone on the first
+screen, sentence-case labels, nothing under 13px). Full record, tokens and the reasoning:
+[design-system/truong-huy-research/MASTER.md](design-system/truong-huy-research/MASTER.md).
+"Desk" (dark navy chrome, coloured panel bars, day/night theme, SkyIntro, market tape, command
+palette) was removed on 2026-11-08.
 
-- **Day / night theme.** `<html data-theme="light|dark">` is set before first paint by the inline
-  script in `BaseLayout`: **light (white) 06:00–17:59 local time, dark (black) from 18:00 to
-  05:59**, unless the visitor chose one with the header toggle (`localStorage['thr-theme']`;
-  `data-theme-mode="manual|auto"`). `src/scripts/theme.ts` owns the toggle (`toggleTheme`; picking
-  the auto theme clears the override), switches automatically at the next 06:00/18:00
-  (`scheduleClock`), and dispatches a `themechange` CustomEvent `{ theme, source:
-  'load'|'toggle'|'clock' }`. Charts listen to it and repaint. Print always uses the day palette.
-- **SkyIntro** (signature effect): on the first page of each visit (`sessionStorage['thr-sky-seen']`)
-  and on every toggle/clock switch, a small framed toast rises under the header — a sun with
-  turning rays by day, a crescent moon and twinkling stars by night — with a greeting for the
-  local hour. `role="status"`, non-blocking, hides after ~5 s, closes on × or Esc.
-- **Color tokens** are CSS variables of RGB channels (`--c-*` in `global.css`, light on `:root`,
-  dark under `[data-theme="dark"]`) exposed as Tailwind colours with `/<alpha>` support, so one
-  class set serves both themes — **never hard-code a hex for themed surfaces or text**:
-  `canvas` (page), `panel` / `panel-alt` (panels, rows), `line` / `line-strong` (borders), `fg` /
-  `fg-muted` (text), `link`, `up` / `up-soft` (**gains**), `down` / `down-soft` (**losses**),
-  `chrome` / `chrome-deep` / `chrome-fg` / `chrome-muted` / `chrome-line` (navy header, tape,
-  footer, neutral bars — dark in both themes). Section colours: `profile` violet, `value` teal,
-  `market` amber; `DEFAULT` fills title bars (white text), `*-ink` is the same hue tuned for text
-  on a panel in the current theme. Fixed: `tape.up/down` (on the always-dark tape), `sun`, `moon`.
-  Every pair is ≥ 4.5:1 in both themes (axe: 0 violations, Oct 2026) — re-check if you add one.
-- **Type:** `font-display` (Archivo — headings, h1, figures), `font-sans` (Source Sans 3 — body),
-  `font-mono` (IBM Plex Mono — labels, kickers, data, ticker badges). Scale: `text-display, h1, h2,
-  h3, lead, body, small, label, data, figure`. Use `tabular-nums` on figures.
-- **Components** (`components/ui/`): `Panel` (the framed block: coloured title bar + solid body;
-  props `title`, `meta`/meta slot, `tone`, `as`, `level`, `id`, `flush`, `reveal`, `bodyClass`),
-  `PageHeader` (framed page header: back/context strip, kicker, h1, lead; `before`/`aside` slots),
-  `SectionTitle` (swatch + kicker + h2, `aside` slot), `Tick` (teal ticker badge), `DatedNote`
-  (amber "Dated figures" callout), `Disclaimer`, `CoverageTable` (shared coverage table, `sortable`
-  adds client-side sort with `aria-sort`), `FootballField` (method ranges vs the reference price,
-  inline SVG, `compact`), `SensitivityTable` (DCF grid, up/down shading around the reference
-  price), `VnIndexChart`, `MarketNote` (weekly/monthly detail body + reading-progress bar),
-  `NoteList` (notes by year with All/Weekly/Monthly filter synced to `?kind=`), `CommandPalette`
-  (Ctrl/⌘+K, `/`, or any `[data-palette-open]`; index built at compile time), `SkyIntro`.
-- **Layout idiom:** content goes in a `Panel` — never loose text on `bg-canvas`. Title bars are
-  mono uppercase labels; data rows are `border-b border-line` lists with the value right-aligned;
-  gains/losses use `text-up`/`text-down` (or the `*-soft` pills). Page pattern: `PageHeader` in the
-  section's tone, then panels in a 12-column grid with `gap-4`/`gap-5`.
-- **Motion:** `animate-rise` for above-the-fold load stagger, `data-reveal` for scroll reveal,
-  `data-countup="N"` on figures inside a revealed block, `sky-rise`/`sun-spin`/`glow`/`twinkle`
-  for SkyIntro. Content is fully visible without JS; `prefers-reduced-motion` drops durations.
-- **CSS** (`global.css`): tokens, sharp corners, selection/focus colours, `.u-link` (underline
-  drawing in on hover), scroll reveal, theme cross-fade (`html.theme-ready`), print palette.
-  **Give every link an explicit `hover:text-…` class.**
-- **Charts:** `VnIndexChart` (lightweight-charts, dynamically imported when the chart nears the
-  viewport; reads the `--c-*` tokens and repaints on `themechange`; area for weekly closes, up/down
-  candles when `vn_index_daily` exists; the TradingView logo is off because it injects inline
-  CSS — the text attribution link replaces it). Hand-built charts are inline SVG with marks on a
-  fixed viewBox and all text in HTML; no inline `style` (set dynamic values through CSSOM).
-- **OG cards** (`og/[...path].png.ts`) use the day palette: navy band, white panel with a teal
-  (report) or amber (note) title bar, Archivo + IBM Plex Mono from `@fontsource/archivo` /
-  `@fontsource/ibm-plex-mono` `.woff` files (satori cannot read woff2).
+- **Tokens** are plain CSS variables in `src/styles/global.css` (`--g-main/alt/card/dark`, `--ink`,
+  `--muted`, `--line`, `--line-strong`, `--action`, `--amber`, `--up`, `--down`, the `--m-*` method
+  lanes). Tailwind maps them (`bg-ground`, `bg-ground-alt`, `text-ink`, `text-ink-muted`,
+  `border-line`, `text-action`, `text-amber`, `text-up/down`, `bg-up-soft` …) and is the layout
+  layer only. **Never hard-code a hex in a component.** Light grade only: there is no dark mode.
+- **Type:** Source Serif 4 (display), IBM Plex Sans (text), IBM Plex Mono (figures), all
+  self-hosted via `@fontsource`. Use the classes `.t-display .t-h1 .t-h2 .t-h3 .t-lead .t-body
+  .t-small .t-label .t-figure .t-data`. Labels are sentence case at 13px/500: **no uppercase,
+  no tracked capitals, nothing under 13px.**
+- **Components** (`components/ui/`): `SiteHeader` (fixed, opaque, hairline; five nouns and the
+  one filled button "Download the CV"; full-screen sheet under 1024px), `SiteFooter` (dark;
+  type close + link columns + legal row; `close={false}` drops the close), `PageHead` (inner page
+  header: back link, label, h1, lead, `aside` slot), `Ticker`, `DatedNote`, `Disclaimer`,
+  `CoverageStrip` (home hero picture), `CoverageTable` (`sortable`), `FootballField`
+  (`compact`), `SensitivityTable`, `VnIndexChart`, `MarketNote`, `NoteList`, `Icon`.
+- **Classes:** `.wrap` (1280 + gutter), `.section` / `.section--alt` / `.section--screen` /
+  `.section--tight`, `.btn .btn--primary .btn--secondary` (exactly one primary per view: the main
+  action), `.link`, `.card` (lifts 2px when it is a link), `.rows`, `.pill--up/down`, `.tag`,
+  `.note`, `.prose-note` (markdown bodies).
+- **Layout idiom:** sections separate by a ground change (main ↔ alt), never by boxes in boxes;
+  lists are hairline-ruled; grids are 12 columns with `gap-6`. The home page is one section per
+  screen (`.section--screen`), with the hero alone on the first screen.
+- **Motion:** the hero (`[data-enter]`, `.hero-art`) enters once on load; buttons step 1px on
+  hover and press on click; linked cards lift 2px; `.link` underlines draw in. No scroll-reveal,
+  no count-up. `prefers-reduced-motion` drops every duration.
+- **Copy:** headings name a thing; buttons are a verb and an object ("Read the HPG report",
+  "Download the CV"); never "Learn more" or a bare "Open".
 
 ### Global rules
-- **CSP** (`vercel.json`) allows only same-origin scripts, styles, fonts and connections. Astro is
-  set to never inline scripts/CSS (`astro.config.mjs`). The single inline script (the theme
-  bootstrap in `BaseLayout`: sets `data-theme`, `data-theme-mode` and `class="js"`) is allowed by
-  its SHA-256 hash — **if you change it or add another `is:inline` script, update the hash in
-  `vercel.json`**; `npm run build` runs `scripts/check-csp.mjs`, which fails and prints the
-  missing hash. No third-party scripts, fonts or iframes without
-  widening the CSP deliberately. JSON-LD / JSON data blocks are fine (not executed).
-- **Print:** `global.css` sets A4 pages and forces scroll-reveal content visible; hide chrome
-  with `print:hidden`.
-- **Sharp corners everywhere** (`border-radius: 0 !important`; Tailwind radius 0 except `full`).
-- Tailwind utility classes only — no inline `style=""`. Arbitrary values/properties are fine.
+- **CSP** (`vercel.json`) allows only same-origin scripts, styles, fonts and connections, with no
+  inline-script hash (there is no inline script any more). Astro never inlines scripts or CSS. If
+  you add an `is:inline` script, add its hash to `vercel.json`: `npm run build` runs
+  `scripts/check-csp.mjs`, which fails and prints the missing hash. JSON-LD blocks are fine.
+- No inline `style=""` (blocked by the CSP); set dynamic values through CSSOM or SVG attributes.
+- **Print:** global.css sets A4 and hides the header and footer (`.no-print` hides anything else).
 - Mobile-first, must work at 375px with no horizontal page scroll. No `any`; props typed.
 - Zero lorem ipsum / no visible placeholders; finance-accurate English copy.
 - `npm run build` and `npx astro check` must pass with 0 errors before a task is done.
 
-The rejected alternative direction, **Sơn mài** (Vietnamese lacquer: black, cinnabar, gold,
-eggshell inlay; Cormorant Garamond + Be Vietnam Pro), lives on branch `redesign/son-mai` for
-reference only.
+The rejected alternative direction, **Sơn mài** (Vietnamese lacquer), lives on branch
+`redesign/son-mai` for reference only.
 
 ---
 
@@ -250,16 +218,16 @@ model is refreshed, update `lastUpdated`, `referencePrice`, `outputs` and (for a
 
 | Route | File | Notes |
 | :-- | :-- | :-- |
-| `/` | `index.astro` | Analyst panel (name, CFA line, CTAs) + Markets panel, Profile (`#about`), Coverage (`#valuation`: lead note + football field + `CoverageTable`), Market notes (`#market-views`: chart + briefs). |
-| `/research` | `research.astro` | Sortable coverage table (price used, each method + implied move, low/high move; client-side sort with `aria-sort`) and the methods index. |
+| `/` | `index.astro` | One section per screen: hero (h1 + CTAs + facts, `CoverageStrip` as the picture), `#coverage` (`CoverageTable`), `#lead` (lead report + `FootballField`), `#notes` (chart + latest notes), `#about` (the name set large, profile rows), then the footer close. |
+| `/research` | `research.astro` | `CoverageStrip` in the header, sortable coverage table (price used, each method + implied move, low/high move; client-side sort with `aria-sort`) and the methods index. |
 | `/research/[slug]` | `research/[slug]/index.astro` | Company report: fact file, dated-figures note, section index, football field + outputs table, thesis, assumptions, DCF sensitivity, conclusion, risks, model files, prev/next, Report JSON-LD. |
 | `/research/dcf`, `/research/comparable-analysis`, `/research/precedent-transactions-lbo` | thin wrappers | render `<ValuationMethodPage groupId=…/>`. |
 | `/market-views` | `market-views/index.astro` | All notes by year with All/Weekly/Monthly filter, weekly-close chart. |
-| `/market-views/[slug]`, `/monthly-views/[slug]` | `*/[slug].astro` | Both render `ui/MarketNote` from `lib/notes.ts` summaries: data band, cross-asset strip, daily chart, sticky "In this note" index, prev/next. |
+| `/market-views/[slug]`, `/monthly-views/[slug]` | `*/[slug].astro` | Both render `ui/MarketNote` from `lib/notes.ts` summaries: close card, figures band, cross-asset row, daily chart, "In this note" index, prev/next. |
 | `/monthly-views` | `monthly-views/index.astro` | Monthly notes only. |
 | `/contact`, `/disclaimer`, `/404` | static | |
 | `/research/[slug]/tear-sheet` | `research/[slug]/tear-sheet.astro` | One-page A4 summary; exported to `public/research/tear-sheets/<slug>.pdf` by `npm run tear-sheets` (builds, then prints with `playwright-core` + installed Chrome; `CHROME_PATH` overrides). **Re-run it whenever a model changes** and commit the PDFs; report pages link the PDF only if it exists. |
-| `/og/<path>.png` | `og/[...path].png.ts` | Build-time 1200×630 OG cards (satori + sharp, fonts from `@fontsource`) for every report and note. |
+| `/og/<path>.png` | `og/[...path].png.ts` | Build-time 1200×630 OG cards (satori + sharp; Source Serif 4, IBM Plex Sans and Mono `.woff` from `@fontsource`) for every report and note. |
 | `/rss.xml` | `rss.xml.ts` | Weekly + monthly feed with full note HTML (`markdown-it` + `sanitize-html`). |
 
 `ValuationMethodPage` sits in `components/`; everything else lives under `components/ui/` (§4).
