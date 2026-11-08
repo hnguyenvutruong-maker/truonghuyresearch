@@ -17,19 +17,19 @@ const h = (type: string, style: Record<string, unknown>, ...children: Child[]): 
   props: { style: { display: 'flex', ...style }, children: children.filter((child): child is Node | string => Boolean(child)) },
 });
 
-// Direction C palette (day theme): navy chrome band, white panel, one colour per section
-const C = { chrome: '#0B1B33', chromeFg: '#F2F5F9', chromeMuted: '#9FB0C3', canvas: '#F6F8FB', panel: '#FFFFFF', line: '#C9D2DC', fg: '#101A2B', muted: '#4A596B', up: '#0E6B34', down: '#BE261A', value: '#086F76', market: '#9A4F04', teal: '#57D6C8' };
+// "Ledger" palette (global.css): navy band, white card, navy accent, amber for the price used
+const C = { chrome: '#0F1E2E', chromeFg: '#EEF2F5', chromeMuted: '#A3B1BE', canvas: '#F7F9FA', panel: '#FFFFFF', line: '#C9D1D8', fg: '#13212E', muted: '#4F5D6B', up: '#13703A', down: '#B42318', value: '#1E3A5F', market: '#94590A', teal: '#A3B1BE' };
 const font = (pkg: string, file: string) => readFileSync(join(process.cwd(), 'node_modules', pkg, 'files', file));
 const fonts = [
-  { name: 'Archivo', data: font('@fontsource/archivo', 'archivo-latin-800-normal.woff'), weight: 800 as const, style: 'normal' as const },
-  { name: 'Archivo', data: font('@fontsource/archivo', 'archivo-latin-700-normal.woff'), weight: 700 as const, style: 'normal' as const },
-  { name: 'IBM Plex Mono', data: font('@fontsource/ibm-plex-mono', 'ibm-plex-mono-latin-600-normal.woff'), weight: 600 as const, style: 'normal' as const },
+  { name: 'Source Serif 4', data: font('@fontsource/source-serif-4', 'source-serif-4-latin-600-normal.woff'), weight: 600 as const, style: 'normal' as const },
+  { name: 'IBM Plex Sans', data: font('@fontsource/ibm-plex-sans', 'ibm-plex-sans-latin-500-normal.woff'), weight: 500 as const, style: 'normal' as const },
+  { name: 'IBM Plex Mono', data: font('@fontsource/ibm-plex-mono', 'ibm-plex-mono-latin-500-normal.woff'), weight: 500 as const, style: 'normal' as const },
 ];
 
 type Card = { kicker: string; context: string; headline: string; figures: Array<{ label: string; value: string; tone?: string }>; ticker?: string; accent: string };
 
 const label = (text: string, color = C.muted, size = 20) =>
-  h('div', { fontFamily: 'IBM Plex Mono', fontWeight: 600, fontSize: size, letterSpacing: 1.6, textTransform: 'uppercase', color }, text);
+  h('div', { fontFamily: 'IBM Plex Sans', fontWeight: 500, fontSize: size, color }, text);
 
 const layout = (card: Card): Node =>
   h(
@@ -38,26 +38,26 @@ const layout = (card: Card): Node =>
     h(
       'div',
       { height: 92, padding: '0 56px', backgroundColor: C.chrome, justifyContent: 'space-between', alignItems: 'center' },
-      h('div', { fontFamily: 'Archivo', fontWeight: 800, fontSize: 34, color: C.chromeFg }, 'Truong Huy', h('span', { color: C.teal, marginLeft: 10 }, 'Research')),
+      h('div', { fontFamily: 'Source Serif 4', fontWeight: 600, fontSize: 34, color: C.chromeFg }, 'Truong Huy', h('span', { color: C.teal, marginLeft: 10 }, 'Research')),
       label(card.context, C.chromeMuted)
     ),
     h(
       'div',
-      { flexGrow: 1, margin: '32px 56px', flexDirection: 'column', backgroundColor: C.panel, border: `2px solid ${C.line}` },
-      h('div', { height: 52, padding: '0 28px', backgroundColor: card.accent, alignItems: 'center' }, label(card.kicker, '#FFFFFF')),
+      { flexGrow: 1, margin: '32px 56px', flexDirection: 'column', backgroundColor: C.panel, border: `2px solid ${C.line}`, borderRadius: 8 },
+      h('div', { height: 56, padding: '0 28px', borderBottom: `2px solid ${C.line}`, alignItems: 'center' }, label(card.kicker, card.accent, 22)),
       h(
         'div',
         { flexGrow: 1, padding: '0 28px', alignItems: 'center' },
         card.ticker
           ? h(
               'div',
-              { marginRight: 28, padding: '10px 16px', backgroundColor: C.value, color: '#FFFFFF', fontFamily: 'IBM Plex Mono', fontWeight: 600, fontSize: 30 },
+              { marginRight: 28, padding: '10px 16px', borderRadius: 4, backgroundColor: C.fg, color: '#FFFFFF', fontFamily: 'IBM Plex Mono', fontWeight: 500, fontSize: 30 },
               card.ticker
             )
           : null,
         h(
           'div',
-          { flexShrink: 1, fontFamily: 'Archivo', fontWeight: 800, fontSize: card.headline.length > 80 ? 44 : card.headline.length > 50 ? 54 : 66, lineHeight: 1.08, letterSpacing: -1.2 },
+          { flexShrink: 1, fontFamily: 'Source Serif 4', fontWeight: 600, fontSize: card.headline.length > 80 ? 44 : card.headline.length > 50 ? 54 : 66, lineHeight: 1.08, letterSpacing: -1.2 },
           card.headline
         )
       ),
@@ -68,7 +68,7 @@ const layout = (card: Card): Node =>
           'div',
           { gap: 44 },
           ...card.figures.map((figure) =>
-            h('div', { flexDirection: 'column' }, label(figure.label, C.muted, 17), h('div', { fontFamily: 'IBM Plex Mono', fontWeight: 600, fontSize: 34, marginTop: 6, color: figure.tone ?? C.fg }, figure.value))
+            h('div', { flexDirection: 'column' }, label(figure.label, C.muted, 17), h('div', { fontFamily: 'IBM Plex Mono', fontWeight: 500, fontSize: 34, marginTop: 6, color: figure.tone ?? C.fg }, figure.value))
           )
         ),
         label('truonghuyresearch.xyz', C.muted, 17)
@@ -79,7 +79,7 @@ const layout = (card: Card): Node =>
 const tone = (value: number | null) => (value == null ? C.muted : value >= 0 ? C.up : C.down);
 
 const noteCard = (note: NoteSummary): Card => ({
-  kicker: `${note.kind} market view`,
+  kicker: `${note.kind} market note`,
   context: note.period,
   headline: note.headline,
   accent: C.market,
@@ -105,7 +105,7 @@ export const getStaticPaths = (async () => {
           accent: C.value,
           figures: [
             ...model.outputs.slice(0, 3).map((output) => ({ label: outputMethodLabel[output.method], value: formatOutput(output).replace('≈', '~') })),
-            { label: 'Price used', value: formatVndK(model.referencePrice.value), tone: C.muted },
+            { label: 'Price used', value: formatVndK(model.referencePrice.value), tone: C.market },
           ],
         } satisfies Card,
       },

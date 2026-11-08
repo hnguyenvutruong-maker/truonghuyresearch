@@ -1,33 +1,17 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import Panel from '../components/ui/Panel.astro';
-
-const links = [
-  { label: 'Front page', href: '/', primary: true },
-  { label: 'Coverage', href: '/research', primary: false },
-  { label: 'Market notes', href: '/market-views', primary: false },
-];
 ---
 
-<BaseLayout title="Page Not Found | Truong Huy Research" description="The page you are looking for does not exist.">
-  <div class="mx-auto flex min-h-[60vh] w-full max-w-2xl items-center px-margin-mobile py-10">
-    <Panel title="Error 404" meta="Not found" tone="neutral" class="w-full">
-      <p class="font-mono text-figure text-value-ink">404</p>
-      <h1 class="mt-3 font-display text-h1 text-fg">This page is not on the tape</h1>
-      <p class="mt-3 text-lead text-fg-muted">The address may have changed, or the page never existed. Try one of these sections.</p>
-      <nav aria-label="Sections" class="mt-6 flex flex-wrap gap-2">
-        {links.map((link) => (
-          <a
-            href={link.href}
-            class:list={[
-              'inline-flex min-h-11 items-center px-4 py-2 font-mono text-[0.8125rem] font-semibold transition-colors',
-              link.primary ? 'bg-value text-white hover:bg-[#0A858D] hover:text-white' : 'border border-line-strong text-fg hover:border-fg hover:bg-panel-alt',
-            ]}
-          >
-            {link.label}
-          </a>
-        ))}
-      </nav>
-    </Panel>
-  </div>
+<BaseLayout title="Page not found | Truong Huy Research" description="The page you are looking for does not exist." close={false}>
+  <section class="page-head min-h-[70svh]">
+    <div class="wrap" data-enter>
+      <p class="t-figure text-ink-muted">404</p>
+      <h1 class="t-h1 mt-4">This page does not exist</h1>
+      <p class="t-lead measure mt-5 text-ink-muted">The address may have changed, or the page was never published. The research and the market notes are one click away.</p>
+      <div class="btn-row mt-9">
+        <a href="/research" class="btn btn--primary">Read the research</a>
+        <a href="/market-views" class="btn btn--secondary">Read the market notes</a>
+      </div>
+    </div>
+  </section>
 </BaseLayout>

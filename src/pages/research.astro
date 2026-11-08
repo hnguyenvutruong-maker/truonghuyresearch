@@ -1,12 +1,12 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import CoverageStrip from '../components/ui/CoverageStrip.astro';
 import CoverageTable from '../components/ui/CoverageTable.astro';
 import DatedNote from '../components/ui/DatedNote.astro';
 import Disclaimer from '../components/ui/Disclaimer.astro';
 import Icon from '../components/ui/Icon.astro';
-import PageHeader from '../components/ui/PageHeader.astro';
-import Panel from '../components/ui/Panel.astro';
-import Tick from '../components/ui/Tick.astro';
+import PageHead from '../components/ui/PageHead.astro';
+import Ticker from '../components/ui/Ticker.astro';
 import { STALE_AFTER_DAYS, methodPages, valuationGroups, valuationModels } from '../data/valuation-models';
 import { daysBetween, formatDate } from '../lib/format';
 
@@ -23,56 +23,57 @@ const methods = methodPages.map((page) => {
 ---
 
 <BaseLayout
-  title="Coverage | Truong Huy Research"
-  description="Vietnam equity valuation coverage: DCF, comparable, precedent-transaction and LBO outputs for HPG, BID, FPT, BMP and PNJ, with downloadable workbooks."
+  title="Research coverage: five Vietnam-listed companies | Truong Huy Research"
+  description="Valuation coverage of HPG, BID, FPT, BMP and PNJ: DCF, comparable, precedent-transaction and LBO outputs against the price each model used, with downloadable workbooks."
 >
-  <div class="mx-auto w-full max-w-container-max space-y-4 px-margin-mobile py-6 md:px-margin-desktop md:py-8">
-    <PageHeader
-      tone="value"
-      kicker="Section II · Valuation"
-      title="Coverage"
-      lead="Five Vietnam-listed issuers, each valued with the methods that fit the business, and every workbook open for review. Ranges, not single targets: where methods disagree, the spread is the finding."
-      context={`${valuationModels.length} issuers · ${downloadCount} workbooks`}
-    >
-      <div slot="aside" class="border border-line bg-panel-alt p-4">
-        <p class="font-mono text-label uppercase text-value-ink">How to read the table</p>
-        <p class="mt-2 text-small text-fg">
-          Values are VND per share. The implied move compares each method's base case or midpoint with the share price the
-          model used. Click a column heading to sort.
-        </p>
+  <PageHead
+    label={`${valuationModels.length} companies · ${downloadCount} workbooks`}
+    title="Research coverage"
+    lead="Five Vietnam-listed companies, each valued with the methods that fit the business and every workbook open for review. Ranges, not single targets: where methods disagree, the spread is the finding."
+  >
+    <div slot="aside" class="hero-art"><CoverageStrip /></div>
+  </PageHead>
+
+  <section class="section section--alt" aria-labelledby="table-title">
+    <div class="wrap">
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-end">
+        <h2 id="table-title" class="t-h2 lg:col-span-7">Outputs by method, VND per share</h2>
+        <p class="t-small text-ink-muted lg:col-span-5">Sort by any column. The implied move compares each method's base case or midpoint with the share price the model used.</p>
       </div>
-    </PageHeader>
-
-    {isStale && (
-      <DatedNote>
-        All models and prices are as of {formatDate(oldestDate)} and have not been refreshed since. Implied moves are against
-        those prices, not today's.
-      </DatedNote>
-    )}
-
-    <Panel title="Coverage table · VND per share" meta="Sortable" tone="value" flush>
-      <p class="border-b border-line bg-panel-alt px-4 py-2 font-mono text-[0.75rem] text-fg-muted sm:hidden">Scroll sideways for every method.</p>
-      <CoverageTable sortable />
-      <p class="border-t border-line px-4 py-3 text-[0.875rem] text-fg-muted">
-        ≈ marks approximate precedent-transaction outputs. Low and high move are the weakest and strongest method versus the
-        price used; methods are not blended into one target. Academic work, not investment advice.
+      {isStale && (
+        <DatedNote class="mt-8">
+          All models and prices are as of {formatDate(oldestDate)} and have not been refreshed since. Implied moves are against
+          those prices, not today's.
+        </DatedNote>
+      )}
+      <div class="card mt-8 p-0">
+        <CoverageTable sortable />
+      </div>
+      <p class="t-label mt-4 text-ink-muted">
+        ≈ marks approximate precedent-transaction outputs. Low and high move are the weakest and strongest method against the
+        price used.
       </p>
-    </Panel>
-
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-      {methods.map((method) => method.group && (
-        <Panel title={method.group.title} meta={method.group.eyebrow} tone="value" level={3} reveal>
-          <p class="text-small text-fg">{method.group.description}</p>
-          <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
-            <span class="flex flex-wrap gap-1.5">{method.tickers.map((ticker) => <Tick label={ticker} size="sm" />)}</span>
-            <a href={method.href} class="inline-flex items-center gap-1 font-mono text-[0.8125rem] font-semibold text-link transition-colors hover:text-fg">
-              Open <Icon name="arrow_forward" size={16} />
-            </a>
-          </div>
-        </Panel>
-      ))}
     </div>
+  </section>
 
-    <Disclaimer />
-  </div>
+  <section id="methods" class="section" aria-labelledby="methods-title">
+    <div class="wrap">
+      <h2 id="methods-title" class="t-h2">Three valuation methods</h2>
+      <p class="t-body measure mt-4 text-ink-muted">Each method page gathers the notes and workbooks for every company it was used on.</p>
+      <div class="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
+        {methods.map((method) => method.group && (
+          <a href={method.href} class="card group flex flex-col">
+            <p class="t-label text-ink-muted">{method.group.eyebrow}</p>
+            <h3 class="t-h3 mt-2 transition-colors group-hover:text-action">{method.group.title}</h3>
+            <p class="t-small mt-3 flex-1 text-ink-muted">{method.group.description}</p>
+            <div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+              <span class="flex flex-wrap gap-1.5">{method.tickers.map((ticker) => <Ticker label={ticker} />)}</span>
+              <Icon name="arrow_right" size={20} class="text-action transition-transform group-hover:translate-x-1" />
+            </div>
+          </a>
+        ))}
+      </div>
+      <Disclaimer />
+    </div>
+  </section>
 </BaseLayout>

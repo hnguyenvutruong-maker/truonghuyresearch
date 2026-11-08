@@ -2,9 +2,9 @@
 // Coverage table: issuer, price used, each method's output with its implied move, and the
 // low / high move across methods. With `sortable`, column headings sort the rows (data-*
 // attributes carry the sort keys; missing values always sink to the bottom).
-import Tick from './Tick.astro';
+import Ticker from './Ticker.astro';
 import { formatOutput, impliedMovePct, valuationModels, type OutputMethod } from '../../data/valuation-models';
-import { formatVndK, signedPct, toneClass } from '../../lib/format';
+import { formatVndK, signedPct } from '../../lib/format';
 
 interface Props {
   sortable?: boolean;
@@ -14,7 +14,7 @@ const { sortable = false } = Astro.props;
 
 const columns: Array<{ method: OutputMethod; label: string }> = [
   { method: 'DCF', label: 'DCF' },
-  { method: 'Comparable', label: 'Comps' },
+  { method: 'Comparable', label: 'Comparables' },
   { method: 'Precedent', label: 'Precedent' },
   { method: 'LBO', label: 'LBO' },
 ];
@@ -35,22 +35,24 @@ const heads = [
   { key: 'low', label: 'Low move' },
   { key: 'high', label: 'High move' },
 ];
+const thClass = 't-label border-b border-line-strong px-3 py-3 text-ink-muted';
+const sortClass = 'inline-flex min-h-6 cursor-pointer items-center gap-1 text-ink-muted transition-colors hover:text-action';
 ---
 
-<div class="overflow-x-auto" data-coverage>
-  <table class="w-full min-w-[48rem] border-collapse" data-sortable={sortable ? '' : undefined}>
-    <caption class="sr-only">Valuation coverage, VND per share; implied moves against the price each model used</caption>
+<div class="overflow-x-auto" tabindex="0" role="region" aria-label="Coverage table, scrolls sideways on small screens">
+  <table class="w-full min-w-[54rem] border-collapse" data-sortable={sortable ? '' : undefined}>
+    <caption class="sr-only">Valuation coverage in VND per share, with implied moves against the price each model used</caption>
     <thead>
-      <tr class="bg-panel-alt font-mono text-label uppercase text-fg-muted">
-        <th scope="col" class="sticky left-0 z-10 border-b border-line-strong bg-panel-alt px-3 py-2.5 text-left" aria-sort={sortable ? 'ascending' : undefined}>
+      <tr>
+        <th scope="col" class:list={[thClass, 'sticky left-0 z-10 bg-ground-card text-left']} aria-sort={sortable ? 'ascending' : undefined}>
           {sortable ? (
-            <button type="button" data-sort="ticker" data-type="text" class="inline-flex items-center gap-1 uppercase transition-colors hover:text-link">Issuer <span data-arrow aria-hidden="true">↑</span></button>
-          ) : 'Issuer'}
+            <button type="button" data-sort="ticker" data-type="text" class={sortClass}>Company <span data-arrow aria-hidden="true">↑</span></button>
+          ) : 'Company'}
         </th>
         {heads.map((head) => (
-          <th scope="col" class="border-b border-line-strong px-3 py-2.5 text-right" aria-sort={sortable ? 'none' : undefined}>
+          <th scope="col" class:list={[thClass, 'text-right']} aria-sort={sortable ? 'none' : undefined}>
             {sortable ? (
-              <button type="button" data-sort={head.key} class="inline-flex items-center gap-1 uppercase transition-colors hover:text-link">{head.label} <span data-arrow aria-hidden="true"></span></button>
+              <button type="button" data-sort={head.key} class={sortClass}>{head.label} <span data-arrow aria-hidden="true"></span></button>
             ) : head.label}
           </th>
         ))}
@@ -59,40 +61,40 @@ const heads = [
     <tbody>
       {rows.map((row) => (
         <tr
-          class="group border-b border-line transition-colors hover:bg-panel-alt"
+          class="group border-b border-line transition-colors hover:bg-ground"
           data-ticker={row.model.ticker}
           data-price={row.model.referencePrice.value}
           data-low={row.low}
           data-high={row.high}
           {...Object.fromEntries(columns.map((column) => [`data-${column.method.toLowerCase()}`, row.byMethod[column.method]?.move ?? '']))}
         >
-          <th scope="row" class="sticky left-0 z-10 bg-panel px-3 py-3 text-left font-normal transition-colors group-hover:bg-panel-alt">
-            <a href={`/research/${row.model.slug}`} class="flex items-center gap-3">
-              <Tick label={row.model.ticker} size="sm" />
+          <th scope="row" class="sticky left-0 z-10 bg-ground-card px-3 py-4 text-left font-normal transition-colors group-hover:bg-ground">
+            <a href={`/research/${row.model.slug}`} class="flex items-center gap-3 no-underline">
+              <Ticker label={row.model.ticker} />
               <span class="hidden sm:block">
-                <span class="block font-semibold text-fg transition-colors group-hover:text-link">{row.model.company}</span>
-                <span class="block text-[0.8125rem] text-fg-muted">{row.model.sector}</span>
+                <span class="block font-medium text-ink transition-colors group-hover:text-action">{row.model.company}</span>
+                <span class="t-label block text-ink-muted">{row.model.sector}</span>
               </span>
             </a>
           </th>
-          <td class="px-3 py-3 text-right font-mono text-[0.9375rem] font-medium tabular-nums text-fg">{formatVndK(row.model.referencePrice.value)}</td>
+          <td class="t-data px-3 py-4 text-right text-ink">{formatVndK(row.model.referencePrice.value)}</td>
           {columns.map((column) => {
             const cell = row.byMethod[column.method];
             return (
-              <td class="px-3 py-3 text-right align-top">
+              <td class="px-3 py-4 text-right align-top">
                 {cell ? (
                   <>
-                    <span class="block whitespace-nowrap font-mono text-[0.9375rem] font-semibold tabular-nums text-fg">{cell.text}</span>
-                    <span class:list={['mt-1 inline-block px-1.5 py-0.5 font-mono text-[0.75rem] font-semibold tabular-nums', cell.move >= 0 ? 'bg-up-soft text-up' : 'bg-down-soft text-down']}>{signedPct(cell.move, 1)}</span>
+                    <span class="t-data block whitespace-nowrap font-medium text-ink">{cell.text}</span>
+                    <span class:list={['pill mt-1.5', cell.move >= 0 ? 'pill--up' : 'pill--down']}>{signedPct(cell.move, 1)}</span>
                   </>
                 ) : (
-                  <span class="text-fg-muted">—</span>
+                  <span class="text-ink-muted" aria-label="Not used">—</span>
                 )}
               </td>
             );
           })}
-          <td class:list={['px-3 py-3 text-right font-mono text-[0.875rem] font-semibold tabular-nums', toneClass(row.low)]}>{signedPct(row.low, 1)}</td>
-          <td class:list={['px-3 py-3 text-right font-mono text-[0.875rem] font-semibold tabular-nums', toneClass(row.high)]}>{signedPct(row.high, 1)}</td>
+          <td class:list={['t-data px-3 py-4 text-right', row.low >= 0 ? 'text-up' : 'text-down']}>{signedPct(row.low, 1)}</td>
+          <td class:list={['t-data px-3 py-4 text-right', row.high >= 0 ? 'text-up' : 'text-down']}>{signedPct(row.high, 1)}</td>
         </tr>
       ))}
     </tbody>

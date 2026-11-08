@@ -1,32 +1,32 @@
 ---
-// Self-hosted fonts (bundled into /_astro/): Archivo (display, width + weight axes),
-// Source Sans 3 (body), IBM Plex Mono (labels and figures)
-import '@fontsource-variable/archivo/wdth.css';
-import '@fontsource-variable/source-sans-3/wght.css';
+// Self-hosted fonts (bundled into /_astro/, the CSP allows same-origin fonts only):
+// Source Serif 4 (display), IBM Plex Sans (text), IBM Plex Mono (figures).
+import '@fontsource-variable/source-serif-4/wght.css';
+import '@fontsource/ibm-plex-sans/400.css';
+import '@fontsource/ibm-plex-sans/500.css';
+import '@fontsource/ibm-plex-sans/600.css';
 import '@fontsource/ibm-plex-mono/400.css';
 import '@fontsource/ibm-plex-mono/500.css';
-import '@fontsource/ibm-plex-mono/600.css';
 import '../styles/global.css';
 import Analytics from '@vercel/analytics/astro';
 import SiteHeader from '../components/ui/SiteHeader.astro';
-import MarketTape from '../components/ui/MarketTape.astro';
 import SiteFooter from '../components/ui/SiteFooter.astro';
-import Motion from '../components/ui/Motion.astro';
-import CommandPalette from '../components/ui/CommandPalette.astro';
-import SkyIntro from '../components/ui/SkyIntro.astro';
 
 interface Props {
   title: string;
   description?: string;
   image?: string;
   type?: string;
+  /** The closing band above the footer links (off on pages that end in their own action). */
+  close?: boolean;
 }
 
 const {
   title,
-  description = 'Vietnam equity research, valuation models, and market notes by Nguyen Vu Truong Huy.',
+  description = 'Equity research on Vietnam-listed companies: valuation models, open workbooks and market notes by Nguyen Vu Truong Huy.',
   image = '/og-image.png',
   type = 'website',
+  close = true,
 } = Astro.props;
 
 const canonicalURL = Astro.url.href;
@@ -37,11 +37,12 @@ const ogImageURL = new URL(image, Astro.site).toString();
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script is:inline>(function(){var d=document.documentElement,m=null,h=new Date().getHours();try{m=localStorage.getItem('thr-theme')}catch(e){}var manual=m==='light'||m==='dark';d.dataset.theme=manual?m:(h>=18||h<6?'dark':'light');d.dataset.themeMode=manual?'manual':'auto';d.classList.add('js')})();</script>
-    <meta name="theme-color" content="#0B1B33" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#F7F9FA" />
+    <meta name="site-kind" content="other" />
+    <meta name="page-type" content="service" />
     <link rel="canonical" href={canonicalURL} />
-    <link rel="alternate" type="application/rss+xml" title="Truong Huy Research — Market Views" href="/rss.xml" />
+    <link rel="alternate" type="application/rss+xml" title="Truong Huy Research: market notes" href="/rss.xml" />
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="author" content="Nguyen Vu Truong Huy" />
@@ -60,20 +61,12 @@ const ogImageURL = new URL(image, Astro.site).toString();
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageURL} />
   </head>
-  <body class="flex min-h-screen flex-col bg-canvas font-sans text-fg antialiased">
-    <a href="#main" class="sr-only bg-value px-4 py-2 font-mono text-label uppercase text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70]">Skip to content</a>
+  <body>
     <SiteHeader />
-    <MarketTape />
-
-    <main id="main" class="w-full flex-grow">
+    <main id="main">
       <slot />
     </main>
-
-    <SiteFooter />
-
-    <SkyIntro />
-    <CommandPalette />
-    <Motion />
+    <SiteFooter close={close} />
     <Analytics />
   </body>
 </html>

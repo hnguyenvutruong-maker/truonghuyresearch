@@ -2,7 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Disclaimer from '../../components/ui/Disclaimer.astro';
 import NoteList from '../../components/ui/NoteList.astro';
-import PageHeader from '../../components/ui/PageHeader.astro';
+import PageHead from '../../components/ui/PageHead.astro';
 import { getCollection } from 'astro:content';
 import { monthlySummary } from '../../lib/notes';
 
@@ -10,19 +10,19 @@ const notes = (await getCollection('monthly-views')).map(monthlySummary);
 ---
 
 <BaseLayout
-  title="Monthly Market Views | Truong Huy Research"
-  description="Monthly Vietnam market notes: VN-Index monthly range, liquidity, foreign flow, best and worst sectors, and cross-asset context."
+  title="Monthly market notes on the VN-Index | Truong Huy Research"
+  description="Monthly Vietnam market notes: the VN-Index monthly range, liquidity, foreign flow, best and worst sectors, and cross-asset context."
 >
-  <div class="mx-auto w-full max-w-container-max space-y-4 px-margin-mobile py-6 md:px-margin-desktop md:py-8">
-    <PageHeader
-      tone="market"
-      kicker="Section III · Market views"
-      title="Monthly views"
-      lead="The month in one read: where VN-Index travelled, which sectors led and lagged, how foreign investors traded, and what to watch next."
-      back={{ href: '/market-views', label: 'All market notes' }}
-      context={`${notes.length} monthly notes`}
-    />
-    <NoteList notes={notes} />
-    <Disclaimer />
-  </div>
+  <PageHead
+    label={`${notes.length} monthly notes`}
+    title="Monthly market notes"
+    lead="The month in one read: where the VN-Index travelled, which sectors led and lagged, how foreign investors traded, and what to watch next."
+    back={{ href: '/market-views', label: 'All market notes' }}
+  />
+  <section class="section section--alt" aria-label="Monthly notes">
+    <div class="wrap">
+      <NoteList notes={notes} />
+      <Disclaimer />
+    </div>
+  </section>
 </BaseLayout>
