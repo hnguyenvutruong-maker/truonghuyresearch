@@ -1,93 +1,45 @@
 ---
-// footer.closing (Taste layout-v4: the close and the footer are one section): row 1 the type
-// close with the main action, row 2 the link columns and the legal row, on the dark ground.
-import Icon from './Icon.astro';
+// footer.closing (Taste): row 1 the dealt close, close-word (the h2 and the main action, then the name set
+// across the .wrap: the page's type moment), row 2 footer-columns and the legal row.
 import { portfolioDisclaimer } from '../../data/valuation-models';
 
-interface Props {
-  close?: boolean;
-}
-
-const { close = true } = Astro.props;
 const year = new Date().getFullYear();
-
 const columns = [
-  {
-    title: 'Research',
-    links: [
-      { label: 'Coverage', href: '/research' },
-      { label: 'DCF', href: '/research/dcf' },
-      { label: 'Comparables', href: '/research/comparable-analysis' },
-      { label: 'Transactions and LBO', href: '/research/precedent-transactions-lbo' },
-    ],
-  },
-  {
-    title: 'Notes',
-    links: [
-      { label: 'All market notes', href: '/market-views' },
-      { label: 'Monthly notes', href: '/monthly-views' },
-      { label: 'RSS feed', href: '/rss.xml' },
-    ],
-  },
-  {
-    title: 'Huy',
-    links: [
-      { label: 'About', href: '/#about' },
-      { label: 'Contact', href: '/contact' },
-      { label: 'LinkedIn', href: 'https://www.linkedin.com/in/trghuyy/', external: true },
-      { label: 'Disclaimer', href: '/disclaimer' },
-    ],
-  },
+  { title: 'Research', links: [{ label: 'Coverage', href: '/research' }, { label: 'DCF', href: '/research/dcf' }, { label: 'Comparables', href: '/research/comparable-analysis' }, { label: 'Transactions and LBO', href: '/research/precedent-transactions-lbo' }] },
+  { title: 'Notes', links: [{ label: 'All market notes', href: '/market-views' }, { label: 'Monthly notes', href: '/monthly-views' }, { label: 'RSS feed', href: '/rss.xml' }] },
+  { title: 'Huy', links: [{ label: 'Contact', href: '/contact' }, { label: 'LinkedIn', href: 'https://www.linkedin.com/in/trghuyy/' }, { label: 'Disclaimer', href: '/disclaimer' }] },
 ];
 ---
 
-<footer class="site-footer bg-ground-dark text-dark-ink">
+<footer class="footer closing" id="contact" aria-labelledby="close-h">
   <div class="wrap">
-    {close && (
-      <div class="grid grid-cols-1 gap-10 border-b border-dark-line py-20 lg:grid-cols-12 lg:items-end lg:py-24">
-        <div class="lg:col-span-8">
-          <p class="t-label text-dark-muted">Ho Chi Minh City · Passed Level II of the CFA Program</p>
-          <p class="t-h1 mt-4 max-w-[18ch] text-dark-ink">Open to equity research and investment banking internships.</p>
+    <div class="closing__cta close--word">
+      <div class="section-head--split">
+        <div>
+          <h2 id="close-h">Download the CV</h2>
+          <p class="t-lead">Open to equity research and investment banking internships in Ho Chi Minh City.</p>
         </div>
-        <div class="btn-row lg:col-span-4 lg:justify-end">
-          <a href="/cv.pdf" class="btn btn--primary btn--on-dark" target="_blank" rel="noopener">Download the CV</a>
-          <a href="/contact" class="btn btn--secondary btn--on-dark">Contact Huy <Icon name="arrow_right" size={18} class="arrow" /></a>
-        </div>
+        <a class="btn btn--primary" href="/cv.pdf" target="_blank" rel="noopener">Download the CV<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
       </div>
-    )}
-
-    <div class="grid grid-cols-2 gap-x-6 gap-y-10 py-14 md:grid-cols-12">
-      <div class="col-span-2 md:col-span-5">
-        <a href="/" class="inline-flex items-baseline gap-1.5 text-dark-ink no-underline">
-          <span class="font-display text-[1.375rem] font-semibold">Truong Huy</span>
-          <span class="font-display text-[1.375rem] text-dark-muted">Research</span>
-        </a>
-        <p class="t-small mt-3 max-w-[40ch] text-dark-muted">Valuation models and market notes on Vietnam-listed companies, with every workbook open for review.</p>
-      </div>
-      {columns.map((column) => (
-        <nav aria-labelledby={`footer-${column.title}`} class="md:col-span-2">
-          <h3 id={`footer-${column.title}`} class="t-label text-dark-muted">{column.title}</h3>
-          <ul class="mt-3 space-y-2 p-0">
-            {column.links.map((link) => (
-              <li class="list-none">
-                <a
-                  href={link.href}
-                  target={link.external ? '_blank' : undefined}
-                  rel={link.external ? 'noopener noreferrer' : undefined}
-                  class="t-small inline-flex min-h-6 items-center text-dark-ink no-underline transition-colors hover:text-white hover:underline hover:underline-offset-4"
-                >
-                  {link.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      ))}
+      <p class="close__word" aria-hidden="true">Trường Huy</p>
     </div>
-
-    <div class="flex flex-col gap-3 border-t border-dark-line py-8 md:flex-row md:items-start md:justify-between md:gap-10">
-      <p class="t-label text-dark-muted">© {year} Nguyen Vu Truong Huy</p>
-      <p class="t-label max-w-[78ch] text-dark-muted md:text-right">{portfolioDisclaimer}</p>
+    <div class="closing__links">
+      <div class="grid">
+        <div class="span-6 stack-4">
+          <a class="nav__logo" href="/"><span class="mark" data-mark="stack" aria-hidden="true"></span>Truong Huy<span class="logo-kind">&nbsp;Research</span></a>
+          <p class="footer__lede">Valuation models and market notes on Vietnam-listed companies.</p>
+        </div>
+        {columns.map((column) => (
+          <div class="span-2 footer__col">
+            <h3>{column.title}</h3>
+            <ul>{column.links.map((link) => <li><a href={link.href}>{link.label}</a></li>)}</ul>
+          </div>
+        ))}
+      </div>
+      <div class="footer__legal">
+        <span>&copy; {year} Nguyen Vu Truong Huy</span>
+        <span>{portfolioDisclaimer}</span>
+      </div>
     </div>
   </div>
 </footer>

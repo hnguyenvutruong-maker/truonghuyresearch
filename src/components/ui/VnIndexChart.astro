@@ -32,11 +32,11 @@ const hasData = trendData.length > 0 || candleData.length > 0;
       data-vni-chart
       role="img"
       aria-label={label}
-      class:list={['w-full', height === 'lg' ? 'h-[320px]' : 'h-[260px]']}
+      class:list={['vni', height === 'lg' ? 'vni--lg' : 'vni--md']}
       data-trend={JSON.stringify(trendData)}
       data-candle={JSON.stringify(candleData)}
     ></div>
-    <p class="t-label mt-3 text-right text-ink-muted">
+    <p class="t-label muted vni__credit">
       Chart by <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer" class="link">TradingView Lightweight Charts</a>
     </p>
   </div>
@@ -53,31 +53,31 @@ const hasData = trendData.length > 0 || candleData.length > 0;
     const { createChart, CrosshairMode } = await import('lightweight-charts');
     const trendData: { time: string; value: number }[] = JSON.parse(el.dataset.trend ?? '[]');
     const candleData: { time: string; open: number; high: number; low: number; close: number }[] = JSON.parse(el.dataset.candle ?? '[]');
-    const action = css('action');
-    const line = rgba(css('line'), 0.7);
+    const action = css('action') || '#1e3a5f';
+    const line = 'rgba(19, 33, 46, 0.1)';
 
     const chart = createChart(el, {
       width: el.clientWidth,
       height: el.clientHeight || 260,
       layout: {
         background: { color: 'rgba(0, 0, 0, 0)' },
-        textColor: css('muted'),
-        fontFamily: 'IBM Plex Mono, monospace',
+        textColor: css('muted') || '#4f5d6b',
+        fontFamily: 'Libre Franklin, Arial, sans-serif',
         fontSize: 12,
         // The logo injects an inline <style> (blocked by the CSP); the text link below credits the library
         attributionLogo: false,
       },
       grid: { vertLines: { visible: false }, horzLines: { color: line } },
       crosshair: { mode: CrosshairMode.Normal },
-      rightPriceScale: { borderVisible: false },
+      rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.08, bottom: 0.06 } },
       timeScale: { borderColor: line, timeVisible: true },
       handleScroll: false,
       handleScale: false,
     });
 
     if (candleData.length > 0) {
-      const up = css('up');
-      const down = css('down');
+      const up = css('up') || '#13703a';
+      const down = css('down') || '#b42318';
       chart.addCandlestickSeries({ upColor: up, downColor: down, borderUpColor: up, borderDownColor: down, wickUpColor: up, wickDownColor: down }).setData(candleData);
     } else if (trendData.length > 0) {
       chart

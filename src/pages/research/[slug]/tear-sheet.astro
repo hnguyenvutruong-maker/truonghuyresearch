@@ -1,9 +1,8 @@
 ---
-// One-page A4 tear sheet per company: the printable summary behind /research/<slug>.
-// The same page is exported to public/research/tear-sheets/<slug>.pdf by `npm run tear-sheets`.
+// One-page A4 tear sheet per company, the printable summary behind /research/<slug>; exported to
+// public/research/tear-sheets/<slug>.pdf by `npm run tear-sheets`.
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import FootballField from '../../../components/ui/FootballField.astro';
-import Icon from '../../../components/ui/Icon.astro';
 import Ticker from '../../../components/ui/Ticker.astro';
 import { formatOutput, impliedMovePct, outputMethodLabel, portfolioDisclaimer, valuationModels } from '../../../data/valuation-models';
 import { formatDate, formatVndK, signedPct } from '../../../lib/format';
@@ -11,108 +10,51 @@ import { formatDate, formatVndK, signedPct } from '../../../lib/format';
 export function getStaticPaths() {
   return valuationModels.map((model) => ({ params: { slug: model.slug }, props: { model } }));
 }
-
 const { model } = Astro.props;
 const reference = model.referencePrice;
 const modelDate = model.lastUpdated ?? reference.asOf;
 const assumptions = (model.keyAssumptions ?? model.report.assumptions).slice(0, 5);
 const risks = model.report.risks.slice(0, 3);
-const head = 'border-b border-ink pb-1 text-[0.8125rem] font-semibold text-ink';
 ---
-
-<BaseLayout
-  title={`${model.company} (${model.ticker}) tear sheet | Truong Huy Research`}
-  description={`One-page summary of the ${model.company} (${model.ticker}) valuation: methods, outputs against the price used, key assumptions and risks.`}
-  image={`/og/research/${model.slug}.png`}
-  close={false}
->
-  <div class="tear mx-auto w-full max-w-[210mm] px-5 pb-20 print:max-w-none print:p-0">
-    <div class="no-print mb-6 flex flex-wrap items-center justify-between gap-3">
-      <a href={`/research/${model.slug}`} class="crumb"><Icon name="arrow_left" size={18} /> Full report</a>
-      <button type="button" data-print class="btn btn--secondary"><Icon name="download" size={18} /> Print or save as PDF</button>
+<BaseLayout title={`${model.company} (${model.ticker}) tear sheet | Truong Huy Research`} description={`One-page summary of the ${model.company} (${model.ticker}) valuation: methods, outputs against the price used, key assumptions and risks.`} image={`/og/research/${model.slug}.png`}>
+  <div class="tear">
+    <div class="no-print tear__bar">
+      <a class="back" href={`/research/${model.slug}`}>← Full report</a>
+      <button type="button" class="btn btn--secondary btn--sm" data-print>Print or save as PDF</button>
     </div>
-
-    <article class="card p-8 print:border-0 print:p-0">
-      <header class="flex items-baseline justify-between border-b-2 border-ink pb-2">
-        <span class="font-display text-base font-semibold text-ink">Truong Huy <span class="font-normal text-ink-muted">Research</span></span>
-        <span class="text-[0.8125rem] text-ink-muted">Tear sheet, model of {formatDate(modelDate)}</span>
-      </header>
-
-      <div class="mt-5 flex items-start gap-4">
+    <article class="ts">
+      <header class="ts__top"><span class="ts__brand">Truong Huy <span class="muted">Research</span></span><span class="t-label muted">Tear sheet, model of {formatDate(modelDate)}</span></header>
+      <div class="ts__title">
         <Ticker label={model.ticker} size="lg" />
-        <div class="min-w-0">
-          <p class="text-[0.8125rem] text-ink-muted">{model.sector} · {model.methods.join(', ')}</p>
-          <h1 class="mt-1 font-display text-[2.125rem] font-semibold leading-none tracking-tight text-ink">{model.company}</h1>
-          <p class="mt-2 text-[0.9375rem] leading-snug text-ink-muted">{model.report.headline}</p>
+        <div>
+          <p class="t-label muted">{model.sector} · {model.methods.join(', ')}</p>
+          <h1>{model.company}</h1>
+          <p class="t-small muted">{model.report.headline}</p>
         </div>
       </div>
-
-      <section class="mt-5">
-        <FootballField outputs={model.outputs} reference={reference} ticker={model.ticker} compact />
-      </section>
-
-      <div class="mt-5 grid grid-cols-2 gap-6">
+      <FootballField outputs={model.outputs} reference={reference} ticker={model.ticker} />
+      <div class="ts__cols">
         <section>
-          <p class={head}>Outputs, VND per share</p>
-          <table class="w-full border-collapse text-[0.8125rem]">
+          <h2 class="ts__h">Outputs, VND per share</h2>
+          <table class="ts__table">
             <tbody>
-              {model.outputs.map((output) => {
-                const move = impliedMovePct(output, reference);
-                return (
-                  <tr class="border-b border-line">
-                    <th scope="row" class="py-1.5 pr-2 text-left font-medium text-ink">{outputMethodLabel[output.method]}</th>
-                    <td class="py-1.5 text-right font-mono tabular-nums text-ink">{formatOutput(output)}</td>
-                    <td class:list={['py-1.5 pl-2 text-right font-mono tabular-nums', move >= 0 ? 'text-up' : 'text-down']}>{signedPct(move, 1)}</td>
-                  </tr>
-                );
-              })}
-              <tr>
-                <th scope="row" class="py-1.5 pr-2 text-left font-normal text-ink-muted">Price used</th>
-                <td class="py-1.5 text-right font-mono tabular-nums text-amber">{formatVndK(reference.value)}</td>
-                <td class="py-1.5 pl-2 text-right text-ink-muted">{formatDate(reference.asOf)}</td>
-              </tr>
+              {model.outputs.map((o) => { const mv = impliedMovePct(o, reference); return <tr><th scope="row">{outputMethodLabel[o.method]}</th><td class="num">{formatOutput(o)}</td><td class:list={['num', mv >= 0 ? 'up' : 'down']}>{signedPct(mv, 1)}</td></tr>; })}
+              <tr><th scope="row" class="muted">Price used</th><td class="num ts__price">{formatVndK(reference.value)}</td><td class="muted">{formatDate(reference.asOf)}</td></tr>
             </tbody>
           </table>
-          {model.investmentQuestion && <p class="mt-3 border-l-2 border-action pl-3 text-[0.8125rem] leading-snug text-ink">{model.investmentQuestion}</p>}
+          {model.investmentQuestion && <p class="ts__q">{model.investmentQuestion}</p>}
         </section>
         <section>
-          <p class={head}>Key assumptions</p>
-          <dl class="m-0 text-[0.8125rem]">
-            {assumptions.map((item) => (
-              <div class="flex items-baseline gap-2 border-b border-line py-1.5">
-                <dt class="flex-1 text-ink-muted">{item.label}</dt>
-                <dd class="m-0 text-right font-medium text-ink">{item.value}</dd>
-              </div>
-            ))}
-          </dl>
+          <h2 class="ts__h">Key assumptions</h2>
+          <dl class="ts__dl">{assumptions.map((a) => <div><dt class="muted">{a.label}</dt><dd>{a.value}</dd></div>)}</dl>
         </section>
       </div>
-
-      <section class="mt-5">
-        <p class={head}>Conclusion</p>
-        <p class="mt-2 text-[0.875rem] leading-snug text-ink">{model.conclusion}</p>
-      </section>
-
-      <section class="mt-5">
-        <p class={head}>Key risks</p>
-        <ol class="mt-1 p-0 text-[0.8125rem] leading-snug">
-          {risks.map((risk, index) => (
-            <li class="flex list-none gap-2 border-b border-line py-1.5">
-              <span class="w-5 shrink-0 font-mono text-ink-muted">{index + 1}</span>
-              <span class="text-ink">{risk}</span>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <footer class="mt-5 border-t-2 border-ink pt-2 text-[0.8125rem] leading-snug text-ink-muted">
-        <p>{portfolioDisclaimer} Figures are as of the model date and are not refreshed automatically.</p>
-        <p class="mt-1">Nguyen Vu Truong Huy · truonghuyresearch.xyz/research/{model.slug}</p>
-      </footer>
+      <section><h2 class="ts__h">Conclusion</h2><p class="t-small">{model.conclusion}</p></section>
+      <section><h2 class="ts__h">Key risks</h2><ol class="ts__risks">{risks.map((r, i) => <li><span class="muted">{i + 1}</span><span>{r}</span></li>)}</ol></section>
+      <footer class="ts__foot"><p>{portfolioDisclaimer} Figures are as of the model date and are not refreshed automatically.</p><p>Nguyen Vu Truong Huy · truonghuyresearch.xyz/research/{model.slug}</p></footer>
     </article>
   </div>
 </BaseLayout>
-
 <script>
   document.querySelector('[data-print]')?.addEventListener('click', () => window.print());
 </script>

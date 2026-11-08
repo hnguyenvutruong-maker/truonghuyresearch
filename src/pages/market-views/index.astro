@@ -1,8 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Disclaimer from '../../components/ui/Disclaimer.astro';
+import DocHead from '../../components/ui/DocHead.astro';
 import NoteList from '../../components/ui/NoteList.astro';
-import PageHead from '../../components/ui/PageHead.astro';
 import VnIndexChart from '../../components/ui/VnIndexChart.astro';
 import { getCollection } from 'astro:content';
 import { formatDate } from '../../lib/format';
@@ -11,33 +11,14 @@ import { monthlySummary, weeklySummary } from '../../lib/notes';
 const weekly = (await getCollection('market-views')).map(weeklySummary);
 const monthly = (await getCollection('monthly-views')).map(monthlySummary);
 const notes = [...weekly, ...monthly];
-const trend = [...weekly]
-  .sort((a, b) => a.date.valueOf() - b.date.valueOf())
-  .map((note) => ({ time: note.date.toISOString().slice(0, 10), value: note.close }));
+const trend = [...weekly].sort((a, b) => a.date.valueOf() - b.date.valueOf()).map((n) => ({ time: n.date.toISOString().slice(0, 10), value: n.close }));
 const latest = [...notes].sort((a, b) => b.date.valueOf() - a.date.valueOf())[0];
 ---
-
-<BaseLayout
-  title="Market notes on the VN-Index | Truong Huy Research"
-  description="Weekly and monthly Vietnam market notes: VN-Index levels, liquidity, foreign flow, sector rotation and cross-asset context."
->
-  <PageHead
-    label={latest ? `${weekly.length} weekly and ${monthly.length} monthly notes · latest ${formatDate(latest.date)}` : undefined}
-    title="Market notes on the VN-Index"
-    lead="Weekly and monthly reads on the Vietnam market: index levels, liquidity, foreign flow, sector rotation, and what the dollar, oil and gold mean for local shares."
-  >
-    {trend.length > 0 && (
-      <div slot="aside" class="card hero-art">
-        <p class="t-label">VN-Index weekly close, {trend.length} weeks</p>
-        <div class="mt-4"><VnIndexChart trendData={trend} label="VN-Index weekly closes taken from the notes below" height="md" /></div>
-      </div>
-    )}
-  </PageHead>
-
-  <section class="section section--alt" aria-label="All notes">
-    <div class="wrap">
-      <NoteList notes={notes} filter />
-      <Disclaimer />
-    </div>
-  </section>
+<BaseLayout title="Market notes on the VN-Index | Truong Huy Research" description="Weekly and monthly Vietnam market notes: VN-Index levels, liquidity, foreign flow, sector rotation and cross-asset context.">
+  <div class="doc">
+    <DocHead label={`${weekly.length} weekly and ${monthly.length} monthly notes · latest ${formatDate(latest.date)}`} title="Market notes on the VN-Index" lead="Index levels, liquidity, foreign flow, sector rotation, and what the dollar, oil and gold mean for local shares.">
+      <div slot="aside" class="sheet"><p class="t-label">VN-Index weekly close, {trend.length} weeks</p><VnIndexChart trendData={trend} label="VN-Index weekly closes taken from the notes below" height="md" /></div>
+    </DocHead>
+    <section class="ground-surface" aria-label="All notes"><div class="wrap"><NoteList notes={notes} filter /><Disclaimer /></div></section>
+  </div>
 </BaseLayout>

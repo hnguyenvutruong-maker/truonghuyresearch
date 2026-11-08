@@ -1,0 +1,24 @@
+---
+// The head of an inner page: back link, label, h1, lead, and an aside on the split line.
+interface Props { label?: string; title: string; lead?: string; back?: { href: string; label: string } }
+const { label, title, lead, back } = Astro.props;
+const hasAside = Astro.slots.has('aside');
+---
+<section class="doc-head">
+  <div class="wrap">
+    {back && <a href={back.href} class="back">← {back.label}</a>}
+    <div class="grid">
+      <div class:list={[hasAside ? 'span-6' : 'span-8']} data-enter>
+        <slot name="before" />
+        {label && <p class="t-label muted">{label}</p>}
+        <h1 class="t-h1">{title}</h1>
+        {lead && <p class="t-lead measure muted">{lead}</p>}
+        <slot />
+      </div>
+      {hasAside && <div class="span-5 start-8"><slot name="aside" /></div>}
+    </div>
+  </div>
+</section>
+<style>
+  .doc-head .grid > div[data-enter] > * + * { margin-top: var(--s-5); }
+</style>

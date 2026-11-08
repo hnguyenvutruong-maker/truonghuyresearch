@@ -1,132 +1,64 @@
 ---
-// Detail page for a weekly or monthly market note: header with the close and its move, a band
-// of figures (index range, liquidity, foreign flow, cross-asset), the daily chart when the note
-// carries one, the note body beside its section index, and older / newer links.
+// A weekly or monthly note: the head with the close beside it, a band of figures on the surface ground,
+// the daily chart when the note has one, the note body beside its contents, older and newer notes.
 import type { MarkdownHeading } from 'astro';
 import Disclaimer from './Disclaimer.astro';
-import Icon from './Icon.astro';
-import PageHead from './PageHead.astro';
+import DocHead from './DocHead.astro';
 import VnIndexChart from './VnIndexChart.astro';
 import { formatIndex, formatNumber, signedNumber, signedPct } from '../../lib/format';
 import type { NoteSummary } from '../../lib/notes';
-
-interface Props {
-  note: NoteSummary;
-  headings: MarkdownHeading[];
-  prev: NoteSummary | null;
-  next: NoteSummary | null;
-  listHref: string;
-}
-
+interface Props { note: NoteSummary; headings: MarkdownHeading[]; prev: NoteSummary | null; next: NoteSummary | null; listHref: string }
 const { note, headings, prev, next, listHref } = Astro.props;
 const unit = note.kind === 'Weekly' ? 'week' : 'month';
-const toc = headings.filter((heading) => heading.depth === 2);
-// Weekly notes written before October 2026 stored the final session's move as the
-// "weekly" macro change (a bot error since fixed); say so rather than mislabel it.
-const legacyWeeklyMacro = note.kind === 'Weekly' && note.date < new Date('2026-10-01T00:00:00Z');
-const macroBasis = legacyWeeklyMacro
-  ? "In notes before October 2026 these changes may be the final session's move rather than week on week (a calculation error since corrected)."
-  : `Changes are ${unit} on ${unit}.`;
-const tone = (value: number | null) => (value == null ? 'text-ink-muted' : value >= 0 ? 'text-up' : 'text-down');
-
+const toc = headings.filter((h) => h.depth === 2);
+const legacy = note.kind === 'Weekly' && note.date < new Date('2026-10-01T00:00:00Z');
+const basis = legacy ? "In notes before October 2026 these changes may be the final session's move rather than week on week (a calculation error since corrected)." : `Changes are ${unit} on ${unit}.`;
+const tone = (v: number | null) => (v == null ? 'muted' : v >= 0 ? 'up' : 'down');
 const figures = [
-  { label: 'Open', value: formatIndex(note.open) },
-  { label: 'High', value: formatIndex(note.high) },
-  { label: 'Low', value: formatIndex(note.low) },
+  { label: 'Open', value: formatIndex(note.open) }, { label: 'High', value: formatIndex(note.high) }, { label: 'Low', value: formatIndex(note.low) },
   { label: 'Average liquidity, bn VND', value: formatNumber(note.liquidity, 0) },
+  { label: 'Foreign net, bn VND', value: signedNumber(note.foreignNet), tone: tone(note.foreignNet) },
   ...note.extras,
 ];
 ---
+<div class="doc">
+  <DocHead label={`${note.kind} market note · ${note.period}`} title={note.headline} back={{ href: listHref, label: 'Market notes' }}>
+    <dl slot="aside" class="facts">
+      <div><dt>VN-Index close</dt><dd class="num t-h3">{formatIndex(note.close)}</dd></div>
+      <div><dt>On the {unit}</dt><dd class:list={['num', tone(note.change)]}>{signedPct(note.change)}</dd></div>
+      {note.macro.map((m) => <div><dt>{m.label}</dt><dd class="num">{formatNumber(m.value, m.decimals)} <span class:list={['t-label', tone(m.change)]}>{signedPct(m.change)}</span></dd></div>)}
+    </dl>
+  </DocHead>
 
-<PageHead label={`${note.kind} market note · ${note.period}`} title={note.headline} back={{ href: listHref, label: 'Market notes' }}>
-  <div slot="aside" class="card">
-    <p class="t-label text-ink-muted">VN-Index close</p>
-    <p class="t-figure mt-2 text-ink">{formatIndex(note.close)}</p>
-    <p class="mt-3"><span class:list={['pill', note.change >= 0 ? 'pill--up' : 'pill--down']}>{signedPct(note.change)} on the {unit}</span></p>
-    <dl class="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-line pt-4">
-      <div>
-        <dt class="t-label text-ink-muted">Foreign net, bn VND</dt>
-        <dd class:list={['t-data m-0 mt-0.5', tone(note.foreignNet)]}>{signedNumber(note.foreignNet)}</dd>
-      </div>
-      {note.foreignBuy != null && note.foreignSell != null && (
-        <div>
-          <dt class="t-label text-ink-muted">Bought, sold</dt>
-          <dd class="t-data m-0 mt-0.5 text-ink">{formatNumber(note.foreignBuy, 0)}, {formatNumber(note.foreignSell, 0)}</dd>
-        </div>
+  <section class="ground-surface">
+    <div class="wrap stack-6">
+      <dl class="grid">
+        {figures.map((f) => <div class="span-2"><dt class="t-label muted">{f.label}</dt><dd class:list={['num t-lead', 'tone' in f ? f.tone : '']}>{f.value}</dd></div>)}
+      </dl>
+      <p class="t-label muted">{basis} A dash means the figure was unavailable when the note was written.</p>
+      {note.daily.length > 0 && <div class="sheet"><p class="t-label">VN-Index daily, {note.period}</p><VnIndexChart candleData={note.daily} label={`VN-Index daily candles, ${note.period}`} height="md" /></div>}
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap grid">
+      {toc.length > 0 && (
+        <nav class="span-3" aria-label="In this note">
+          <p class="t-label muted">In this note</p>
+          <ol class="rows">{toc.map((h) => <li><a class="t-small" href={`#${h.slug}`}>{h.text}</a></li>)}</ol>
+        </nav>
       )}
-    </dl>
-  </div>
-</PageHead>
+      <article class:list={[toc.length > 0 ? 'span-8 start-5' : 'span-8']}><div class="prose"><slot /></div></article>
+    </div>
+  </section>
 
-<section class="section section--tight section--alt" aria-label="Figures">
-  <div class="wrap">
-    <dl class="grid grid-cols-2 gap-x-6 gap-y-6 md:grid-cols-4 lg:grid-cols-7">
-      {figures.map((figure) => (
-        <div>
-          <dt class="t-label text-ink-muted">{figure.label}</dt>
-          <dd class="t-data m-0 mt-1 text-ink">{figure.value}</dd>
-        </div>
-      ))}
-    </dl>
-    <dl class="mt-8 grid grid-cols-2 gap-x-6 gap-y-6 border-t border-line pt-6 sm:grid-cols-5">
-      {note.macro.map((row) => (
-        <div>
-          <dt class="t-label text-ink-muted">{row.label}</dt>
-          <dd class="t-data m-0 mt-1 text-ink">{formatNumber(row.value, row.decimals)}</dd>
-          <dd class:list={['t-data m-0 text-[0.8125rem]', tone(row.change)]}>{signedPct(row.change)}</dd>
-        </div>
-      ))}
-    </dl>
-    <p class="t-label mt-5 text-ink-muted">{macroBasis} A dash means the figure was unavailable when the note was written.</p>
-    {note.daily.length > 0 && (
-      <div class="card mt-10">
-        <p class="t-label">VN-Index daily, {note.period}</p>
-        <div class="mt-4"><VnIndexChart candleData={note.daily} label={`VN-Index daily candles, ${note.period}`} height="md" /></div>
-      </div>
-    )}
-  </div>
-</section>
-
-<section class="section" aria-label="The note">
-  <div class="wrap grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-6">
-    {toc.length > 0 && (
-      <nav aria-label="In this note" class="lg:col-span-3">
-        <p class="t-label text-ink-muted">In this note</p>
-        <ol class="rows mt-3 p-0">
-          {toc.map((heading) => (
-            <li class="list-none"><a href={`#${heading.slug}`} class="t-small block py-2.5 text-ink no-underline transition-colors hover:text-action">{heading.text}</a></li>
-          ))}
-        </ol>
+  <section class="ground-surface">
+    <div class="wrap">
+      <nav class="grid" aria-label={`${note.kind} notes`}>
+        {prev ? <a class="card span-6" href={prev.href}><span class="t-label muted">← Older note, {prev.period}</span><h3>{prev.headline}</h3></a> : <span class="span-6"></span>}
+        {next && <a class="card span-6" href={next.href}><span class="t-label muted">Newer note, {next.period} →</span><h3>{next.headline}</h3></a>}
       </nav>
-    )}
-    <article class:list={['min-w-0', toc.length > 0 ? 'lg:col-span-8 lg:col-start-5' : 'lg:col-span-8']}>
-      <div class="prose-note"><slot /></div>
-    </article>
-  </div>
-</section>
-
-<section class="section section--tight section--alt" aria-label="Other notes">
-  <div class="wrap">
-    <nav aria-label={`${note.kind} notes`} class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-      {prev ? (
-        <a href={prev.href} class="card group flex items-center gap-4">
-          <Icon name="arrow_left" size={20} class="shrink-0 text-action" />
-          <span>
-            <span class="t-label block text-ink-muted">Older note, {prev.period}</span>
-            <span class="t-h3 mt-1 block text-[1.125rem] transition-colors group-hover:text-action">{prev.headline}</span>
-          </span>
-        </a>
-      ) : <span class="hidden sm:block"></span>}
-      {next ? (
-        <a href={next.href} class="card group flex items-center justify-end gap-4 text-right">
-          <span>
-            <span class="t-label block text-ink-muted">Newer note, {next.period}</span>
-            <span class="t-h3 mt-1 block text-[1.125rem] transition-colors group-hover:text-action">{next.headline}</span>
-          </span>
-          <Icon name="arrow_right" size={20} class="shrink-0 text-action" />
-        </a>
-      ) : <span class="hidden sm:block"></span>}
-    </nav>
-    <Disclaimer />
-  </div>
-</section>
+      <Disclaimer />
+    </div>
+  </section>
+</div>

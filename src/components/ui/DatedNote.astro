@@ -1,12 +1,4 @@
 ---
 // Shown when model figures are older than STALE_AFTER_DAYS (amber = the price a model used).
-interface Props {
-  class?: string;
-}
-const { class: className } = Astro.props;
 ---
-
-<p class:list={['note', className]} role="note">
-  <strong>Dated figures.</strong>
-  <span><slot /></span>
-</p>
+<p class="dated" role="note"><strong>Dated figures</strong><span><slot /></span></p>

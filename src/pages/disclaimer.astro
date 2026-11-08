@@ -1,28 +1,15 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import PageHead from '../components/ui/PageHead.astro';
+import DocHead from '../components/ui/DocHead.astro';
 import { portfolioDisclaimer } from '../data/valuation-models';
 ---
-
 <BaseLayout title="Disclaimer | Truong Huy Research" description="Academic portfolio disclaimer for the valuation models and market notes on truonghuyresearch.xyz.">
-  <PageHead label="Academic portfolio" title="Disclaimer" lead={portfolioDisclaimer} back={{ href: '/', label: 'Home' }} />
-  <section class="section section--alt" aria-label="Details">
-    <div class="wrap">
-      <div class="t-body measure space-y-5">
-        <p>
-          All models, market notes and equity research on this site are personal academic work. They do not represent the
-          views, official positions or investment strategies of any current or past employer.
-        </p>
-        <p>
-          Valuation figures are as of the model date shown on each report and are not refreshed automatically. Market notes are
-          drafted with the help of automated data collection and a language model, then checked against the recorded market
-          data; figures shown as a dash were unavailable.
-        </p>
-        <p>
-          Verify every assumption, date, market figure and workbook formula yourself before using any of this material for
-          analysis or a decision.
-        </p>
-      </div>
-    </div>
-  </section>
+  <div class="doc">
+    <DocHead label="Academic portfolio" title="Disclaimer" lead={portfolioDisclaimer} back={{ href: '/', label: 'Home' }} />
+    <section class="ground-surface"><div class="wrap stack-4 measure">
+      <p>All models, market notes and equity research on this site are personal academic work. They do not represent the views, official positions or investment strategies of any current or past employer.</p>
+      <p>Valuation figures are as of the model date shown on each report and are not refreshed automatically. Market notes are drafted with the help of automated data collection and a language model, then checked against the recorded market data; figures shown as a dash were unavailable.</p>
+      <p>Verify every assumption, date, market figure and workbook formula yourself before using any of this material for analysis or a decision.</p>
+    </div></section>
+  </div>
 </BaseLayout>

@@ -1,11 +1,5 @@
 ---
-// Ticker badge: the exchange symbol on the ink block (one badge style across the site).
-interface Props {
-  label: string;
-  size?: 'md' | 'lg';
-  class?: string;
-}
+interface Props { label: string; size?: 'md' | 'lg'; class?: string }
 const { label, size = 'md', class: className } = Astro.props;
 ---
-
 <span class:list={['ticker', size === 'lg' && 'ticker--lg', className]}>{label}</span>

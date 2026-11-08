@@ -1,17 +1,11 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import DocHead from '../components/ui/DocHead.astro';
 ---
-
-<BaseLayout title="Page not found | Truong Huy Research" description="The page you are looking for does not exist." close={false}>
-  <section class="page-head min-h-[70svh]">
-    <div class="wrap" data-enter>
-      <p class="t-figure text-ink-muted">404</p>
-      <h1 class="t-h1 mt-4">This page does not exist</h1>
-      <p class="t-lead measure mt-5 text-ink-muted">The address may have changed, or the page was never published. The research and the market notes are one click away.</p>
-      <div class="btn-row mt-9">
-        <a href="/research" class="btn btn--primary">Read the research</a>
-        <a href="/market-views" class="btn btn--secondary">Read the market notes</a>
-      </div>
-    </div>
-  </section>
+<BaseLayout title="Page not found | Truong Huy Research" description="The page you are looking for does not exist.">
+  <div class="doc">
+    <DocHead label="404" title="This page does not exist" lead="The address may have changed, or the page was never published.">
+      <div class="btn-row"><a class="btn btn--secondary" href="/research">See the research</a><a class="btn btn--secondary" href="/market-views">Read the market notes</a></div>
+    </DocHead>
+  </div>
 </BaseLayout>

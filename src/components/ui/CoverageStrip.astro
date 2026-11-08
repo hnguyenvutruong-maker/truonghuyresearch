@@ -1,103 +1,70 @@
 ---
-// The home page's hero picture is the work itself: every covered company on one scale of
-// implied move versus the price its model used. Each method is a lane (navy shades, in a fixed
-// order, with a legend); zero is the price used, drawn in amber. Linked rows open the report.
+// The hero's picture is the work: every covered company on one scale of implied move against the
+// price its model used. One lane per method (navy shades, fixed order, legend); the amber line is zero.
 import Ticker from './Ticker.astro';
 import { impliedMovePct, outputMethodLabel, valuationModels, type OutputMethod } from '../../data/valuation-models';
 import { formatDate, signedPct } from '../../lib/format';
 
-const methods: Array<{ id: OutputMethod; token: string; short: string }> = [
-  { id: 'DCF', token: 'm-dcf', short: 'DCF' },
-  { id: 'Comparable', token: 'm-comps', short: 'Comparables' },
-  { id: 'Precedent', token: 'm-prec', short: 'Precedent' },
-  { id: 'LBO', token: 'm-lbo', short: 'LBO' },
+const methods: Array<{ id: OutputMethod; cls: string; label: string }> = [
+  { id: 'DCF', cls: 'lane-dcf', label: 'DCF' },
+  { id: 'Comparable', cls: 'lane-comps', label: 'Comparables' },
+  { id: 'Precedent', cls: 'lane-prec', label: 'Precedent' },
+  { id: 'LBO', cls: 'lane-lbo', label: 'LBO' },
 ];
-const laneClass: Record<OutputMethod, string> = {
-  DCF: 'fill-[var(--m-dcf)] stroke-[var(--m-dcf)]',
-  Comparable: 'fill-[var(--m-comps)] stroke-[var(--m-comps)]',
-  Precedent: 'fill-[var(--m-prec)] stroke-[var(--m-prec)]',
-  LBO: 'fill-[var(--m-lbo)] stroke-[var(--m-lbo)]',
-};
-
 const rows = valuationModels.map((model) => {
   const ref = model.referencePrice.value;
-  const lanes = methods
-    .map((method) => {
-      const output = model.outputs.find((item) => item.method === method.id);
-      if (!output) return null;
-      return { method: method.id, low: output.low / ref - 1, high: output.high / ref - 1, isPoint: output.low === output.high };
-    })
-    .filter((lane): lane is NonNullable<typeof lane> => lane !== null);
-  const moves = model.outputs.map((output) => impliedMovePct(output, model.referencePrice));
+  const lanes = methods.flatMap((m) => {
+    const o = model.outputs.find((item) => item.method === m.id);
+    return o ? [{ ...m, low: o.low / ref - 1, high: o.high / ref - 1, point: o.low === o.high }] : [];
+  });
+  const moves = model.outputs.map((o) => impliedMovePct(o, model.referencePrice));
   return { model, lanes, low: Math.min(...moves), high: Math.max(...moves) };
 });
-
-const all = rows.flatMap((row) => row.lanes.flatMap((lane) => [lane.low, lane.high]));
-const pad = 0.05;
-const dMin = Math.min(-0.2, Math.floor((Math.min(...all) - pad) * 10) / 10);
-const dMax = Math.max(0.2, Math.ceil((Math.max(...all) + pad) * 10) / 10);
+const all = rows.flatMap((r) => r.lanes.flatMap((l) => [l.low, l.high]));
+const dMin = Math.min(-0.2, Math.floor((Math.min(...all) - 0.05) * 10) / 10);
+const dMax = Math.max(0.2, Math.ceil((Math.max(...all) + 0.05) * 10) / 10);
 const W = 1000;
 const x = (v: number) => ((v - dMin) / (dMax - dMin)) * W;
 const ticks: number[] = [];
 for (let t = Math.ceil(dMin * 10) / 10; t <= dMax + 1e-9; t += 0.2) ticks.push(Math.round(t * 10) / 10);
-const laneH = 9;
-const laneGap = 4;
-const asOf = formatDate(valuationModels[0].referencePrice.asOf);
+const LH = 9, GAP = 4;
 ---
 
-<figure class="card m-0 p-5 sm:p-6" aria-labelledby="strip-title">
-  <figcaption class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-    <span id="strip-title" class="t-label">Implied move against the price each model used</span>
-    <span class="t-label text-ink-muted">Prices of {asOf}</span>
+<figure class="sheet">
+  <figcaption class="sheet__head">
+    <span class="t-label">Implied move against the price each model used</span>
+    <span class="t-label muted">Prices of {formatDate(valuationModels[0].referencePrice.asOf)}</span>
   </figcaption>
-
-  <ul class="mt-4 p-0">
-    {rows.map((row) => (
-      <li class="list-none border-b border-line last:border-b-0">
-        <a href={`/research/${row.model.slug}`} class="group grid grid-cols-[4.25rem_minmax(0,1fr)_6.5rem] items-center gap-x-3 py-3 no-underline sm:grid-cols-[4.5rem_minmax(0,1fr)_7.5rem]">
-          <Ticker label={row.model.ticker} class="transition-colors group-hover:bg-action" />
-          <svg viewBox={`0 0 ${W} ${row.lanes.length * (laneH + laneGap)}`} preserveAspectRatio="none" class="block w-full overflow-visible" height={row.lanes.length * (laneH + laneGap)} aria-hidden="true">
-            {ticks.map((t) => <line x1={x(t)} x2={x(t)} y1="0" y2={row.lanes.length * (laneH + laneGap)} class="stroke-line" stroke-width="1" vector-effect="non-scaling-stroke" />)}
-            {row.lanes.map((lane, i) =>
-              lane.isPoint ? (
-                <rect x={x(lane.low) - 4} y={i * (laneH + laneGap)} width="8" height={laneH} class={laneClass[lane.method]} />
-              ) : (
-                <rect x={x(lane.low)} y={i * (laneH + laneGap)} width={Math.max(x(lane.high) - x(lane.low), 6)} height={laneH} class={laneClass[lane.method]} />
-              )
-            )}
-            <line x1={x(0)} x2={x(0)} y1="-4" y2={row.lanes.length * (laneH + laneGap) + 2} class="stroke-amber" stroke-width="2" vector-effect="non-scaling-stroke" />
-          </svg>
-          <span class="t-data text-right text-[0.8125rem]">
-            <span class:list={[row.low >= 0 ? 'text-up' : 'text-down']}>{signedPct(row.low, 0)}</span>
-            <span class="text-ink-muted"> to </span>
-            <span class:list={[row.high >= 0 ? 'text-up' : 'text-down']}>{signedPct(row.high, 0)}</span>
-          </span>
-          <span class="sr-only">
-            {row.model.company}: {row.lanes.map((lane) => `${outputMethodLabel[lane.method]} ${signedPct(lane.low * 100, 0)}${lane.isPoint ? '' : ` to ${signedPct(lane.high * 100, 0)}`}`).join('; ')}. Open the report.
-          </span>
-        </a>
-      </li>
-    ))}
+  <ul class="strip">
+    {rows.map((row) => {
+      const h = row.lanes.length * (LH + GAP);
+      return (
+        <li>
+          <a href={`/research/${row.model.slug}`}>
+            <Ticker label={row.model.ticker} />
+            <svg viewBox={`0 0 ${W} ${h}`} preserveAspectRatio="none" height={h} aria-hidden="true">
+              {ticks.map((t) => <line x1={x(t)} x2={x(t)} y1="0" y2={h} class="grid-line" stroke-width="1" vector-effect="non-scaling-stroke" />)}
+              {row.lanes.map((l, i) => (
+                <rect x={l.point ? x(l.low) - 4 : x(l.low)} y={i * (LH + GAP)} width={l.point ? 8 : Math.max(x(l.high) - x(l.low), 6)} height={LH} rx="1" class={l.cls} />
+              ))}
+              <line x1={x(0)} x2={x(0)} y1="-4" y2={h + 2} class="price-line" stroke-width="2" vector-effect="non-scaling-stroke" />
+            </svg>
+            <span class="strip__range num">
+              <span class:list={[row.low >= 0 ? 'up' : 'down']}>{signedPct(row.low, 0)}</span> <span class="muted">to</span> <span class:list={[row.high >= 0 ? 'up' : 'down']}>{signedPct(row.high, 0)}</span>
+            </span>
+            <span class="sr-only">{row.model.company}: {row.lanes.map((l) => `${outputMethodLabel[l.id]} ${signedPct(l.low * 100, 0)}${l.point ? '' : ` to ${signedPct(l.high * 100, 0)}`}`).join('; ')}. Open the report.</span>
+          </a>
+        </li>
+      );
+    })}
   </ul>
-
-  <div class="grid grid-cols-[4.25rem_minmax(0,1fr)_6.5rem] gap-x-3 pt-2 sm:grid-cols-[4.5rem_minmax(0,1fr)_7.5rem]" aria-hidden="true">
+  <div class="strip__axis t-label" aria-hidden="true">
     <span></span>
-    <div class="t-label relative flex justify-between font-mono text-ink-muted">
-      {ticks.map((t, i) => <span class:list={[i > 0 && i < ticks.length - 1 && 'max-sm:hidden']}>{t === 0 ? '0' : `${t > 0 ? '+' : '−'}${Math.abs(t * 100).toFixed(0)}%`}</span>)}
-    </div>
+    <div>{ticks.map((t, i) => <span class:list={[i > 0 && i < ticks.length - 1 && 'mid']}>{t === 0 ? '0' : `${t > 0 ? '+' : '−'}${Math.abs(t * 100).toFixed(0)}%`}</span>)}</div>
     <span></span>
   </div>
-
-  <ul class="t-label mt-4 flex flex-wrap gap-x-5 gap-y-2 p-0 text-ink-muted">
-    {methods.map((method) => (
-      <li class="inline-flex list-none items-center gap-2">
-        <svg width="16" height="8" aria-hidden="true"><rect width="16" height="8" class={laneClass[method.id]} /></svg>
-        {method.short}
-      </li>
-    ))}
-    <li class="inline-flex list-none items-center gap-2">
-      <svg width="8" height="14" aria-hidden="true"><line x1="4" x2="4" y1="0" y2="14" class="stroke-amber" stroke-width="2" /></svg>
-      Price used
-    </li>
+  <ul class="legend t-label">
+    {methods.map((m) => <li><span class:list={['swatch', `swatch--${m.cls.replace('lane-', '')}`]}></span>{m.label}</li>)}
+    <li><span class="swatch swatch--price"></span>Price used</li>
   </ul>
 </figure>

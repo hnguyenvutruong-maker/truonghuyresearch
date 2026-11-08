@@ -1,13 +1,11 @@
 ---
-// Self-hosted fonts (bundled into /_astro/, the CSP allows same-origin fonts only):
-// Source Serif 4 (display), IBM Plex Sans (text), IBM Plex Mono (figures).
+// The page shell, from the Taste starter: html carries the deal (type, radius, buttons, motion), the
+// kit's stylesheets load from public/assets/taste, the head line sets html.m-enter before the first
+// paint so the hero's words wait for motion.js (hashed in vercel.json), and the kit's scripts run last.
 import '@fontsource-variable/source-serif-4/wght.css';
-import '@fontsource/ibm-plex-sans/400.css';
-import '@fontsource/ibm-plex-sans/500.css';
-import '@fontsource/ibm-plex-sans/600.css';
-import '@fontsource/ibm-plex-mono/400.css';
-import '@fontsource/ibm-plex-mono/500.css';
-import '../styles/global.css';
+import '@fontsource/libre-franklin/400.css';
+import '@fontsource/libre-franklin/500.css';
+import '../styles/site.css';
 import Analytics from '@vercel/analytics/astro';
 import SiteHeader from '../components/ui/SiteHeader.astro';
 import SiteFooter from '../components/ui/SiteFooter.astro';
@@ -17,8 +15,6 @@ interface Props {
   description?: string;
   image?: string;
   type?: string;
-  /** The closing band above the footer links (off on pages that end in their own action). */
-  close?: boolean;
 }
 
 const {
@@ -26,7 +22,6 @@ const {
   description = 'Equity research on Vietnam-listed companies: valuation models, open workbooks and market notes by Nguyen Vu Truong Huy.',
   image = '/og-image.png',
   type = 'website',
-  close = true,
 } = Astro.props;
 
 const canonicalURL = Astro.url.href;
@@ -34,39 +29,40 @@ const ogImageURL = new URL(image, Astro.site).toString();
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-type="service" data-radius="sharp" data-buttons="tonal" data-motion>
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
     <meta name="theme-color" content="#F7F9FA" />
     <meta name="site-kind" content="other" />
     <meta name="page-type" content="service" />
     <link rel="canonical" href={canonicalURL} />
     <link rel="alternate" type="application/rss+xml" title="Truong Huy Research: market notes" href="/rss.xml" />
-    <title>{title}</title>
-    <meta name="description" content={description} />
     <meta name="author" content="Nguyen Vu Truong Huy" />
+    <meta property="og:type" content={type} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImageURL} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content={title} />
-    <meta property="og:type" content={type} />
     <meta property="og:site_name" content="Truong Huy Research" />
-    <meta property="og:locale" content="en" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:creator" content="@trghuyy" />
-    <meta name="twitter:title" content={title} />
-    <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={ogImageURL} />
+    <link rel="stylesheet" href="/assets/taste/system.css" />
+    <link rel="stylesheet" href="/assets/taste/ui/cards.css" />
+    <link rel="stylesheet" href="/assets/taste/motion/motion.css" />
+    <script is:inline>document.documentElement.classList.add('m-enter');setTimeout(()=>document.documentElement.classList.add('m-enter-done'),700)</script>
   </head>
   <body>
     <SiteHeader />
-    <main id="main">
+    <main id="top">
       <slot />
     </main>
-    <SiteFooter close={close} />
+    <SiteFooter />
+    <script is:inline type="module" src="/assets/taste/system.js"></script>
+    <script is:inline type="module" src="/assets/taste/motion/motion.js"></script>
     <Analytics />
   </body>
 </html>

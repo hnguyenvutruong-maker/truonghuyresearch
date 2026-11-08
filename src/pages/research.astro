@@ -4,76 +4,48 @@ import CoverageStrip from '../components/ui/CoverageStrip.astro';
 import CoverageTable from '../components/ui/CoverageTable.astro';
 import DatedNote from '../components/ui/DatedNote.astro';
 import Disclaimer from '../components/ui/Disclaimer.astro';
-import Icon from '../components/ui/Icon.astro';
-import PageHead from '../components/ui/PageHead.astro';
+import DocHead from '../components/ui/DocHead.astro';
 import Ticker from '../components/ui/Ticker.astro';
 import { STALE_AFTER_DAYS, methodPages, valuationGroups, valuationModels } from '../data/valuation-models';
 import { daysBetween, formatDate } from '../lib/format';
 
-const downloadCount = valuationModels.reduce((total, model) => total + model.downloads.length, 0);
-const modelDates = [...new Set(valuationModels.map((model) => model.lastUpdated ?? model.referencePrice.asOf))].sort();
-const oldestDate = modelDates[0];
-const isStale = daysBetween(oldestDate, new Date()) > STALE_AFTER_DAYS;
-
-const methods = methodPages.map((page) => {
-  const group = valuationGroups.find((item) => item.id === page.id);
-  const models = valuationModels.filter((model) => model.valuationNotes.some((note) => note.groups.includes(page.id)));
-  return { ...page, group, tickers: models.map((model) => model.ticker) };
-});
+const workbooks = valuationModels.reduce((t, m) => t + m.downloads.length, 0);
+const oldest = [...new Set(valuationModels.map((m) => m.lastUpdated ?? m.referencePrice.asOf))].sort()[0];
+const stale = daysBetween(oldest, new Date()) > STALE_AFTER_DAYS;
+const methods = methodPages.map((p) => ({
+  ...p,
+  group: valuationGroups.find((g) => g.id === p.id),
+  tickers: valuationModels.filter((m) => m.valuationNotes.some((n) => n.groups.includes(p.id))).map((m) => m.ticker),
+}));
 ---
-
-<BaseLayout
-  title="Research coverage: five Vietnam-listed companies | Truong Huy Research"
-  description="Valuation coverage of HPG, BID, FPT, BMP and PNJ: DCF, comparable, precedent-transaction and LBO outputs against the price each model used, with downloadable workbooks."
->
-  <PageHead
-    label={`${valuationModels.length} companies · ${downloadCount} workbooks`}
-    title="Research coverage"
-    lead="Five Vietnam-listed companies, each valued with the methods that fit the business and every workbook open for review. Ranges, not single targets: where methods disagree, the spread is the finding."
-  >
-    <div slot="aside" class="hero-art"><CoverageStrip /></div>
-  </PageHead>
-
-  <section class="section section--alt" aria-labelledby="table-title">
-    <div class="wrap">
-      <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-end">
-        <h2 id="table-title" class="t-h2 lg:col-span-7">Outputs by method, VND per share</h2>
-        <p class="t-small text-ink-muted lg:col-span-5">Sort by any column. The implied move compares each method's base case or midpoint with the share price the model used.</p>
+<BaseLayout title="Research coverage: five Vietnam-listed companies | Truong Huy Research" description="Valuation coverage of HPG, BID, FPT, BMP and PNJ: DCF, comparable, precedent-transaction and LBO outputs against the price each model used, with downloadable workbooks.">
+  <div class="doc">
+    <DocHead label={`${valuationModels.length} companies · ${workbooks} workbooks`} title="Research coverage" lead="Each company valued with the methods that fit its business, every workbook open for review. Ranges, not single targets.">
+      <div slot="aside"><CoverageStrip /></div>
+    </DocHead>
+    <section class="ground-surface" aria-labelledby="table-h">
+      <div class="wrap stack-6">
+        <div class="section-head--split"><div><h2 id="table-h">Outputs by method</h2><p class="t-lead muted">VND per share. Sort by any column.</p></div></div>
+        {stale && <DatedNote>All models and prices are as of {formatDate(oldest)} and have not been refreshed since. Implied moves are against those prices, not today's.</DatedNote>}
+        <div class="sheet"><CoverageTable sortable /></div>
+        <p class="t-label muted">≈ marks an approximate precedent-transaction output. Low and high move are the weakest and strongest method against the price used.</p>
       </div>
-      {isStale && (
-        <DatedNote class="mt-8">
-          All models and prices are as of {formatDate(oldestDate)} and have not been refreshed since. Implied moves are against
-          those prices, not today's.
-        </DatedNote>
-      )}
-      <div class="card mt-8 p-0">
-        <CoverageTable sortable />
+    </section>
+    <section aria-labelledby="methods-h">
+      <div class="wrap">
+        <div class="section-head"><h2 id="methods-h">Three valuation methods</h2><p class="t-lead muted">Each method page gathers the notes and workbooks for every company it was used on.</p></div>
+        <div class="grid">
+          {methods.map((m) => m.group && (
+            <a class="card span-4" href={m.href}>
+              <p class="t-label muted">{m.group.eyebrow}</p>
+              <h3>{m.group.title}</h3>
+              <p>{m.group.description}</p>
+              <p class="tickers">{m.tickers.map((t) => <Ticker label={t} />)}</p>
+            </a>
+          ))}
+        </div>
+        <Disclaimer />
       </div>
-      <p class="t-label mt-4 text-ink-muted">
-        ≈ marks approximate precedent-transaction outputs. Low and high move are the weakest and strongest method against the
-        price used.
-      </p>
-    </div>
-  </section>
-
-  <section id="methods" class="section" aria-labelledby="methods-title">
-    <div class="wrap">
-      <h2 id="methods-title" class="t-h2">Three valuation methods</h2>
-      <p class="t-body measure mt-4 text-ink-muted">Each method page gathers the notes and workbooks for every company it was used on.</p>
-      <div class="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-        {methods.map((method) => method.group && (
-          <a href={method.href} class="card group flex flex-col">
-            <p class="t-label text-ink-muted">{method.group.eyebrow}</p>
-            <h3 class="t-h3 mt-2 transition-colors group-hover:text-action">{method.group.title}</h3>
-            <p class="t-small mt-3 flex-1 text-ink-muted">{method.group.description}</p>
-            <div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
-              <span class="flex flex-wrap gap-1.5">{method.tickers.map((ticker) => <Ticker label={ticker} />)}</span>
-              <Icon name="arrow_right" size={20} class="text-action transition-transform group-hover:translate-x-1" />
-            </div>
-          </a>
-        ))}
-      </div>
-      <Disclaimer />
-    </div>
-  </section>
+    </section>
+  </div>
 </BaseLayout>
