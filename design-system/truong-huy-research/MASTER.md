@@ -1,59 +1,71 @@
-# Ledger: design system (master)
+# Design system (master)
 
-The source of truth for the site's look since the November 2026 redesign. Tokens live in
-`src/styles/global.css`; this file records why they are what they are. Page-specific deviations
-go in `pages/<page>.md` beside this file (none yet).
+The source of truth for the site's look since the second November 2026 redesign (it replaced
+"Ledger", 2026-11-08). The site is built **on the Taste kit**, not merely inspired by it: the kit's
+runtime ships in `public/assets/taste/` and owns layout, nav, footer, buttons, cards, rows,
+motion and the moment. `src/styles/site.css` holds only what Taste lets a page write: the dealt
+`:root` block (palette, type) and CSS inside visuals (charts, tables, the note body).
 
 ## Where it comes from
 
-Two design skills, applied by hand to this site (their scripts were not run in the build
-environment; their rules and data were read):
+- **Taste** (`Leonxlnx/taste-skill`). Kind: *service* (people hire an analyst; site-kind other).
+  The deal, one value per part:
 
-- **UI/UX Pro Max** (`nextlevelbuilder/ui-ux-pro-max-skill`, v2.15). Query: "financial research
-  publication portfolio", dials variance 5, motion 3, density 7. Result used: pattern
-  *Portfolio Grid*, style *Swiss Modernism 2.0* (12-column grid, rational spacing, hairline rules),
-  colours *Research Lab* (institutional navy `#1E3A5F`, research amber, serif headings), the
-  *Financial Trust* pairing for data (IBM Plex). A first query ("equity research analyst
-  portfolio fintech") returned *Enterprise Gateway* / Dark OLED and was rejected as off-topic,
-  as the skill's query contract asks.
-- **Taste** (`Leonxlnx/taste-skill`, v2.5). Kind: *service* (people hire an analyst; site-kind
-  other). Its rules decide the shell: one system, 90–95% neutral with one accent, light grade only
-  (dark pages are for tech sites), a fixed opaque header with a hairline, equal content edges,
-  the hero alone on the first screen and one section per screen on the home page, sentence-case
-  labels (no tracked capitals), nothing under 13px, a hero entrance once, hover answers on every
-  link and card, no scroll-reveal, and copy that names the category first.
-  Dealt by hand from its libraries: palette family *Frost and slate* (trades: fintech, law),
-  type *source-serif* (law, finance), radius *sharp* (fintech), buttons *solid*, footer
-  *columns on the dark ground*, close *type*, rhythm *surface pairs*, mark *wordmark*,
-  hero *split* with the work as the picture, moment *type* (the name set large in About).
+  | Part | Value |
+  |---|---|
+  | hero | split: copy left, the work (every model's range) as the picture |
+  | nav | nav-split (links left, wordmark centre, the CV button right) |
+  | footer | footer-columns, with the close-word close ("Download the CV", then the name across the wrap) |
+  | rhythm | surface pairs (`#notes` and alternate doc sections on the surface ground) |
+  | buttons | tonal |
+  | mark | stack |
+  | radius | sharp |
+  | moment | word-highlight (the "How a company is valued" statement; there are no photographs) |
+  | palette | Frost and slate, accent institutional navy |
+  | type | source-serif: Source Serif 4 at 400 over Libre Franklin |
 
-## Tokens
+  The kit's scripts (dealer, gate) could not run in the cloud build sandbox, so the deal was drawn
+  by hand from the libraries and the pages were checked with an equivalent script at 390, 768,
+  820, 1024 and 1440 wide: no sideways scroll, no text under 13px, equal content edges, the hero
+  exactly one screen with its content inside, home sections whole screens, the moment mounted,
+  the entrance flag set, no console errors.
+- **UI/UX Pro Max** (`nextlevelbuilder/ui-ux-pro-max-skill`) supplied the colour: institutional
+  navy `#1E3A5F` from *Research Lab*, kept on Frost and slate grounds.
 
-| Role | Token | Value | Contrast on `#F7F9FA` |
-|---|---|---|---|
-| Ground | `--g-main` / `--g-alt` / `--g-card` | `#F7F9FA` / `#ECF0F2` / `#FFFFFF` | |
-| Dark ground (footer only) | `--g-dark` | `#0F1E2E` | |
-| Ink | `--ink` | `#13212E` | 15.5:1 |
-| Muted (labels, meta) | `--muted` | `#4F5D6B` | 6.4:1 |
-| Hairline / control border | `--line` / `--line-strong` | `#C9D1D8` / `#7C8996` | |
-| Accent (buttons, links, focus) | `--action` | `#1E3A5F` | 10.9:1 |
-| Price a model used, dated figures | `--amber` | `#94590A` | 5.4:1 |
-| Gain / loss | `--up` / `--down` | `#13703A` / `#B42318` | 5.8:1 / 6.2:1 |
+## Home page plan (one screen per section)
 
-Type: Source Serif 4 (display, 500–600), IBM Plex Sans (text 400/500/600), IBM Plex Mono
-(figures, tabular). Scale: `.t-display`, `.t-h1`, `.t-h2`, `.t-h3`, `.t-lead` 20, `.t-body` 17,
-`.t-small` 15, `.t-label` 13 (the floor), `.t-figure`, `.t-data`. Radius 4 / 6 / 8. Spacing on
-the 4-point scale; `.wrap` is 1280 wide with an 80 / 48 / 20 px gutter.
+| Screen | Content |
+|---|---|
+| hero | notice "Passed Level II of the CFA Program", h1, lead, "Download the CV" + "See the five reports", three facts; `CoverageStrip` as the picture |
+| `#research` | peek list: five report rows; pointing at a row shows its football field in the frame (frame hidden under 1024px) |
+| `#approach` | word-highlight statement; "the spread is the finding" is the highlighted phrase |
+| `#notes` | surface ground: weekly VN-Index chart + the latest four notes |
+| `#about` | the record beside a real tear-sheet page (`/research/tear-sheets/hpg-page.png`) |
+| close | close-word footer |
 
-## Components
+Inner pages wrap their content in `<div class="doc">`, which opts out of the one-section-per-screen
+rule, and open with `DocHead` (back link, label, h1, lead, aside).
 
-`.btn--primary` (one filled button per view: the main action, "Download the CV") and
-`.btn--secondary`; `.link` (underline draws in on hover); `.card` (white, 1px hairline, lifts
-2px when linked); `.rows` (hairline-ruled lists); `.ticker`; `.pill--up/down`; `.tag`; `.note`
-(amber, dated figures). Data visuals: `CoverageStrip` (home hero: every model's method lanes in
-implied-move terms), `FootballField`, `SensitivityTable`, `CoverageTable`, `VnIndexChart`.
+## Tokens (`html:root` in site.css, outranking the kit's `:root`)
 
-## Rules kept from before
+| Role | Token | Value |
+|---|---|---|
+| Ground / surface | `--p-bg` / `--p-surface` | `#F7F9FA` / `#ECF0F2` |
+| Ink / muted | `--p-ink` / `--p-muted` | `#13212E` / `#4F5D6B` |
+| Accent and action | `--p-accent` / `--p-action` | `#1E3A5F` |
+| Inverse (footer) | `--p-inv-bg` / `--p-inv-ink` | `#0F1E2E` / `#EEF2F5` |
+| Gain / loss | `--up` / `--down` (+ `-soft`, `-mid`) | `#13703A` / `#B42318` |
+| Price a model used, dated figures | `--amber` | `#94590A` |
+| Method lanes | `--m-dcf` `--m-comps` `--m-prec` `--m-lbo` | navy → pale steel |
 
-CSP stays `'self'`-only (no inline scripts now, so no hash); no inline `style=""`; fonts
-self-hosted; every figure carries its sign so colour is never the only channel.
+Type: `--font-display` Source Serif 4 (weight 400, tracking −0.02em), `--font-text` Libre
+Franklin 400/500; figures are tabular. All self-hosted via `@fontsource`.
+
+## Rules
+
+- Never edit files under `public/assets/taste/`; restyle through the `:root` block or visual CSS.
+- Kit markup only for layout: `.wrap`, `.grid` + `.span-N`/`.start-N`, `.section-head(--split)`,
+  `.rows`, `.card`, `.btn--primary/--secondary/--sm`, `.link`, `.t-*`, `.stack-N`, `.ground-surface`.
+- One primary button per view. Labels in sentence case; nothing under 13px.
+- CSP: the only inline script is the `m-enter` line in `BaseLayout`, whose hash is in `vercel.json`.
+  No inline `style=""`; every figure carries its sign so colour is never the only channel.

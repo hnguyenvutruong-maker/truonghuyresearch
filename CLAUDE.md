@@ -40,8 +40,7 @@ deliberately not committed to this public repo.
 
 ```
 ./
-├── astro.config.mjs              # static output, site=truonghuyresearch.xyz, tailwind+sitemap
-├── tailwind.config.mjs           # layout layer; colours/type/radii point at global.css tokens
+├── astro.config.mjs              # static output, site=truonghuyresearch.xyz, sitemap, no inlined assets
 ├── design-system/                # the design system record (UI/UX Pro Max MASTER.md)
 ├── tsconfig.json                 # extends astro/tsconfigs/strict
 ├── package.json                  # Node >=22.12, Astro 5
@@ -56,6 +55,7 @@ deliberately not committed to this public repo.
 ├── .github/workflows/            # 3 scheduled bot workflows (see §9)
 ├── public/
 │   ├── cv.pdf, og-image.png, favicon.*, robots.txt
+│   ├── assets/taste/             # ★ Taste kit runtime (never edit; see §4)
 │   └── research/valuation-models/  # downloadable .xlsx/.xls/.zip model files
 └── src/
     ├── content/
@@ -67,9 +67,9 @@ deliberately not committed to this public repo.
     ├── lib/notes.ts              # normalises weekly + monthly entries into one NoteSummary
     ├── lib/files.ts              # build-time sizes of public/ downloads
     ├── layouts/BaseLayout.astro  # shell: head/meta, fonts, header, main, footer
-    ├── styles/global.css         # Ledger tokens + component classes (see §4), print
+    ├── styles/site.css           # dealt :root palette/type + CSS inside visuals (see §4), print
     ├── components/               # ValuationMethodPage (see §7)
-    │   └── ui/                   # header/footer, PageHead, CoverageStrip, charts, tables, note views
+    │   └── ui/                   # header/footer, DocHead, CoverageStrip, charts, tables, note views
     └── pages/                    # routes (see §7)
 ```
 
@@ -77,8 +77,8 @@ deliberately not committed to this public repo.
 
 ## 3. Stack & commands
 
-- **Astro 5** (`output: 'static'`), TypeScript **strict**, **Tailwind 3.4** via `@astrojs/tailwind`,
-  `@astrojs/sitemap`, `@astrojs/rss`, `@tailwindcss/typography`, `sharp`, `@vercel/analytics`.
+- **Astro 5** (`output: 'static'`), TypeScript **strict**, the **Taste kit** (plain CSS/JS in
+  `public/assets/taste/`; no Tailwind), `@astrojs/sitemap`, `@astrojs/rss`, `sharp`, `@vercel/analytics`.
 - `lightweight-charts` renders the VN-Index chart (`VnIndexChart.astro`).
 - **Python** bots use `yfinance`, `feedparser`, `requests`+`beautifulsoup4` (all optional — code
   degrades if a lib/source is missing). **`vnstock` was removed on 2026-10-02**: its PyPI project
@@ -97,51 +97,51 @@ deliberately not committed to this public repo.
 
 ---
 
-## 4. Design system: Ledger (2026-11)
+## 4. Design system: built on the Taste kit (2026-11)
 
-Rebuilt from two design skills: **UI/UX Pro Max** (pattern Portfolio Grid, style Swiss
-Modernism 2.0, institutional navy + research amber, serif headings over IBM Plex) and **Taste**
-(one system, a 90–95% neutral interface with one accent, light grade only, hero alone on the first
-screen, sentence-case labels, nothing under 13px). Full record, tokens and the reasoning:
+The site is built **on the Taste kit** (`Leonxlnx/taste-skill`), with UI/UX Pro Max's institutional
+navy as the accent. Full record, the deal, the home-page plan and the tokens:
 [design-system/truong-huy-research/MASTER.md](design-system/truong-huy-research/MASTER.md).
-"Desk" (dark navy chrome, coloured panel bars, day/night theme, SkyIntro, market tape, command
-palette) was removed on 2026-11-08.
+"Ledger" (Tailwind + IBM Plex, 2026-11-08) and "Desk" before it were removed.
 
-- **Tokens** are plain CSS variables in `src/styles/global.css` (`--g-main/alt/card/dark`, `--ink`,
-  `--muted`, `--line`, `--line-strong`, `--action`, `--amber`, `--up`, `--down`, the `--m-*` method
-  lanes). Tailwind maps them (`bg-ground`, `bg-ground-alt`, `text-ink`, `text-ink-muted`,
-  `border-line`, `text-action`, `text-amber`, `text-up/down`, `bg-up-soft` …) and is the layout
-  layer only. **Never hard-code a hex in a component.** Light grade only: there is no dark mode.
-- **Type:** Source Serif 4 (display), IBM Plex Sans (text), IBM Plex Mono (figures), all
-  self-hosted via `@fontsource`. Use the classes `.t-display .t-h1 .t-h2 .t-h3 .t-lead .t-body
-  .t-small .t-label .t-figure .t-data`. Labels are sentence case at 13px/500: **no uppercase,
-  no tracked capitals, nothing under 13px.**
-- **Components** (`components/ui/`): `SiteHeader` (fixed, opaque, hairline; five nouns and the
-  one filled button "Download the CV"; full-screen sheet under 1024px), `SiteFooter` (dark;
-  type close + link columns + legal row; `close={false}` drops the close), `PageHead` (inner page
-  header: back link, label, h1, lead, `aside` slot), `Ticker`, `DatedNote`, `Disclaimer`,
-  `CoverageStrip` (home hero picture), `CoverageTable` (`sortable`), `FootballField`
-  (`compact`), `SensitivityTable`, `VnIndexChart`, `MarketNote`, `NoteList`, `Icon`.
-- **Classes:** `.wrap` (1280 + gutter), `.section` / `.section--alt` / `.section--screen` /
-  `.section--tight`, `.btn .btn--primary .btn--secondary` (exactly one primary per view: the main
-  action), `.link`, `.card` (lifts 2px when it is a link), `.rows`, `.pill--up/down`, `.tag`,
-  `.note`, `.prose-note` (markdown bodies).
-- **Layout idiom:** sections separate by a ground change (main ↔ alt), never by boxes in boxes;
-  lists are hairline-ruled; grids are 12 columns with `gap-6`. The home page is one section per
-  screen (`.section--screen`), with the hero alone on the first screen.
-- **Motion:** the hero (`[data-enter]`, `.hero-art`) enters once on load; buttons step 1px on
-  hover and press on click; linked cards lift 2px; `.link` underlines draw in. No scroll-reveal,
-  no count-up. `prefers-reduced-motion` drops every duration.
+- **Kit runtime** in `public/assets/taste/` (`system.css`, `system.js`, `ui/`, `motion/`,
+  `moments/`), loaded by `BaseLayout` via `<link>` and module `<script>`. **Never edit kit files.**
+  It owns layout, nav, footer, buttons, cards, rows, motion and the moment.
+- **Deal:** kind service · hero split · nav-split · footer-columns + close-word · rhythm surface
+  pairs · buttons tonal · mark stack · radius sharp · moment word-highlight. `<html>` carries
+  `data-type="service" data-radius="sharp" data-buttons="tonal" data-motion`.
+- **Tokens:** `src/styles/site.css` holds only the dealt `html:root` block (`--p-bg`, `--p-surface`,
+  `--p-ink`, `--p-muted`, `--p-accent`, `--p-action`, `--p-inv-*`, fonts) plus data colours
+  (`--up`, `--down`, `--amber`, `--m-*` method lanes) and CSS inside visuals (charts, tables,
+  `.prose` note bodies, tear sheet). **Never hard-code a hex in a component.** Light grade only.
+- **Type:** Source Serif 4 at weight 400 (display) over Libre Franklin 400/500 (text, figures
+  tabular), self-hosted via `@fontsource`. Use the kit's `.t-*` classes; labels sentence case,
+  **nothing under 13px**.
+- **Kit markup:** `.wrap`, `.grid` + `.span-N` / `.start-N`, `.section-head(--split)`, `.rows`
+  (`.rows__name`, `.rows__value`), `.card`, `.btn--primary/--secondary/--sm` (one primary per view),
+  `.link`, `.stack-N`, `.ground-surface`, `.muted`. Hero:
+  `section.hero.hero--split[data-enter] > .wrap > .hero-text.grid.hero-split > .hero-copy + .hero-visual`.
+  Peek list: `[data-peek]`, `[data-peek-to]`, `[data-peek-for]` (handled by `system.js`).
+- **Pages:** the home page's `main > section`s are one screen each. Every inner page wraps its
+  content in `<div class="doc">` (opts out of one-section-per-screen) and opens with `DocHead`
+  (back link, label, h1, lead, `aside` slot).
+- **Components** (`components/ui/`): `SiteHeader` (nav-split; Research, Methods, Notes, Contact and
+  "Download the CV"; the kit builds the phone sheet), `SiteFooter` (close-word + columns + legal),
+  `DocHead`, `Ticker`, `DatedNote`, `Disclaimer`, `CoverageStrip` (hero picture), `CoverageTable`
+  (`sortable`), `FootballField` (`note`), `SensitivityTable`, `VnIndexChart`, `MarketNote`,
+  `NoteList`, `Icon`.
+- **Motion:** the kit's: the hero enters once (`m-enter`), word-highlight on `#approach`, hover
+  answers on buttons, links and cards. No scroll-reveal, no count-up; reduced motion respected.
 - **Copy:** headings name a thing; buttons are a verb and an object ("Read the HPG report",
   "Download the CV"); never "Learn more" or a bare "Open".
 
 ### Global rules
-- **CSP** (`vercel.json`) allows only same-origin scripts, styles, fonts and connections, with no
-  inline-script hash (there is no inline script any more). Astro never inlines scripts or CSS. If
+- **CSP** (`vercel.json`) allows only same-origin scripts, styles, fonts and connections, plus one
+  inline-script hash: the `m-enter` line in `BaseLayout`. Astro never inlines scripts or CSS. If
   you add an `is:inline` script, add its hash to `vercel.json`: `npm run build` runs
   `scripts/check-csp.mjs`, which fails and prints the missing hash. JSON-LD blocks are fine.
 - No inline `style=""` (blocked by the CSP); set dynamic values through CSSOM or SVG attributes.
-- **Print:** global.css sets A4 and hides the header and footer (`.no-print` hides anything else).
+- **Print:** site.css sets A4 and hides the header and footer (`.no-print` hides anything else).
 - Mobile-first, must work at 375px with no horizontal page scroll. No `any`; props typed.
 - Zero lorem ipsum / no visible placeholders; finance-accurate English copy.
 - `npm run build` and `npx astro check` must pass with 0 errors before a task is done.
@@ -218,7 +218,7 @@ model is refreshed, update `lastUpdated`, `referencePrice`, `outputs` and (for a
 
 | Route | File | Notes |
 | :-- | :-- | :-- |
-| `/` | `index.astro` | One section per screen: hero (h1 + CTAs + facts, `CoverageStrip` as the picture), `#coverage` (`CoverageTable`), `#lead` (lead report + `FootballField`), `#notes` (chart + latest notes), `#about` (the name set large, profile rows), then the footer close. |
+| `/` | `index.astro` | One section per screen: hero split (h1 + CTAs + facts, `CoverageStrip` as the picture), `#research` (peek list: five report rows, the frame shows each one's `FootballField`), `#approach` (word-highlight statement), `#notes` (chart + latest notes), `#about` (profile beside `public/research/tear-sheets/hpg-page.png`, a render of the HPG tear sheet: regenerate it with the PDFs), then the close-word footer. |
 | `/research` | `research.astro` | `CoverageStrip` in the header, sortable coverage table (price used, each method + implied move, low/high move; client-side sort with `aria-sort`) and the methods index. |
 | `/research/[slug]` | `research/[slug]/index.astro` | Company report: fact file, dated-figures note, section index, football field + outputs table, thesis, assumptions, DCF sensitivity, conclusion, risks, model files, prev/next, Report JSON-LD. |
 | `/research/dcf`, `/research/comparable-analysis`, `/research/precedent-transactions-lbo` | thin wrappers | render `<ValuationMethodPage groupId=…/>`. |
@@ -227,7 +227,7 @@ model is refreshed, update `lastUpdated`, `referencePrice`, `outputs` and (for a
 | `/monthly-views` | `monthly-views/index.astro` | Monthly notes only. |
 | `/contact`, `/disclaimer`, `/404` | static | |
 | `/research/[slug]/tear-sheet` | `research/[slug]/tear-sheet.astro` | One-page A4 summary; exported to `public/research/tear-sheets/<slug>.pdf` by `npm run tear-sheets` (builds, then prints with `playwright-core` + installed Chrome; `CHROME_PATH` overrides). **Re-run it whenever a model changes** and commit the PDFs; report pages link the PDF only if it exists. |
-| `/og/<path>.png` | `og/[...path].png.ts` | Build-time 1200×630 OG cards (satori + sharp; Source Serif 4, IBM Plex Sans and Mono `.woff` from `@fontsource`) for every report and note. |
+| `/og/<path>.png` | `og/[...path].png.ts` | Build-time 1200×630 OG cards (satori + sharp; Source Serif 4 and Libre Franklin `.woff` from `@fontsource`) for every report and note. |
 | `/rss.xml` | `rss.xml.ts` | Weekly + monthly feed with full note HTML (`markdown-it` + `sanitize-html`). |
 
 `ValuationMethodPage` sits in `components/`; everything else lives under `components/ui/` (§4).

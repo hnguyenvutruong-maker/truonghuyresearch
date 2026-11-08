@@ -1,67 +1,31 @@
 ---
-// Two-way DCF sensitivity as a ruled table. Cells are shaded on a diverging scale around the
-// price the model used (green above, red below, none within ±2%); every value is printed, so
-// colour is never the only channel. The base case is outlined.
+// Two-way DCF sensitivity: cells shaded around the price the model used (green above, red below, none
+// within ±2%); every value printed, so colour is never the only channel; the base case outlined.
 import type { ReferencePrice, SensitivityGrid } from '../../data/valuation-models';
 import { formatDate, formatVndK } from '../../lib/format';
-
-interface Props {
-  grid: SensitivityGrid;
-  reference: ReferencePrice;
-}
-
+interface Props { grid: SensitivityGrid; reference: ReferencePrice }
 const { grid, reference } = Astro.props;
-
-const fmtAxis = (value: number, format: SensitivityGrid['rowFormat']) =>
-  format === 'pct' ? `${(value * 100).toFixed(1)}%` : `${value.toFixed(1)}x`;
-
+const axis = (v: number, f: SensitivityGrid['rowFormat']) => (f === 'pct' ? `${(v * 100).toFixed(1)}%` : `${v.toFixed(1)}x`);
 const refK = reference.value / 1000;
-const shade = (valueK: number) => {
-  const move = (valueK / refK - 1) * 100;
-  if (move >= 10) return 'bg-up-mid';
-  if (move >= 2) return 'bg-up-soft';
-  if (move > -2) return 'bg-ground-card';
-  if (move > -10) return 'bg-down-soft';
-  return 'bg-down-mid';
+const shade = (k: number) => {
+  const m = (k / refK - 1) * 100;
+  return m >= 10 ? 's-up2' : m >= 2 ? 's-up1' : m > -2 ? 's-mid' : m > -10 ? 's-dn1' : 's-dn2';
 };
 ---
-
-<figure class="m-0">
-  <div class="overflow-x-auto" tabindex="0" role="region" aria-label={`${grid.title}, scrolls sideways`}>
-    <table class="w-full min-w-[24rem] border-collapse">
-      <caption class="t-label pb-3 text-left">{grid.title}</caption>
-      <thead>
-        <tr>
-          <th scope="col" class="t-label border-b border-line-strong px-3 py-2 text-left text-ink-muted">{grid.rowLabel} by {grid.colLabel}</th>
-          {grid.cols.map((col, j) => (
-            <th scope="col" class:list={['t-data border-b border-line-strong px-2 py-2 text-right text-[0.8125rem]', j === grid.baseCol ? 'text-ink' : 'text-ink-muted']}>{fmtAxis(col, grid.colFormat)}</th>
-          ))}
-        </tr>
-      </thead>
+<figure class="sheet">
+  <div class="table-scroll" tabindex="0" role="region" aria-label={`${grid.title}, scrolls sideways`}>
+    <table class="data sens">
+      <caption class="t-label">{grid.title}</caption>
+      <thead><tr><th scope="col">{grid.rowLabel} by {grid.colLabel}</th>{grid.cols.map((c) => <th scope="col">{axis(c, grid.colFormat)}</th>)}</tr></thead>
       <tbody>
         {grid.values.map((row, i) => (
-          <tr class="border-b border-ground">
-            <th scope="row" class:list={['t-data px-3 py-2 text-left text-[0.8125rem]', i === grid.baseRow ? 'text-ink' : 'text-ink-muted']}>
-              {fmtAxis(grid.rows[i], grid.rowFormat)}
-            </th>
-            {row.map((value, j) => {
-              const isBase = i === grid.baseRow && j === grid.baseCol;
-              return (
-                <td class:list={['t-data px-2 py-2 text-right text-ink', shade(value), isBase && 'font-semibold outline outline-2 -outline-offset-2 outline-ink']}>
-                  {value.toFixed(1)}
-                </td>
-              );
-            })}
+          <tr>
+            <th scope="row" class="num">{axis(grid.rows[i], grid.rowFormat)}</th>
+            {row.map((v, j) => <td class:list={['num', shade(v), i === grid.baseRow && j === grid.baseCol && 's-base']}>{v.toFixed(1)}</td>)}
           </tr>
         ))}
       </tbody>
     </table>
   </div>
-  <figcaption class="t-small mt-4 space-y-1 text-ink-muted">
-    <p>
-      Values in VND thousands per share. Outlined: the model's base case. Green cells sit above and red cells below the
-      {' '}{formatVndK(reference.value)} price used on {formatDate(reference.asOf)}; unshaded within ±2%, darker beyond ±10%.
-    </p>
-    <p>{grid.note}</p>
-  </figcaption>
+  <figcaption class="t-small muted field__note">VND thousands per share. Outlined: the model's base case. Green sits above and red below the {formatVndK(reference.value)} price used on {formatDate(reference.asOf)}; darker beyond ±10%. {grid.note}</figcaption>
 </figure>

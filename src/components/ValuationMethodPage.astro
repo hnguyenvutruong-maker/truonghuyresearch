@@ -1,101 +1,49 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Disclaimer from './ui/Disclaimer.astro';
-import Icon from './ui/Icon.astro';
-import PageHead from './ui/PageHead.astro';
+import DocHead from './ui/DocHead.astro';
 import Ticker from './ui/Ticker.astro';
 import { methodPages, valuationGroups, valuationModels, type ValuationGroupId } from '../data/valuation-models';
 import { publicFileSize } from '../lib/files';
 import { formatDate, formatVndK } from '../lib/format';
 
-interface Props {
-  groupId: ValuationGroupId;
-}
-
+interface Props { groupId: ValuationGroupId }
 const { groupId } = Astro.props;
-const group = valuationGroups.find((item) => item.id === groupId);
-if (!group) {
-  throw new Error(`Unknown valuation group: ${groupId}`);
-}
-
-const nav = methodPages.map((page) => ({
-  ...page,
-  title: valuationGroups.find((item) => item.id === page.id)?.title ?? page.id,
-  active: page.id === groupId,
-}));
-
+const group = valuationGroups.find((g) => g.id === groupId);
+if (!group) throw new Error(`Unknown valuation group: ${groupId}`);
+const nav = methodPages.map((p) => ({ ...p, title: valuationGroups.find((g) => g.id === p.id)?.title ?? p.id, active: p.id === groupId }));
 const reports = valuationModels
-  .map((model) => ({
-    model,
-    notes: model.valuationNotes.filter((note) => note.groups.includes(groupId)),
-    downloads: model.downloads.filter((download) => download.groups.includes(groupId)),
-  }))
-  .filter((item) => item.notes.length > 0);
+  .map((model) => ({ model, notes: model.valuationNotes.filter((n) => n.groups.includes(groupId)), downloads: model.downloads.filter((d) => d.groups.includes(groupId)) }))
+  .filter((r) => r.notes.length > 0);
 ---
-
-<BaseLayout
-  title={`${group.title}: valuation method | Truong Huy Research`}
-  description={`${group.title}: ${group.description} Reports and workbooks for ${reports.map(({ model }) => model.ticker).join(', ')}.`}
->
-  <PageHead label={`Valuation method · ${reports.length} report${reports.length === 1 ? '' : 's'}`} title={group.title} lead={group.description} back={{ href: '/research', label: 'Research coverage' }} />
-
-  <nav aria-label="Valuation methods" class="border-y border-line bg-ground-card">
-    <ul class="wrap flex gap-6 overflow-x-auto">
-      {nav.map((item) => (
-        <li class="list-none">
-          <a
-            href={item.href}
-            aria-current={item.active ? 'page' : undefined}
-            class:list={[
-              'relative inline-flex min-h-12 items-center whitespace-nowrap text-[0.9375rem] font-medium no-underline transition-colors hover:text-action',
-              item.active ? 'text-action after:absolute after:inset-x-0 after:bottom-[-1px] after:h-0.5 after:bg-action' : 'text-ink',
-            ]}
-          >
-            {item.title}
-          </a>
-        </li>
-      ))}
-    </ul>
-  </nav>
-
-  {reports.map(({ model, notes, downloads }, index) => (
-    <section class:list={['section', index % 2 === 0 && 'section--alt']} aria-labelledby={`m-${model.slug}`}>
-      <div class="wrap grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-6">
-        <div class="lg:col-span-4">
-          <Ticker label={model.ticker} size="lg" />
-          <h2 id={`m-${model.slug}`} class="t-h2 mt-5">{model.company}</h2>
-          <p class="t-label mt-2 text-ink-muted">{model.sector} · price used {formatVndK(model.referencePrice.value)} on {formatDate(model.referencePrice.asOf)}</p>
-          <p class="t-small mt-5 text-ink">{model.summary}</p>
-          <a href={`/research/${model.slug}`} class="btn btn--secondary mt-6">Read the {model.ticker} report <Icon name="arrow_right" size={18} class="arrow" /></a>
+<BaseLayout title={`${group.title}: valuation method | Truong Huy Research`} description={`${group.title}: ${group.description} Reports and workbooks for ${reports.map(({ model }) => model.ticker).join(', ')}.`}>
+  <div class="doc">
+    <DocHead label={`Valuation method · ${reports.length} report${reports.length === 1 ? '' : 's'}`} title={group.title} lead={group.description} back={{ href: '/research', label: 'Research coverage' }} />
+    <nav aria-label="Valuation methods" class="wrap toc">{nav.map((n) => <a href={n.href} aria-current={n.active ? 'page' : undefined}>{n.title}</a>)}</nav>
+    {reports.map(({ model, notes, downloads }, i) => (
+      <section class:list={[i % 2 === 0 && 'ground-surface']} aria-labelledby={`m-${model.slug}`}>
+        <div class="wrap grid grid--top">
+          <div class="span-4 stack-4">
+            <Ticker label={model.ticker} size="lg" />
+            <h2 id={`m-${model.slug}`}>{model.company}</h2>
+            <p class="t-small muted">{model.sector} · price used {formatVndK(model.referencePrice.value)} on {formatDate(model.referencePrice.asOf)}</p>
+            <p>{model.summary}</p>
+            <a class="link" href={`/research/${model.slug}`}>Read the {model.ticker} report</a>
+          </div>
+          <div class="span-7 start-6 stack-4">
+            {notes.map((n) => (
+              <article class="card">
+                <p class="t-label muted">{n.method}</p>
+                <h3 class="num">{n.price}</h3>
+                <p>{n.assumptions}</p>
+                <p class="muted">{n.result}</p>
+              </article>
+            ))}
+            {downloads.length > 0 && <div class="btn-row">{downloads.map((d) => <a class="btn btn--secondary btn--sm" href={d.href} download>Download the {[d.label, d.format].filter(Boolean).join(' ')}{publicFileSize(d.href) ? ` (${publicFileSize(d.href)})` : ''}</a>)}</div>}
+          </div>
         </div>
-        <div class="min-w-0 space-y-4 lg:col-span-7 lg:col-start-6">
-          {notes.map((note) => (
-            <div class="card">
-              <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-                <h3 class="t-h3">{note.method}</h3>
-                <p class="t-data font-medium text-ink">{note.price}</p>
-              </div>
-              <p class="t-small mt-3 text-ink">{note.assumptions}</p>
-              <p class="t-small mt-2 text-ink-muted">{note.result}</p>
-            </div>
-          ))}
-          {downloads.length > 0 && (
-            <ul class="flex flex-wrap gap-3 p-0 pt-2">
-              {downloads.map((download) => (
-                <li class="list-none">
-                  <a href={download.href} download class="btn btn--secondary">
-                    <Icon name="download" size={18} /> {[download.label, download.format, publicFileSize(download.href)].filter(Boolean).join(', ')}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-    </section>
-  ))}
-
-  <div class="wrap pb-24">
-    <Disclaimer />
+      </section>
+    ))}
+    <section><div class="wrap"><Disclaimer /></div></section>
   </div>
 </BaseLayout>

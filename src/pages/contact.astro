@@ -1,40 +1,18 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import Icon from '../components/ui/Icon.astro';
-import PageHead from '../components/ui/PageHead.astro';
-
-const contactRows = [
-  { label: 'Email', value: 'hnguyenvutruong@gmail.com', href: 'mailto:hnguyenvutruong@gmail.com', external: false },
-  { label: 'Phone', value: '0962220094', href: 'tel:0962220094', external: false },
-  { label: 'LinkedIn', value: 'linkedin.com/in/trghuyy', href: 'https://www.linkedin.com/in/trghuyy/', external: true },
+import DocHead from '../components/ui/DocHead.astro';
+const rows = [
+  { label: 'Email', value: 'hnguyenvutruong@gmail.com', href: 'mailto:hnguyenvutruong@gmail.com' },
+  { label: 'Phone', value: '0962220094', href: 'tel:0962220094' },
+  { label: 'LinkedIn', value: 'linkedin.com/in/trghuyy', href: 'https://www.linkedin.com/in/trghuyy/' },
 ];
 ---
-
-<BaseLayout title="Contact Nguyen Vu Truong Huy | Truong Huy Research" description="Contact Nguyen Vu Truong Huy about equity research, capital markets and investment banking internships in Ho Chi Minh City." close={false}>
-  <PageHead
-    label="Ho Chi Minh City"
-    title="Contact Huy"
-    lead="Open to equity research, capital markets and investment banking internships. Questions about a model or a note are welcome too."
-  >
-    <div class="btn-row mt-9">
-      <a href="/cv.pdf" class="btn btn--primary" target="_blank" rel="noopener">Download the CV</a>
-    </div>
-    <dl slot="aside" class="card m-0">
-      {contactRows.map((row, index) => (
-        <div class:list={['py-4', index > 0 && 'border-t border-line']}>
-          <dt class="t-label text-ink-muted">{row.label}</dt>
-          <dd class="m-0 mt-1">
-            <a
-              href={row.href}
-              target={row.external ? '_blank' : undefined}
-              rel={row.external ? 'noopener noreferrer' : undefined}
-              class="link inline-flex items-center gap-2 break-all font-display text-[1.375rem] font-semibold"
-            >
-              {row.value}{row.external && <Icon name="north_east" size={18} />}
-            </a>
-          </dd>
-        </div>
-      ))}
-    </dl>
-  </PageHead>
+<BaseLayout title="Contact Nguyen Vu Truong Huy | Truong Huy Research" description="Contact Nguyen Vu Truong Huy about equity research, capital markets and investment banking internships in Ho Chi Minh City.">
+  <div class="doc">
+    <DocHead label="Ho Chi Minh City" title="Contact Huy" lead="Open to equity research, capital markets and investment banking internships. Questions about a model or a note are welcome too.">
+      <dl slot="aside" class="facts contact">
+        {rows.map((r) => <div><dt>{r.label}</dt><dd><a class="link" href={r.href}>{r.value}</a></dd></div>)}
+      </dl>
+    </DocHead>
+  </div>
 </BaseLayout>

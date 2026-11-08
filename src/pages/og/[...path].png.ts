@@ -21,15 +21,14 @@ const h = (type: string, style: Record<string, unknown>, ...children: Child[]): 
 const C = { chrome: '#0F1E2E', chromeFg: '#EEF2F5', chromeMuted: '#A3B1BE', canvas: '#F7F9FA', panel: '#FFFFFF', line: '#C9D1D8', fg: '#13212E', muted: '#4F5D6B', up: '#13703A', down: '#B42318', value: '#1E3A5F', market: '#94590A', teal: '#A3B1BE' };
 const font = (pkg: string, file: string) => readFileSync(join(process.cwd(), 'node_modules', pkg, 'files', file));
 const fonts = [
-  { name: 'Source Serif 4', data: font('@fontsource/source-serif-4', 'source-serif-4-latin-600-normal.woff'), weight: 600 as const, style: 'normal' as const },
-  { name: 'IBM Plex Sans', data: font('@fontsource/ibm-plex-sans', 'ibm-plex-sans-latin-500-normal.woff'), weight: 500 as const, style: 'normal' as const },
-  { name: 'IBM Plex Mono', data: font('@fontsource/ibm-plex-mono', 'ibm-plex-mono-latin-500-normal.woff'), weight: 500 as const, style: 'normal' as const },
+  { name: 'Source Serif 4', data: font('@fontsource/source-serif-4', 'source-serif-4-latin-400-normal.woff'), weight: 400 as const, style: 'normal' as const },
+  { name: 'Libre Franklin', data: font('@fontsource/libre-franklin', 'libre-franklin-latin-500-normal.woff'), weight: 500 as const, style: 'normal' as const },
 ];
 
 type Card = { kicker: string; context: string; headline: string; figures: Array<{ label: string; value: string; tone?: string }>; ticker?: string; accent: string };
 
 const label = (text: string, color = C.muted, size = 20) =>
-  h('div', { fontFamily: 'IBM Plex Sans', fontWeight: 500, fontSize: size, color }, text);
+  h('div', { fontFamily: 'Libre Franklin', fontWeight: 500, fontSize: size, color }, text);
 
 const layout = (card: Card): Node =>
   h(
@@ -38,7 +37,7 @@ const layout = (card: Card): Node =>
     h(
       'div',
       { height: 92, padding: '0 56px', backgroundColor: C.chrome, justifyContent: 'space-between', alignItems: 'center' },
-      h('div', { fontFamily: 'Source Serif 4', fontWeight: 600, fontSize: 34, color: C.chromeFg }, 'Truong Huy', h('span', { color: C.teal, marginLeft: 10 }, 'Research')),
+      h('div', { fontFamily: 'Source Serif 4', fontWeight: 400, fontSize: 34, color: C.chromeFg }, 'Truong Huy', h('span', { color: C.teal, marginLeft: 10 }, 'Research')),
       label(card.context, C.chromeMuted)
     ),
     h(
@@ -51,13 +50,13 @@ const layout = (card: Card): Node =>
         card.ticker
           ? h(
               'div',
-              { marginRight: 28, padding: '10px 16px', borderRadius: 4, backgroundColor: C.fg, color: '#FFFFFF', fontFamily: 'IBM Plex Mono', fontWeight: 500, fontSize: 30 },
+              { marginRight: 28, padding: '10px 16px', borderRadius: 4, backgroundColor: C.fg, color: '#FFFFFF', fontFamily: 'Libre Franklin', fontWeight: 500, fontSize: 30 },
               card.ticker
             )
           : null,
         h(
           'div',
-          { flexShrink: 1, fontFamily: 'Source Serif 4', fontWeight: 600, fontSize: card.headline.length > 80 ? 44 : card.headline.length > 50 ? 54 : 66, lineHeight: 1.08, letterSpacing: -1.2 },
+          { flexShrink: 1, fontFamily: 'Source Serif 4', fontWeight: 400, fontSize: card.headline.length > 80 ? 44 : card.headline.length > 50 ? 54 : 66, lineHeight: 1.08, letterSpacing: -1.2 },
           card.headline
         )
       ),
@@ -68,7 +67,7 @@ const layout = (card: Card): Node =>
           'div',
           { gap: 44 },
           ...card.figures.map((figure) =>
-            h('div', { flexDirection: 'column' }, label(figure.label, C.muted, 17), h('div', { fontFamily: 'IBM Plex Mono', fontWeight: 500, fontSize: 34, marginTop: 6, color: figure.tone ?? C.fg }, figure.value))
+            h('div', { flexDirection: 'column' }, label(figure.label, C.muted, 17), h('div', { fontFamily: 'Libre Franklin', fontWeight: 500, fontSize: 34, marginTop: 6, color: figure.tone ?? C.fg }, figure.value))
           )
         ),
         label('truonghuyresearch.xyz', C.muted, 17)
