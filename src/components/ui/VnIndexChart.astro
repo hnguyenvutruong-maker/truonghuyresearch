@@ -1,7 +1,9 @@
 ---
-// VN-Index chart (lightweight-charts): an area of weekly closes, or daily candles when a note
-// carries `vn_index_daily`. Colours come from the tokens in global.css. The library is imported
-// only when the chart nears the viewport.
+// VnIndexChart: zero-dependency, 100% CSP-compliant interactive SVG chart for VN-Index
+// weekly closing trends (area + line + interactive nodes) and daily OHLC candlesticks.
+// Renders instantaneously at build time with a live hover/focus session telemetry inspector.
+import { formatDate, formatIndex, signedPct } from '../../lib/format';
+
 export interface TrendPoint {
   time: string; // YYYY-MM-DD
   value: number;
@@ -23,85 +25,321 @@ interface Props {
 }
 
 const { trendData = [], candleData = [], label, height = 'lg' } = Astro.props;
-const hasData = trendData.length > 0 || candleData.length > 0;
+const isCandle = candleData.length > 0;
+const isTrend = !isCandle && trendData.length > 0;
+const hasData = isCandle || isTrend;
+
+const W = 1000;
+const H = height === 'lg' ? 300 : 240;
+const PAD_L = 12;
+const PAD_R = 68;
+const PAD_T = 20;
+const PAD_B = 32;
+const plotW = W - PAD_L - PAD_R;
+const plotH = H - PAD_T - PAD_B;
+
+// Compute price scale
+const allValues = isCandle
+  ? candleData.flatMap((c) => [c.high, c.low, c.open, c.close])
+  : trendData.map((t) => t.value);
+
+const rawMin = allValues.length > 0 ? Math.min(...allValues) : 1700;
+const rawMax = allValues.length > 0 ? Math.max(...allValues) : 1950;
+const pad = Math.max((rawMax - rawMin) * 0.12, 10);
+const pMin = Math.floor((rawMin - pad) / 10) * 10;
+const pMax = Math.ceil((rawMax + pad) / 10) * 10;
+const pSpan = Math.max(pMax - pMin, 1);
+
+const yOf = (val: number) => Number((PAD_T + (1 - (val - pMin) / pSpan) * plotH).toFixed(2));
+
+// 5 horizontal price gridlines
+const yTicks = Array.from({ length: 5 }, (_, i) => {
+  const val = pMin + ((4 - i) / 4) * pSpan;
+  return { val: Math.round(val), y: yOf(val) };
+});
+
+// Trend geometry
+const trendPoints = trendData.map((pt, i) => {
+  const n = Math.max(trendData.length - 1, 1);
+  const x = Number((PAD_L + (i / n) * plotW).toFixed(2));
+  const y = yOf(pt.value);
+  const prev = i > 0 ? trendData[i - 1].value : pt.value;
+  const chg = prev ? ((pt.value - prev) / prev) * 100 : 0;
+  return {
+    ...pt,
+    x,
+    y,
+    chg,
+    dateLabel: formatDate(pt.time),
+    closeLabel: formatIndex(pt.value),
+    chgLabel: signedPct(chg),
+  };
+});
+
+const polylinePoints = trendPoints.map((p) => `${p.x},${p.y}`).join(' ');
+const areaPath =
+  trendPoints.length > 1
+    ? `M ${trendPoints[0].x},${PAD_T + plotH} ` +
+      trendPoints.map((p) => `L ${p.x},${p.y}`).join(' ') +
+      ` L ${trendPoints[trendPoints.length - 1].x},${PAD_T + plotH} Z`
+    : '';
+
+// Candle geometry
+const candlePoints = candleData.map((c, i) => {
+  const slot = plotW / Math.max(candleData.length, 1);
+  const cx = Number((PAD_L + i * slot + slot / 2).toFixed(2));
+  const bw = Number(Math.min(Math.max(slot * 0.56, 8), 36).toFixed(2));
+  const bx = Number((cx - bw / 2).toFixed(2));
+  const yOpen = yOf(c.open);
+  const yClose = yOf(c.close);
+  const yHigh = yOf(c.high);
+  const yLow = yOf(c.low);
+  const by = Number(Math.min(yOpen, yClose).toFixed(2));
+  const bh = Number(Math.max(Math.abs(yClose - yOpen), 2.5).toFixed(2));
+  const up = c.close >= c.open;
+  const chg = c.open ? ((c.close - c.open) / c.open) * 100 : 0;
+  return {
+    ...c,
+    cx,
+    bx,
+    by,
+    bw,
+    bh,
+    yHigh,
+    yLow,
+    up,
+    chg,
+    dateLabel: formatDate(c.time),
+    openLabel: formatIndex(c.open),
+    highLabel: formatIndex(c.high),
+    lowLabel: formatIndex(c.low),
+    closeLabel: formatIndex(c.close),
+    chgLabel: signedPct(chg),
+  };
+});
+
+const latestTrend = trendPoints[trendPoints.length - 1];
+const firstTrend = trendPoints[0];
+const latestCandle = candlePoints[candlePoints.length - 1];
+const firstCandle = candlePoints[0];
+const gradId = `vni-grad-${Math.random().toString(36).slice(2, 8)}`;
 ---
 
 {hasData && (
-  <div>
-    <div
-      data-vni-chart
+  <div class="vni-wrap" data-vni-interactive>
+    {isTrend && latestTrend && (
+      <div class="flow-inspector">
+        <span>Week Ending: <strong data-vni-date>{latestTrend.dateLabel}</strong></span>
+        <span>VN-Index Close: <strong class="num" data-vni-close>{latestTrend.closeLabel}</strong></span>
+        <span>
+          Weekly Δ:{' '}
+          <strong class:list={['num', latestTrend.chg >= 0 ? 'up' : 'down']} data-vni-chg>
+            {latestTrend.chgLabel}
+          </strong>
+        </span>
+      </div>
+    )}
+
+    {isCandle && latestCandle && (
+      <div class="flow-inspector">
+        <span>Session: <strong data-vni-date>{latestCandle.dateLabel}</strong></span>
+        <span>O: <strong class="num" data-vni-open>{latestCandle.openLabel}</strong></span>
+        <span>H: <strong class="num" data-vni-high>{latestCandle.highLabel}</strong></span>
+        <span>L: <strong class="num" data-vni-low>{latestCandle.lowLabel}</strong></span>
+        <span>C: <strong class="num" data-vni-close>{latestCandle.closeLabel}</strong></span>
+        <span>
+          Session Δ:{' '}
+          <strong class:list={['num', latestCandle.up ? 'up' : 'down']} data-vni-chg>
+            {latestCandle.chgLabel}
+          </strong>
+        </span>
+      </div>
+    )}
+
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      class:list={['vni-svg', height === 'lg' ? 'vni--lg' : 'vni--md']}
       role="img"
       aria-label={label}
-      class:list={['vni', height === 'lg' ? 'vni--lg' : 'vni--md']}
-      data-trend={JSON.stringify(trendData)}
-      data-candle={JSON.stringify(candleData)}
-    ></div>
-    <p class="t-label muted vni__credit">
-      Chart by <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer" class="link">TradingView Lightweight Charts</a>
-    </p>
+    >
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#16325B" stop-opacity="0.22" />
+          <stop offset="100%" stop-color="#16325B" stop-opacity="0.01" />
+        </linearGradient>
+      </defs>
+
+      <!-- Horizontal price gridlines & right-hand axis labels -->
+      {yTicks.map((t) => (
+        <g>
+          <line
+            x1={PAD_L}
+            x2={W - PAD_R}
+            y1={t.y}
+            y2={t.y}
+            class="grid-line"
+            stroke-width="1"
+            stroke-dasharray="3 3"
+            vector-effect="non-scaling-stroke"
+          />
+          <text
+            x={W - PAD_R + 8}
+            y={t.y + 4}
+            fill="#56657A"
+            font-family="IBM Plex Mono, monospace"
+            font-size="11.5"
+          >
+            {t.val.toLocaleString('en-US')}
+          </text>
+        </g>
+      ))}
+
+      <!-- Baseline -->
+      <line
+        x1={PAD_L}
+        x2={W - PAD_R}
+        y1={PAD_T + plotH}
+        y2={PAD_T + plotH}
+        stroke="#94A3B8"
+        stroke-width="1"
+        vector-effect="non-scaling-stroke"
+      />
+
+      <!-- Area + Line + Interactive Points for Trend Chart -->
+      {isTrend && (
+        <g>
+          {areaPath && <path d={areaPath} fill={`url(#${gradId})`} />}
+          <polyline
+            points={polylinePoints}
+            fill="none"
+            stroke="#16325B"
+            stroke-width="2.25"
+            stroke-linejoin="round"
+            stroke-linecap="round"
+            vector-effect="non-scaling-stroke"
+          />
+          {trendPoints.map((pt, idx) => (
+            <g>
+              <circle
+                cx={pt.x}
+                cy={pt.y}
+                r={idx === trendPoints.length - 1 ? '4.5' : '3.2'}
+                class="vni-node"
+                fill={idx === trendPoints.length - 1 ? '#9A5B0A' : '#16325B'}
+                stroke="#FFFFFF"
+                stroke-width="1.5"
+                tabindex="0"
+                data-vni-pt
+                data-date={pt.dateLabel}
+                data-close={pt.closeLabel}
+                data-chg={pt.chgLabel}
+                data-pos={pt.chg >= 0 ? '1' : '0'}
+                aria-label={`${pt.dateLabel}: ${pt.closeLabel} (${pt.chgLabel})`}
+              />
+            </g>
+          ))}
+          {firstTrend && latestTrend && (
+            <g font-family="IBM Plex Mono, monospace" font-size="11.5" fill="#56657A">
+              <text x={PAD_L} y={H - 8} text-anchor="start">{firstTrend.dateLabel}</text>
+              {trendPoints.length > 4 && (
+                <text x={PAD_L + plotW / 2} y={H - 8} text-anchor="middle">
+                  {trendPoints[Math.floor(trendPoints.length / 2)].dateLabel}
+                </text>
+              )}
+              <text x={W - PAD_R} y={H - 8} text-anchor="end">{latestTrend.dateLabel}</text>
+            </g>
+          )}
+        </g>
+      )}
+
+      <!-- Candlesticks for Daily OHLC Chart -->
+      {isCandle && (
+        <g>
+          {candlePoints.map((c) => (
+            <g
+              class="vni-candle"
+              tabindex="0"
+              data-vni-candle
+              data-date={c.dateLabel}
+              data-open={c.openLabel}
+              data-high={c.highLabel}
+              data-low={c.lowLabel}
+              data-close={c.closeLabel}
+              data-chg={c.chgLabel}
+              data-pos={c.up ? '1' : '0'}
+              aria-label={`${c.dateLabel}: O ${c.openLabel} H ${c.highLabel} L ${c.lowLabel} C ${c.closeLabel}`}
+            >
+              <line
+                x1={c.cx}
+                x2={c.cx}
+                y1={c.yHigh}
+                y2={c.yLow}
+                stroke={c.up ? '#0E6F3C' : '#B42318'}
+                stroke-width="1.6"
+                vector-effect="non-scaling-stroke"
+              />
+              <rect
+                x={c.bx}
+                y={c.by}
+                width={c.bw}
+                height={c.bh}
+                rx="1"
+                fill={c.up ? '#0E6F3C' : '#B42318'}
+              />
+            </g>
+          ))}
+          {firstCandle && latestCandle && (
+            <g font-family="IBM Plex Mono, monospace" font-size="11.5" fill="#56657A">
+              <text x={PAD_L} y={H - 8} text-anchor="start">{firstCandle.dateLabel}</text>
+              <text x={W - PAD_R} y={H - 8} text-anchor="end">{latestCandle.dateLabel}</text>
+            </g>
+          )}
+        </g>
+      )}
+    </svg>
   </div>
 )}
 
 <script>
-  const css = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(`--${name}`).trim();
-  const rgba = (hex: string, alpha: number) => {
-    const n = parseInt(hex.replace('#', ''), 16);
-    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
-  };
+  document.querySelectorAll<HTMLElement>('[data-vni-interactive]').forEach((root) => {
+    const dateEl = root.querySelector<HTMLElement>('[data-vni-date]');
+    const openEl = root.querySelector<HTMLElement>('[data-vni-open]');
+    const highEl = root.querySelector<HTMLElement>('[data-vni-high]');
+    const lowEl = root.querySelector<HTMLElement>('[data-vni-low]');
+    const closeEl = root.querySelector<HTMLElement>('[data-vni-close]');
+    const chgEl = root.querySelector<HTMLElement>('[data-vni-chg]');
 
-  const draw = async (el: HTMLElement) => {
-    const { createChart, CrosshairMode } = await import('lightweight-charts');
-    const trendData: { time: string; value: number }[] = JSON.parse(el.dataset.trend ?? '[]');
-    const candleData: { time: string; open: number; high: number; low: number; close: number }[] = JSON.parse(el.dataset.candle ?? '[]');
-    const action = css('action') || '#1e3a5f';
-    const line = 'rgba(19, 33, 46, 0.1)';
-
-    const chart = createChart(el, {
-      width: el.clientWidth,
-      height: el.clientHeight || 260,
-      layout: {
-        background: { color: 'rgba(0, 0, 0, 0)' },
-        textColor: css('muted') || '#4f5d6b',
-        fontFamily: 'Libre Franklin, Arial, sans-serif',
-        fontSize: 12,
-        // The logo injects an inline <style> (blocked by the CSP); the text link below credits the library
-        attributionLogo: false,
-      },
-      grid: { vertLines: { visible: false }, horzLines: { color: line } },
-      crosshair: { mode: CrosshairMode.Normal },
-      rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.08, bottom: 0.06 } },
-      timeScale: { borderColor: line, timeVisible: true },
-      handleScroll: false,
-      handleScale: false,
+    root.querySelectorAll<SVGElement>('[data-vni-pt]').forEach((pt) => {
+      const update = () => {
+        if (dateEl) dateEl.textContent = pt.dataset.date ?? '';
+        if (closeEl) closeEl.textContent = pt.dataset.close ?? '';
+        if (chgEl) {
+          chgEl.textContent = pt.dataset.chg ?? '';
+          chgEl.classList.toggle('up', pt.dataset.pos === '1');
+          chgEl.classList.toggle('down', pt.dataset.pos !== '1');
+        }
+      };
+      pt.addEventListener('pointerenter', update);
+      pt.addEventListener('focus', update);
+      pt.addEventListener('click', update);
     });
 
-    if (candleData.length > 0) {
-      const up = css('up') || '#13703a';
-      const down = css('down') || '#b42318';
-      chart.addCandlestickSeries({ upColor: up, downColor: down, borderUpColor: up, borderDownColor: down, wickUpColor: up, wickDownColor: down }).setData(candleData);
-    } else if (trendData.length > 0) {
-      chart
-        .addAreaSeries({ lineWidth: 2, lineColor: action, topColor: rgba(action, 0.18), bottomColor: rgba(action, 0.01), priceLineVisible: false, lastValueVisible: true })
-        .setData(trendData);
-    }
-    chart.timeScale().fitContent();
-    new ResizeObserver(() => chart.applyOptions({ width: el.clientWidth })).observe(el);
-  };
-
-  document.querySelectorAll<HTMLElement>('[data-vni-chart]').forEach((el) => {
-    if ('IntersectionObserver' in window) {
-      const observer = new IntersectionObserver(
-        (entries) => {
-          if (entries.some((entry) => entry.isIntersecting)) {
-            observer.disconnect();
-            void draw(el);
-          }
-        },
-        { rootMargin: '300px 0px' }
-      );
-      observer.observe(el);
-    } else {
-      void draw(el);
-    }
+    root.querySelectorAll<SVGElement>('[data-vni-candle]').forEach((c) => {
+      const update = () => {
+        if (dateEl) dateEl.textContent = c.dataset.date ?? '';
+        if (openEl) openEl.textContent = c.dataset.open ?? '';
+        if (highEl) highEl.textContent = c.dataset.high ?? '';
+        if (lowEl) lowEl.textContent = c.dataset.low ?? '';
+        if (closeEl) closeEl.textContent = c.dataset.close ?? '';
+        if (chgEl) {
+          chgEl.textContent = c.dataset.chg ?? '';
+          chgEl.classList.toggle('up', c.dataset.pos === '1');
+          chgEl.classList.toggle('down', c.dataset.pos !== '1');
+        }
+      };
+      c.addEventListener('pointerenter', update);
+      c.addEventListener('focus', update);
+      c.addEventListener('click', update);
+    });
   });
 </script>

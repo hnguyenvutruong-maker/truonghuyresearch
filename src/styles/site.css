@@ -1099,6 +1099,11 @@ a.card:hover {
   border-color: var(--accent-navy);
 }
 
+.desk-tab[aria-selected='true'] .up,
+.desk-tab[aria-selected='true'] .down {
+  color: rgba(255, 255, 255, 0.9);
+}
+
 .desk-selector {
   border-top: 2px solid var(--ink-primary);
   background-color: var(--bg-elevated);
@@ -2139,10 +2144,14 @@ a.card:hover {
 }
 
 /* ── Report Auxiliaries & Tear Sheet Specimen ── */
-.vni { width: 100%; }
-.vni--lg { height: 340px; }
-.vni--md { height: 280px; }
+.vni, .vni-svg { width: 100%; overflow: visible; }
+.vni--lg { height: 300px; }
+.vni--md { height: 240px; }
 .vni__credit { text-align: right; margin-top: var(--s-3); }
+.vni-node { cursor: pointer; transition: r 120ms ease; }
+.vni-node:hover, .vni-node:focus { r: 6px; stroke: #0F1A2A; stroke-width: 2px; }
+.vni-candle { cursor: pointer; }
+.vni-candle:hover rect, .vni-candle:focus rect { opacity: 0.8; stroke: #0F1A2A; stroke-width: 1px; }
 
 .paper {
   display: flex;
