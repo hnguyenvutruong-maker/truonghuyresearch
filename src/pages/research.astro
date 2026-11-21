@@ -1,4 +1,10 @@
 ---
+// Research Coverage Hub (/research):
+// 1. Document Masthead + CoverageStrip
+// 2. Filterable & Sortable Coverage Matrix (CoverageTable)
+// 3. Method Spread & Analytical Divergence Comparator (ValuationComparator)
+// 4. Open Excel Workbook & PDF Tear Sheet Vault (WorkbookVault)
+// 5. Three Valuation Methodologies Directory
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CoverageStrip from '../components/ui/CoverageStrip.astro';
 import CoverageTable from '../components/ui/CoverageTable.astro';
@@ -6,40 +12,108 @@ import DatedNote from '../components/ui/DatedNote.astro';
 import Disclaimer from '../components/ui/Disclaimer.astro';
 import DocHead from '../components/ui/DocHead.astro';
 import Ticker from '../components/ui/Ticker.astro';
+import ValuationComparator from '../components/ui/ValuationComparator.astro';
+import WorkbookVault from '../components/ui/WorkbookVault.astro';
 import { STALE_AFTER_DAYS, methodPages, valuationGroups, valuationModels } from '../data/valuation-models';
 import { daysBetween, formatDate } from '../lib/format';
 
 const workbooks = valuationModels.reduce((t, m) => t + m.downloads.length, 0);
 const oldest = [...new Set(valuationModels.map((m) => m.lastUpdated ?? m.referencePrice.asOf))].sort()[0];
 const stale = daysBetween(oldest, new Date()) > STALE_AFTER_DAYS;
-const methods = methodPages.map((p) => ({
+const methods = methodPages.map((p, idx) => ({
   ...p,
+  index: `0${idx + 1}`,
   group: valuationGroups.find((g) => g.id === p.id),
   tickers: valuationModels.filter((m) => m.valuationNotes.some((n) => n.groups.includes(p.id))).map((m) => m.ticker),
 }));
 ---
-<BaseLayout title="Research coverage: five Vietnam-listed companies | Truong Huy Research" description="Valuation coverage of HPG, BID, FPT, BMP and PNJ: DCF, comparable, precedent-transaction and LBO outputs against the price each model used, with downloadable workbooks.">
+
+<BaseLayout
+  title="Research coverage: five Vietnam-listed companies | Truong Huy Research"
+  description="Valuation coverage of HPG, BID, FPT, BMP and PNJ: DCF, comparable, precedent-transaction and LBO outputs against the price each model used, with downloadable Excel workbooks and A4 tear sheets."
+>
   <div class="doc">
-    <DocHead label={`${valuationModels.length} companies · ${workbooks} workbooks`} title="Research coverage" lead="Each company valued with the methods that fit its business, every workbook open for review. Ranges, not single targets.">
-      <div slot="aside"><CoverageStrip /></div>
+    <DocHead
+      label={`Equity Research Coverage · ${valuationModels.length} Issuers · ${workbooks} Excel Workbooks`}
+      title="Vietnam Equity Valuation Coverage"
+      lead="Each company is valued with the methodologies that fit its sector and cash-flow structure. Outputs are presented as analytical ranges against the model reference price, with every workbook and A4 tear sheet open for audit."
+    >
+      <div class="toc">
+        <a href="#matrix">01 Coverage Matrix</a>
+        <a href="#comparator">02 Method Spread Analysis</a>
+        <a href="#vault">03 Workbook &amp; Tear-Sheet Vault</a>
+        <a href="#methods">04 Methodologies</a>
+      </div>
+      <div slot="aside">
+        <CoverageStrip />
+      </div>
     </DocHead>
-    <section class="ground-surface" aria-labelledby="table-h">
-      <div class="wrap stack-6">
-        <div class="section-head--split"><div><h2 id="table-h">Outputs by method</h2><p class="t-lead muted">VND per share. Sort by any column.</p></div></div>
-        {stale && <DatedNote>All models and prices are as of {formatDate(oldest)} and have not been refreshed since. Implied moves are against those prices, not today's.</DatedNote>}
-        <div class="sheet"><CoverageTable sortable /></div>
-        <p class="t-label muted">≈ marks an approximate precedent-transaction output. Low and high move are the weakest and strongest method against the price used.</p>
+
+    <section id="matrix" class="ground-surface" aria-labelledby="table-h">
+      <div class="wrap stack-5">
+        <div class="section-head--split">
+          <div>
+            <span class="eyebrow">01 · Cross-Coverage Valuation Matrix</span>
+            <h2 id="table-h">Valuation Outputs by Methodology</h2>
+            <p class="t-lead muted">Filter by methodology group or click any column header to sort implied upside/downside.</p>
+          </div>
+        </div>
+        {stale && (
+          <DatedNote>
+            All models and reference share prices are as of {formatDate(oldest)} and have not been refreshed since. Implied percentage moves are measured against those model-date prices, not live quotes.
+          </DatedNote>
+        )}
+        <div class="sheet sheet--accent">
+          <CoverageTable sortable filterable />
+        </div>
+        <p class="mono t-label muted">
+          ≈ marks an approximate precedent-transaction control value. Low Move and High Move denote the most conservative and most constructive methodology against the reference price used.
+        </p>
       </div>
     </section>
-    <section aria-labelledby="methods-h">
-      <div class="wrap">
-        <div class="section-head"><h2 id="methods-h">Three valuation methods</h2><p class="t-lead muted">Each method page gathers the notes and workbooks for every company it was used on.</p></div>
+
+    <section id="comparator" aria-labelledby="comparator-h">
+      <div class="wrap stack-5">
+        <div class="section-head">
+          <span class="eyebrow">02 · Analytical Divergence &amp; Buyer Perspectives</span>
+          <h2 id="comparator-h">Method Spread &amp; Implied Valuation Ladder</h2>
+          <p class="t-lead muted">
+            Why intrinsic DCF, public peer multiples, strategic precedent transactions, and sponsor LBO models produce different values for each issuer.
+          </p>
+        </div>
+        <ValuationComparator />
+      </div>
+    </section>
+
+    <section id="vault" class="ground-surface" aria-labelledby="vault-h">
+      <div class="wrap stack-5">
+        <div class="section-head">
+          <span class="eyebrow">03 · Auditable Deliverables</span>
+          <h2 id="vault-h">Open Excel Workbook &amp; PDF Tear-Sheet Vault</h2>
+          <p class="t-lead muted">
+            Download the unedited Excel valuation templates and printable one-page A4 tear sheets across all five covered companies.
+          </p>
+        </div>
+        <WorkbookVault />
+      </div>
+    </section>
+
+    <section id="methods" aria-labelledby="methods-h">
+      <div class="wrap stack-5">
+        <div class="section-head">
+          <span class="eyebrow">04 · Methodology Hubs</span>
+          <h2 id="methods-h">Three Valuation Frameworks</h2>
+          <p class="t-lead muted">Each methodology hub aggregates the assumptions, results, and workbooks for every issuer where that framework was applied.</p>
+        </div>
         <div class="grid">
           {methods.map((m) => m.group && (
-            <a class="card span-4" href={m.href}>
-              <p class="t-label muted">{m.group.eyebrow}</p>
+            <a class="card card--rule span-4" href={m.href}>
+              <div class="sheet__head">
+                <span class="eyebrow">{m.index} · {m.group.eyebrow}</span>
+                <span class="badge badge--navy">{m.tickers.length} Issuers</span>
+              </div>
               <h3>{m.group.title}</h3>
-              <p>{m.group.description}</p>
+              <p class="t-small secondary">{m.group.description}</p>
               <p class="tickers">{m.tickers.map((t) => <Ticker label={t} />)}</p>
             </a>
           ))}

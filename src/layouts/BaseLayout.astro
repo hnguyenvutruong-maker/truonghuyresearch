@@ -1,14 +1,18 @@
 ---
-// The page shell, from the Taste starter: html carries the deal (type, radius, buttons, motion), the
-// kit's stylesheets load from public/assets/taste, the head line sets html.m-enter before the first
-// paint so the hero's words wait for motion.js (hashed in vercel.json), and the kit's scripts run last.
+// Institutional Editorial page shell: self-hosted Source Serif 4, Libre Franklin, and IBM Plex Mono.
+// Strict Content-Security-Policy compliant (no external Taste kit scripts, zero inline executable scripts).
 import '@fontsource-variable/source-serif-4/wght.css';
 import '@fontsource/libre-franklin/400.css';
 import '@fontsource/libre-franklin/500.css';
+import '@fontsource/libre-franklin/600.css';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
+import '@fontsource/ibm-plex-mono/600.css';
 import '../styles/site.css';
 import Analytics from '@vercel/analytics/astro';
 import SiteHeader from '../components/ui/SiteHeader.astro';
 import SiteFooter from '../components/ui/SiteFooter.astro';
+import CommandPalette from '../components/ui/CommandPalette.astro';
 
 interface Props {
   title: string;
@@ -19,7 +23,7 @@ interface Props {
 
 const {
   title,
-  description = 'Equity research on Vietnam-listed companies: valuation models, open workbooks and market notes by Nguyen Vu Truong Huy.',
+  description = 'Equity research on Vietnam-listed companies: valuation models, open Excel workbooks and market notes by Nguyen Vu Truong Huy.',
   image = '/og-image.png',
   type = 'website',
 } = Astro.props;
@@ -29,15 +33,15 @@ const ogImageURL = new URL(image, Astro.site).toString();
 ---
 
 <!doctype html>
-<html lang="en" data-type="service" data-radius="sharp" data-buttons="tonal" data-motion>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#F7F9FA" />
-    <meta name="site-kind" content="other" />
-    <meta name="page-type" content="service" />
+    <meta name="theme-color" content="#F7F6F2" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate icon" href="/favicon.ico" />
     <link rel="canonical" href={canonicalURL} />
     <link rel="alternate" type="application/rss+xml" title="Truong Huy Research: market notes" href="/rss.xml" />
     <meta name="author" content="Nguyen Vu Truong Huy" />
@@ -50,10 +54,6 @@ const ogImageURL = new URL(image, Astro.site).toString();
     <meta property="og:site_name" content="Truong Huy Research" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:creator" content="@trghuyy" />
-    <link rel="stylesheet" href="/assets/taste/system.css" />
-    <link rel="stylesheet" href="/assets/taste/ui/cards.css" />
-    <link rel="stylesheet" href="/assets/taste/motion/motion.css" />
-    <script is:inline>document.documentElement.classList.add('m-enter');setTimeout(()=>document.documentElement.classList.add('m-enter-done'),700)</script>
   </head>
   <body>
     <SiteHeader />
@@ -61,8 +61,7 @@ const ogImageURL = new URL(image, Astro.site).toString();
       <slot />
     </main>
     <SiteFooter />
-    <script is:inline type="module" src="/assets/taste/system.js"></script>
-    <script is:inline type="module" src="/assets/taste/motion/motion.js"></script>
+    <CommandPalette />
     <Analytics />
   </body>
 </html>

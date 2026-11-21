@@ -1,64 +1,274 @@
 ---
-// A weekly or monthly note: the head with the close beside it, a band of figures on the surface ground,
-// the daily chart when the note has one, the note body beside its contents, older and newer notes.
+// MarketNote reader: features CSP-safe reading progress bar, VN-Index & Cross-Asset Scorecard
+// with diverging SVG bars, session telemetry strip, daily candlestick chart, sticky TOC with
+// active section spy, and keyboard-enabled prev/next note pagination.
 import type { MarkdownHeading } from 'astro';
 import Disclaimer from './Disclaimer.astro';
 import DocHead from './DocHead.astro';
 import VnIndexChart from './VnIndexChart.astro';
 import { formatIndex, formatNumber, signedNumber, signedPct } from '../../lib/format';
 import type { NoteSummary } from '../../lib/notes';
-interface Props { note: NoteSummary; headings: MarkdownHeading[]; prev: NoteSummary | null; next: NoteSummary | null; listHref: string }
+
+interface Props {
+  note: NoteSummary;
+  headings: MarkdownHeading[];
+  prev: NoteSummary | null;
+  next: NoteSummary | null;
+  listHref: string;
+}
+
 const { note, headings, prev, next, listHref } = Astro.props;
 const unit = note.kind === 'Weekly' ? 'week' : 'month';
 const toc = headings.filter((h) => h.depth === 2);
 const legacy = note.kind === 'Weekly' && note.date < new Date('2026-10-01T00:00:00Z');
-const basis = legacy ? "In notes before October 2026 these changes may be the final session's move rather than week on week (a calculation error since corrected)." : `Changes are ${unit} on ${unit}.`;
+const basis = legacy
+  ? "In notes before October 2026 these cross-asset changes may reflect the final session's move rather than week-on-week (a historical calculation rule since updated)."
+  : `All changes are ${unit}-on-${unit}.`;
 const tone = (v: number | null) => (v == null ? 'muted' : v >= 0 ? 'up' : 'down');
+
 const figures = [
-  { label: 'Open', value: formatIndex(note.open) }, { label: 'High', value: formatIndex(note.high) }, { label: 'Low', value: formatIndex(note.low) },
-  { label: 'Average liquidity, bn VND', value: formatNumber(note.liquidity, 0) },
-  { label: 'Foreign net, bn VND', value: signedNumber(note.foreignNet), tone: tone(note.foreignNet) },
+  { label: 'VN-Index Open', value: formatIndex(note.open) },
+  { label: 'Period High', value: formatIndex(note.high) },
+  { label: 'Period Low', value: formatIndex(note.low) },
+  { label: 'Avg Daily Liquidity', value: `${formatNumber(note.liquidity, 0)} bn VND` },
+  {
+    label: 'Foreign Net Flow',
+    value: note.foreignNet != null ? `${signedNumber(note.foreignNet)} bn VND` : 'Not collected',
+    tone: tone(note.foreignNet),
+  },
+  ...(note.foreignBuy != null && note.foreignSell != null
+    ? [
+        {
+          label: 'Foreign Buy / Sell',
+          value: `${formatNumber(note.foreignBuy, 0)} / ${formatNumber(note.foreignSell, 0)} bn`,
+        },
+      ]
+    : []),
   ...note.extras,
 ];
 ---
-<div class="doc">
-  <DocHead label={`${note.kind} market note · ${note.period}`} title={note.headline} back={{ href: listHref, label: 'Market notes' }}>
+
+<progress class="read-progress no-print" data-read-progress value="0" max="100" aria-label="Article reading progress"></progress>
+
+<div class="doc" data-note-reader data-prev-href={prev?.href} data-next-href={next?.href}>
+  <DocHead
+    label={`${note.kind} Market Intelligence · ${note.period}`}
+    title={note.headline}
+    back={{ href: listHref, label: 'All Market Notes' }}
+  >
     <dl slot="aside" class="facts">
-      <div><dt>VN-Index close</dt><dd class="num t-h3">{formatIndex(note.close)}</dd></div>
-      <div><dt>On the {unit}</dt><dd class:list={['num', tone(note.change)]}>{signedPct(note.change)}</dd></div>
-      {note.macro.map((m) => <div><dt>{m.label}</dt><dd class="num">{formatNumber(m.value, m.decimals)} <span class:list={['t-label', tone(m.change)]}>{signedPct(m.change)}</span></dd></div>)}
+      <div>
+        <dt>VN-Index Close</dt>
+        <dd class="num t-h3">{formatIndex(note.close)}</dd>
+      </div>
+      <div>
+        <dt>{note.kind} Change</dt>
+        <dd class:list={['num', tone(note.change)]}>
+          <span class:list={['badge', note.change >= 0 ? 'badge--up' : 'badge--down']}>{signedPct(note.change)}</span>
+        </dd>
+      </div>
+      <div>
+        <dt>Session Tone</dt>
+        <dd class="mono">{note.tone.toUpperCase()}</dd>
+      </div>
+      <div>
+        <dt>Foreign Net</dt>
+        <dd class:list={['num', tone(note.foreignNet)]}>
+          {note.foreignNet != null ? `${signedNumber(note.foreignNet)} bn VND` : 'Not collected'}
+        </dd>
+      </div>
     </dl>
   </DocHead>
 
-  <section class="ground-surface">
-    <div class="wrap stack-6">
-      <dl class="grid">
-        {figures.map((f) => <div class="span-2"><dt class="t-label muted">{f.label}</dt><dd class:list={['num t-lead', 'tone' in f ? f.tone : '']}>{f.value}</dd></div>)}
-      </dl>
-      <p class="t-label muted">{basis} A dash means the figure was unavailable when the note was written.</p>
-      {note.daily.length > 0 && <div class="sheet"><p class="t-label">VN-Index daily, {note.period}</p><VnIndexChart candleData={note.daily} label={`VN-Index daily candles, ${note.period}`} height="md" /></div>}
+  <section class="ground-surface" aria-label="Session telemetry and cross-asset snapshot">
+    <div class="wrap stack-5">
+      <div class="stack-2">
+        <p class="eyebrow">VN-Index Period Telemetry ({note.period})</p>
+        <dl class="flow-kpi-grid">
+          {figures.map((f) => (
+            <div class="flow-kpi">
+              <dt>{f.label}</dt>
+              <dd class:list={['num', 'tone' in f ? f.tone : '']}>{f.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+
+      <div class="stack-2">
+        <p class="eyebrow">Global Cross-Asset Dashboard ({unit}-on-{unit})</p>
+        <div class="macro-strip">
+          {note.macro.map((m) => {
+            const pct = Math.max(-8, Math.min(8, m.change ?? 0));
+            const w = Number(((Math.abs(pct) / 8) * 46).toFixed(2));
+            const x = Number((pct >= 0 ? 50 : 50 - w).toFixed(2));
+            return (
+              <div class="macro-card">
+                <div class="macro-card__top">
+                  <span class="eyebrow">{m.label}</span>
+                  <span class:list={['badge', m.change == null ? '' : m.change >= 0 ? 'badge--up' : 'badge--down']}>
+                    {signedPct(m.change)}
+                  </span>
+                </div>
+                <span class="num t-h3">{formatNumber(m.value, m.decimals)}</span>
+                <svg viewBox="0 0 100 8" preserveAspectRatio="none" class="macro-card__bar" aria-hidden="true">
+                  <rect x="0" y="2" width="100" height="4" rx="1" fill="#EFECE6" />
+                  {m.change != null && (
+                    <rect x={x} y="1" width={Math.max(w, 2)} height="6" rx="1" class={pct >= 0 ? 'bar-up' : 'bar-down'} />
+                  )}
+                  <line x1="50" x2="50" y1="0" y2="8" stroke="#94A3B8" stroke-width="1" />
+                </svg>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <p class="t-label muted">
+        {basis} A dash means the figure was unavailable when the note was published.
+      </p>
+
+      {note.daily.length > 0 && (
+        <div class="sheet sheet--accent">
+          <div class="sheet__head">
+            <span class="eyebrow">VN-Index Daily OHLC Candlesticks · {note.period}</span>
+            <span class="mono t-label muted">{note.daily.length} trading sessions</span>
+          </div>
+          <VnIndexChart candleData={note.daily} label={`VN-Index daily candles, ${note.period}`} height="md" />
+        </div>
+      )}
     </div>
   </section>
 
   <section>
-    <div class="wrap grid">
+    <div class="wrap grid grid--top">
       {toc.length > 0 && (
-        <nav class="span-3" aria-label="In this note">
-          <p class="t-label muted">In this note</p>
-          <ol class="rows">{toc.map((h) => <li><a class="t-small" href={`#${h.slug}`}>{h.text}</a></li>)}</ol>
-        </nav>
+        <aside class="span-3 note-toc stack-3">
+          <p class="eyebrow">In This Note</p>
+          <p class="mono t-label muted" data-reading-time></p>
+          <ol class="note-toc__list">
+            {toc.map((h, i) => (
+              <li>
+                <a href={`#${h.slug}`} data-toc-link={h.slug} aria-current={i === 0 ? 'true' : undefined}>
+                  {h.text}
+                </a>
+              </li>
+            ))}
+          </ol>
+          <div>
+            <a class="link t-small" href="#top">↑ Back to top</a>
+          </div>
+        </aside>
       )}
-      <article class:list={[toc.length > 0 ? 'span-8 start-5' : 'span-8']}><div class="prose"><slot /></div></article>
+      <article class:list={[toc.length > 0 ? 'span-8 start-5' : 'span-8']} data-note-article>
+        <div class="prose">
+          <slot />
+        </div>
+      </article>
     </div>
   </section>
 
   <section class="ground-surface">
-    <div class="wrap">
-      <nav class="grid" aria-label={`${note.kind} notes`}>
-        {prev ? <a class="card span-6" href={prev.href}><span class="t-label muted">← Older note, {prev.period}</span><h3>{prev.headline}</h3></a> : <span class="span-6"></span>}
-        {next && <a class="card span-6" href={next.href}><span class="t-label muted">Newer note, {next.period} →</span><h3>{next.headline}</h3></a>}
+    <div class="wrap stack-5">
+      <div class="sheet__head">
+        <span class="eyebrow">Chronological Archive Navigation</span>
+        <span class="mono t-label muted">Tip: Use ← and → arrow keys to switch notes</span>
+      </div>
+      <nav class="grid" aria-label={`${note.kind} notes pagination`}>
+        {prev ? (
+          <a class="card card--rule span-6" href={prev.href}>
+            <span class="eyebrow">← Older {note.kind} Note · {prev.period}</span>
+            <h3>{prev.headline}</h3>
+            <span class="mono t-small muted">
+              VN-Index {formatIndex(prev.close)}{' '}
+              <span class:list={[prev.change >= 0 ? 'up' : 'down']}>({signedPct(prev.change)})</span>
+            </span>
+          </a>
+        ) : (
+          <span class="span-6"></span>
+        )}
+        {next && (
+          <a class="card card--rule span-6 card--end" href={next.href}>
+            <span class="eyebrow">Newer {note.kind} Note · {next.period} →</span>
+            <h3>{next.headline}</h3>
+            <span class="mono t-small muted">
+              VN-Index {formatIndex(next.close)}{' '}
+              <span class:list={[next.change >= 0 ? 'up' : 'down']}>({signedPct(next.change)})</span>
+            </span>
+          </a>
+        )}
       </nav>
       <Disclaimer />
     </div>
   </section>
 </div>
+
+<script>
+  const progress = document.querySelector<HTMLProgressElement>('[data-read-progress]');
+  const article = document.querySelector<HTMLElement>('[data-note-article]');
+  const readTimeEl = document.querySelector<HTMLElement>('[data-reading-time]');
+  const tocLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-toc-link]'));
+  const readerRoot = document.querySelector<HTMLElement>('[data-note-reader]');
+
+  if (article && readTimeEl) {
+    const words = (article.textContent ?? '').trim().split(/\s+/).filter(Boolean).length;
+    const mins = Math.max(1, Math.round(words / 220));
+    readTimeEl.textContent = `${words.toLocaleString('en-US')} words · ~${mins} min read`;
+  }
+
+  if (progress && article) {
+    let ticking = false;
+    const updateProgress = () => {
+      const rect = article.getBoundingClientRect();
+      const viewH = window.innerHeight;
+      const total = Math.max(rect.height - viewH * 0.5, 1);
+      const scrolled = Math.min(total, Math.max(0, -rect.top + viewH * 0.2));
+      progress.value = Math.round((scrolled / total) * 100);
+      ticking = false;
+    };
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (!ticking) {
+          window.requestAnimationFrame(updateProgress);
+          ticking = true;
+        }
+      },
+      { passive: true }
+    );
+    updateProgress();
+  }
+
+  if (tocLinks.length > 0 && 'IntersectionObserver' in window) {
+    const headings = tocLinks
+      .map((link) => document.getElementById(link.dataset.tocLink ?? ''))
+      .filter((el): el is HTMLElement => Boolean(el));
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const id = entry.target.id;
+            tocLinks.forEach((link) => {
+              if (link.dataset.tocLink === id) link.setAttribute('aria-current', 'true');
+              else link.removeAttribute('aria-current');
+            });
+            break;
+          }
+        }
+      },
+      { rootMargin: '-15% 0px -72% 0px' }
+    );
+    headings.forEach((h) => observer.observe(h));
+  }
+
+  document.addEventListener('keydown', (e) => {
+    const target = e.target as HTMLElement | null;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === 'ArrowLeft' && readerRoot?.dataset.prevHref) {
+      window.location.href = readerRoot.dataset.prevHref;
+    } else if (e.key === 'ArrowRight' && readerRoot?.dataset.nextHref) {
+      window.location.href = readerRoot.dataset.nextHref;
+    }
+  });
+</script>

@@ -1,45 +1,85 @@
 ---
-// footer.closing (Taste): row 1 the dealt close, close-word (the h2 and the main action, then the name set
-// across the .wrap: the page's type moment), row 2 footer-columns and the legal row.
-import { portfolioDisclaimer } from '../../data/valuation-models';
+// Institutional Colophon Footer: replaces the 100svh billboard close-word with a compact,
+// authoritative research directory, recruiting availability banner, and disclosure bar.
+import { portfolioDisclaimer, valuationModels } from '../../data/valuation-models';
 
 const year = new Date().getFullYear();
-const columns = [
-  { title: 'Research', links: [{ label: 'Coverage', href: '/research' }, { label: 'DCF', href: '/research/dcf' }, { label: 'Comparables', href: '/research/comparable-analysis' }, { label: 'Transactions and LBO', href: '/research/precedent-transactions-lbo' }] },
-  { title: 'Notes', links: [{ label: 'All market notes', href: '/market-views' }, { label: 'Monthly notes', href: '/monthly-views' }, { label: 'RSS feed', href: '/rss.xml' }] },
-  { title: 'Huy', links: [{ label: 'Contact', href: '/contact' }, { label: 'LinkedIn', href: 'https://www.linkedin.com/in/trghuyy/' }, { label: 'Disclaimer', href: '/disclaimer' }] },
-];
 ---
 
-<footer class="footer closing" id="contact" aria-labelledby="close-h">
-  <div class="wrap">
-    <div class="closing__cta close--word">
-      <div class="section-head--split">
-        <div>
-          <h2 id="close-h">Download the CV</h2>
-          <p class="t-lead">Open to equity research and investment banking internships in Ho Chi Minh City.</p>
-        </div>
-        <a class="btn btn--primary" href="/cv.pdf" target="_blank" rel="noopener">Download the CV<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
+<footer class="site-footer no-print" aria-labelledby="footer-mandate-h">
+  <div class="footer-mandate">
+    <div class="wrap footer-mandate__inner">
+      <div>
+        <span class="eyebrow">Recruiting &amp; Analyst Availability · Ho Chi Minh City</span>
+        <h2 id="footer-mandate-h">Open to Equity Research, Investment Banking &amp; Capital Markets Roles</h2>
+        <p class="t-small">
+          Nguyen Vu Truong Huy · Passed Level II of the CFA Program · UEH Finance &amp; Banking (GPA 3.64 / 4.00)
+        </p>
       </div>
-      <p class="close__word" aria-hidden="true">Trường Huy</p>
-    </div>
-    <div class="closing__links">
-      <div class="grid">
-        <div class="span-6 stack-4">
-          <a class="nav__logo" href="/"><span class="mark" data-mark="stack" aria-hidden="true"></span>Truong Huy<span class="logo-kind">&nbsp;Research</span></a>
-          <p class="footer__lede">Valuation models and market notes on Vietnam-listed companies.</p>
-        </div>
-        {columns.map((column) => (
-          <div class="span-2 footer__col">
-            <h3>{column.title}</h3>
-            <ul>{column.links.map((link) => <li><a href={link.href}>{link.label}</a></li>)}</ul>
-          </div>
-        ))}
-      </div>
-      <div class="footer__legal">
-        <span>&copy; {year} Nguyen Vu Truong Huy</span>
-        <span>{portfolioDisclaimer}</span>
+      <div class="btn-row">
+        <a class="btn btn--primary" href="/cv.pdf" target="_blank" rel="noopener">
+          Download the CV (PDF)
+        </a>
+        <a class="btn btn--secondary" href="/contact">
+          Contact Dossier
+        </a>
       </div>
     </div>
+  </div>
+
+  <div class="footer-main">
+    <div class="wrap grid">
+      <div class="span-5 stack-3">
+        <a class="brand-lockup" href="/">
+          <span class="brand-monogram" aria-hidden="true">TH</span>
+          <span class="brand-text">
+            <span class="brand-name text-inverse">Truong Huy Research</span>
+          </span>
+        </a>
+        <p class="t-small text-inverse-muted">
+          Independent Vietnam equity research portfolio featuring multi-method valuation models (FCFF DCF, Comparable Multiples, Precedent Transactions, Sponsor LBO), open Excel workbooks, one-page A4 tear sheets, and automated VN-Index market intelligence.
+        </p>
+      </div>
+
+      <div class="span-3 footer-col">
+        <h3>Company Reports</h3>
+        <ul>
+          {valuationModels.map((m) => (
+            <li>
+              <a href={`/research/${m.slug}`}>
+                <span class="mono">{m.ticker}</span> — {m.company}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div class="span-2 footer-col">
+        <h3>Methodologies</h3>
+        <ul>
+          <li><a href="/research">All Coverage Matrix</a></li>
+          <li><a href="/research/dcf">Intrinsic DCF</a></li>
+          <li><a href="/research/comparable-analysis">Comparable Multiples</a></li>
+          <li><a href="/research/precedent-transactions-lbo">Precedent &amp; LBO</a></li>
+        </ul>
+      </div>
+
+      <div class="span-2 footer-col">
+        <h3>Intelligence &amp; Links</h3>
+        <ul>
+          <li><a href="/market-views">Weekly Market Notes</a></li>
+          <li><a href="/monthly-views">Monthly Market Notes</a></li>
+          <li><a href="/rss.xml">RSS Feed (Full HTML)</a></li>
+          <li><a href="/contact">Contact Huy</a></li>
+          <li><a href="https://www.linkedin.com/in/trghuyy/" target="_blank" rel="noopener">LinkedIn Profile</a></li>
+          <li><a href="/disclaimer">Academic Disclaimer</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap footer-legal">
+    <span class="mono">&copy; {year} Nguyen Vu Truong Huy · truonghuyresearch.xyz</span>
+    <span class="measure">{portfolioDisclaimer}</span>
   </div>
 </footer>

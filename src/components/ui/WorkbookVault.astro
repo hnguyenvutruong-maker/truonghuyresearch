@@ -1,0 +1,124 @@
+---
+// Open Workbook & Tear Sheet Vault: consolidates all 9 downloadable Excel/ZIP valuation workbooks
+// and 5 PDF A4 tear sheets into a filterable institutional repository table.
+import Ticker from './Ticker.astro';
+import { valuationModels } from '../../data/valuation-models';
+import { publicFileSize } from '../../lib/files';
+
+type VaultItem = {
+  ticker: string;
+  company: string;
+  slug: string;
+  title: string;
+  kind: 'workbook' | 'tearsheet';
+  format: string;
+  size: string;
+  sheets: string;
+  href: string;
+};
+
+const rows: VaultItem[] = valuationModels.flatMap((m) => {
+  const workbooks: VaultItem[] = m.downloads.map((d) => ({
+    ticker: m.ticker,
+    company: m.company,
+    slug: m.slug,
+    title: d.modelType ?? `${m.ticker} ${d.label} Model`,
+    kind: 'workbook',
+    format: d.format,
+    size: publicFileSize(d.href) ?? '—',
+    sheets: d.sheets.join(', '),
+    href: d.href,
+  }));
+
+  const tearHref = `/research/tear-sheets/${m.slug}.pdf`;
+  const tearSize = publicFileSize(tearHref);
+  const tearSheets: VaultItem[] = tearSize
+    ? [
+        {
+          ticker: m.ticker,
+          company: m.company,
+          slug: m.slug,
+          title: `${m.ticker} One-Page Valuation Tear Sheet`,
+          kind: 'tearsheet',
+          format: 'PDF (A4)',
+          size: tearSize,
+          sheets: 'Football field, outputs vs price used, assumptions, conclusion & risks',
+          href: tearHref,
+        },
+      ]
+    : [];
+
+  return [...workbooks, ...tearSheets];
+});
+
+const workbookCount = rows.filter((r) => r.kind === 'workbook').length;
+const tearCount = rows.filter((r) => r.kind === 'tearsheet').length;
+---
+
+<div class="sheet sheet--accent stack-4" data-vault-root>
+  <div class="sheet__head">
+    <div>
+      <span class="eyebrow">Open Model Repository · Auditable Formulas</span>
+      <h3 class="t-h3">{workbookCount} Excel Workbooks & {tearCount} Printable A4 Tear Sheets</h3>
+    </div>
+    <div class="filter" role="group" aria-label="Filter repository files">
+      <button type="button" data-vault-filter="all" aria-pressed="true">All Files ({rows.length})</button>
+      <button type="button" data-vault-filter="workbook" aria-pressed="false">Excel / ZIP Models ({workbookCount})</button>
+      <button type="button" data-vault-filter="tearsheet" aria-pressed="false">PDF Tear Sheets ({tearCount})</button>
+    </div>
+  </div>
+
+  <div class="table-scroll" tabindex="0" role="region" aria-label="Model workbooks and tear sheets repository">
+    <table class="data">
+      <caption>Every model pack is open for download so readers can audit the schedules, formulas, and peer sets directly.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Company</th>
+          <th scope="col">Deliverable / Model Type</th>
+          <th scope="col">Included Worksheets & Schedules</th>
+          <th scope="col">Format & Size</th>
+          <th scope="col">Download</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr data-vault-row={r.kind}>
+            <th scope="row">
+              <a href={`/research/${r.slug}`}>
+                <Ticker label={r.ticker} />
+                <span class="data__name">{r.company}</span>
+              </a>
+            </th>
+            <td class="text-left">{r.title}</td>
+            <td class="t-small muted">{r.sheets}</td>
+            <td class="num">
+              <span class="badge">{r.format}</span>
+              <span class="muted t-label"> {r.size}</span>
+            </td>
+            <td>
+              <a class="btn btn--secondary btn--sm" href={r.href} download>
+                Download {r.format.split(' ')[0]}
+              </a>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-vault-root]').forEach((root) => {
+    const buttons = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-vault-filter]'));
+    const rows = Array.from(root.querySelectorAll<HTMLElement>('[data-vault-row]'));
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const kind = btn.dataset.vaultFilter ?? 'all';
+        buttons.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+        rows.forEach((row) => {
+          row.hidden = kind !== 'all' && row.dataset.vaultRow !== kind;
+        });
+      });
+    });
+  });
+</script>

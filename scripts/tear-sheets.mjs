@@ -23,7 +23,7 @@ const server = createServer((req, res) => {
 const port = server.address().port;
 
 const browser = await chromium.launch(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : { channel: 'chrome' });
-const page = await browser.newPage();
+const page = await browser.newPage({ viewport: { width: 794, height: 1123 }, deviceScaleFactor: 2 });
 mkdirSync(out, { recursive: true });
 for (const slug of slugs) {
   await page.goto(`http://localhost:${port}/research/${slug}/tear-sheet/`, { waitUntil: 'networkidle' });
@@ -31,6 +31,11 @@ for (const slug of slugs) {
   await page.emulateMedia({ media: 'print' });
   await page.pdf({ path: join(out, `${slug}.pdf`), format: 'A4', printBackground: true, preferCSSPageSize: true });
   console.log(`tear sheet → public/research/tear-sheets/${slug}.pdf`);
+  if (slug === 'hpg') {
+    await page.screenshot({ path: join(out, 'hpg-page.png'), fullPage: false });
+    console.log(`specimen   → public/research/tear-sheets/hpg-page.png`);
+  }
 }
 await browser.close();
 server.close();
+

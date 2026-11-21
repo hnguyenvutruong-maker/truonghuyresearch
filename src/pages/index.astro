@@ -1,36 +1,50 @@
 ---
-/*
-  Taste plan (references/sections.md), the home page as screens:
-  1 kind: service (an analyst's equity research; site-kind other)
-  2 deal: hero split (the only service hero for UI material), nav-split, footer-columns, close-word,
-    rhythm surface-pairs (#notes on the surface ground), buttons tonal, mark stack, radius sharp.
-    Palette Frost and slate with institutional navy: fintech and law trades, the owner's chosen colours.
-    Type source-serif (Source Serif 4 at 400, Libre Franklin). Moment: word-highlight (no photographs).
-  hero      the h1, a lead, the CV and the research, three facts; picture: every model's range (the work)
-  #research peek-list: five reports; the frame shows the row's football field (1 screen)
-  #approach word-highlight statement: how a company is valued (1 screen)
-  #notes    ground-surface: the VN-Index chart and the latest notes (1 screen)
-  #about    the record beside a real tear-sheet page (1 screen)
-  closing   close-word: Download the CV, then the name across the wrap; footer-columns
-*/
+// Home Page — The Executive Research Portal
+// 1. Institutional Masthead & Coverage Strip (hero-dossier)
+// 2. Interactive Company Valuation Desk (#research — works on both desktop hover/click AND mobile tap tabs)
+// 3. Three-Pillar Methodology & Analytical Discipline (#approach)
+// 4. Vietnam Market Intelligence & Live HOSE Foreign Flow Telemetry (#notes)
+// 5. Analyst Dossier & A4 Tear-Sheet Specimen (#about)
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CoverageStrip from '../components/ui/CoverageStrip.astro';
 import FootballField from '../components/ui/FootballField.astro';
+import ForeignFlowMonitor from '../components/ui/ForeignFlowMonitor.astro';
+import Ticker from '../components/ui/Ticker.astro';
 import VnIndexChart from '../components/ui/VnIndexChart.astro';
 import { getCollection } from 'astro:content';
-import { impliedMovePct, valuationModels } from '../data/valuation-models';
-import { formatDate, signedPct } from '../lib/format';
+import { impliedMovePct, methodPages, valuationGroups, valuationModels } from '../data/valuation-models';
+import { publicFileSize } from '../lib/files';
+import { formatDate, formatIndex, formatVndK, signedPct } from '../lib/format';
 import { monthlySummary, weeklySummary } from '../lib/notes';
 
 const weekly = (await getCollection('market-views')).map(weeklySummary).sort((a, b) => b.date.valueOf() - a.date.valueOf());
 const monthly = (await getCollection('monthly-views')).map(monthlySummary).sort((a, b) => b.date.valueOf() - a.date.valueOf());
 const trend = [...weekly].reverse().map((n) => ({ time: n.date.toISOString().slice(0, 10), value: n.close }));
-const latest = [...(monthly[0] ? [monthly[0]] : []), ...weekly.slice(0, 3)];
+const latestNotes = [...(monthly[0] ? [monthly[0]] : []), ...weekly.slice(0, 4)];
 const workbooks = valuationModels.reduce((t, m) => t + m.downloads.length, 0);
 const priceDate = formatDate(valuationModels[0].referencePrice.asOf);
+
 const reports = valuationModels.map((m) => {
   const moves = m.outputs.map((o) => impliedMovePct(o, m.referencePrice));
-  return { m, low: Math.min(...moves), high: Math.max(...moves) };
+  const assumptions = (m.keyAssumptions ?? m.report.assumptions).slice(0, 4);
+  const tearHref = `/research/tear-sheets/${m.slug}.pdf`;
+  const tearSize = publicFileSize(tearHref);
+  return {
+    m,
+    low: Math.min(...moves),
+    high: Math.max(...moves),
+    assumptions,
+    tearHref,
+    tearSize,
+  };
+});
+
+const methodCards = methodPages.map((p, idx) => {
+  const group = valuationGroups.find((g) => g.id === p.id)!;
+  const tickers = valuationModels
+    .filter((m) => m.valuationNotes.some((n) => n.groups.includes(p.id)))
+    .map((m) => m.ticker);
+  return { ...p, group, tickers, index: `0${idx + 1}` };
 });
 ---
 
@@ -39,56 +53,175 @@ const reports = valuationModels.map((m) => {
   description="Valuation models, open Excel workbooks and weekly VN-Index notes on Vietnam-listed companies by Nguyen Vu Truong Huy, who has passed Level II of the CFA Program."
 >
   <script type="application/ld+json" is:inline set:html={JSON.stringify({
-    '@context': 'https://schema.org', '@type': 'Person', name: 'Nguyen Vu Truong Huy', alternateName: 'Nguyễn Vũ Trường Huy',
-    url: 'https://truonghuyresearch.xyz', jobTitle: 'Finance & Banking Student',
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: 'Nguyen Vu Truong Huy',
+    alternateName: 'Nguyễn Vũ Trường Huy',
+    url: 'https://truonghuyresearch.xyz',
+    jobTitle: 'Finance & Banking Student',
     alumniOf: { '@type': 'CollegeOrUniversity', name: 'University of Economics Ho Chi Minh City', alternateName: 'UEH' },
     hasCredential: { '@type': 'EducationalOccupationalCredential', name: 'CFA Program Level II (passed)', recognizedBy: { '@type': 'Organization', name: 'CFA Institute' } },
     knowsAbout: ['Equity Research', 'Valuation Modeling', 'Vietnam Capital Markets', 'DCF Analysis'],
     sameAs: ['https://www.linkedin.com/in/trghuyy/'],
   })} />
 
-  <section class="hero hero--split" data-enter aria-labelledby="hero-h">
-    <div class="wrap">
-      <div class="hero-text grid hero-split">
-        <div class="hero-copy span-6">
-          <p class="hero-notice">Passed Level II of the CFA Program</p>
-          <h1 id="hero-h">Equity research on Vietnam-listed companies</h1>
-          <p class="t-lead">Valuation models with the Excel workbooks open, and a weekly read on the VN-Index. Each company is shown as a range against the price its model used.</p>
-          <div class="btn-row">
-            <a class="btn btn--primary" href="/cv.pdf" target="_blank" rel="noopener">Download the CV<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
-            <a class="btn btn--secondary" href="#research">See the five reports</a>
-          </div>
-          <dl class="hero-facts">
-            <div><dt>Companies covered</dt><dd>{valuationModels.length}</dd></div>
-            <div><dt>Excel workbooks</dt><dd>{workbooks}</dd></div>
-            <div><dt>Prices as of</dt><dd>{priceDate}</dd></div>
-          </dl>
+  <!-- 1. Institutional Masthead & Coverage Strip -->
+  <section class="hero-dossier" aria-labelledby="hero-h">
+    <div class="wrap grid grid--top">
+      <div class="span-5 stack-5">
+        <div>
+          <span class="hero-credential">Passed Level II of the CFA Program · UEH Finance (GPA 3.64)</span>
         </div>
-        <div class="hero-visual span-6 start-7"><CoverageStrip /></div>
+        <h1 id="hero-h">Equity research &amp; open valuation models on Vietnam-listed companies</h1>
+        <p class="t-lead secondary">
+          Multi-method company valuations (FCFF DCF, Public Comparables, Precedent Transactions, Sponsor LBO) with every Excel workbook open for audit, paired with systematic VN-Index market intelligence.
+        </p>
+        <div class="btn-row">
+          <a class="btn btn--primary" href="/research">
+            Explore Research Coverage
+            <svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path d="M1 6h9M6 2.5 9.5 6 6 9.5"/></svg>
+          </a>
+          <a class="btn btn--secondary" href="/cv.pdf" target="_blank" rel="noopener">
+            Download the CV (PDF)
+          </a>
+        </div>
+        <dl class="hero-kpi-grid">
+          <div class="hero-kpi">
+            <dt>Companies Covered</dt>
+            <dd>{valuationModels.length} Issuers</dd>
+          </div>
+          <div class="hero-kpi">
+            <dt>Auditable Deliverables</dt>
+            <dd>{workbooks} Workbooks</dd>
+          </div>
+          <div class="hero-kpi">
+            <dt>Model Ref. Date</dt>
+            <dd>{priceDate}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="span-7">
+        <CoverageStrip />
       </div>
     </div>
   </section>
 
-  <section class="section" id="research" aria-labelledby="research-h">
-    <div class="wrap">
+  <!-- 2. Interactive Company Valuation Desk -->
+  <section class="section ground-surface" id="research" aria-labelledby="research-h" data-valuation-desk>
+    <div class="wrap stack-5">
       <div class="section-head--split">
-        <div><h2 id="research-h">Five company reports</h2><p class="t-lead muted">Point at a company to see its methods against the price used.</p></div>
-        <a class="link" href="/research">See the full coverage</a>
+        <div>
+          <span class="eyebrow">Interactive Coverage Desk · Select Any Issuer</span>
+          <h2 id="research-h">Five Vietnam-Listed Company Dossiers</h2>
+          <p class="t-lead muted">
+            Inspect each company's valuation football field, analytical thesis, key assumptions, and downloadable Excel model files.
+          </p>
+        </div>
+        <a class="btn btn--secondary btn--sm" href="/research">
+          Open Full Coverage Matrix &amp; Vault →
+        </a>
       </div>
-      <div class="grid grid--top fill" data-peek>
-        <ul class="rows span-5">
-          {reports.map(({ m, low, high }) => (
-            <li data-peek-to={m.slug} tabindex="0">
-              <span class="rows__name"><a href={`/research/${m.slug}`}>{m.company}</a></span>
-              <span class="rows__value num"><span class:list={[low >= 0 ? 'up' : 'down']}>{signedPct(low, 0)}</span> <span class="muted">to</span> <span class:list={[high >= 0 ? 'up' : 'down']}>{signedPct(high, 0)}</span></span>
-              <p class="t-small muted">{m.ticker} · {m.sector} · {m.methods.join(', ')}</p>
-            </li>
+
+      <!-- Mobile & Quick Ticker Switcher Tabs -->
+      <div class="desk-tabs" role="tablist" aria-label="Select company valuation dossier">
+        {reports.map(({ m, low, high }, idx) => (
+          <button
+            type="button"
+            role="tab"
+            class="desk-tab"
+            data-desk-tab={m.slug}
+            aria-selected={idx === 0 ? 'true' : 'false'}
+          >
+            <strong>{m.ticker}</strong>
+            <span>{m.company}</span>
+            <span class:list={[high >= 0 ? 'up' : 'down']}>{signedPct(low, 0)} / {signedPct(high, 0)}</span>
+          </button>
+        ))}
+      </div>
+
+      <div class="grid grid--top">
+        <!-- Left Selector Directory -->
+        <div class="span-5 desk-selector">
+          {reports.map(({ m, low, high }, idx) => (
+            <div
+              class:list={['desk-selector__item', idx === 0 && 'is-active']}
+              data-desk-row={m.slug}
+              tabindex="0"
+              role="button"
+              aria-label={`Inspect ${m.company} (${m.ticker}) valuation summary`}
+            >
+              <div class="desk-selector__top">
+                <span class="desk-selector__title">
+                  <Ticker label={m.ticker} />
+                  <span>{m.company}</span>
+                </span>
+                <span class="num t-small">
+                  <span class:list={['badge', low >= 0 ? 'badge--up' : 'badge--down']}>{signedPct(low, 0)}</span>
+                  <span class="muted"> to </span>
+                  <span class:list={['badge', high >= 0 ? 'badge--up' : 'badge--down']}>{signedPct(high, 0)}</span>
+                </span>
+              </div>
+              <p class="mono t-label muted">
+                {m.sector} · Ref {formatVndK(m.referencePrice.value)} · {m.methods.join(' + ')}
+              </p>
+              <p class="t-small secondary">{m.report.stance}</p>
+            </div>
           ))}
-        </ul>
-        <div class="peek-frame span-6 start-7">
-          {reports.map(({ m }, i) => (
-            <div data-peek-for={m.slug} hidden={i > 0}>
-              <FootballField outputs={m.outputs} reference={m.referencePrice} ticker={m.ticker} />
+        </div>
+
+        <!-- Right Live Dossier Panel -->
+        <div class="span-7">
+          {reports.map(({ m, assumptions, tearHref, tearSize }, idx) => (
+            <div data-desk-panel={m.slug} hidden={idx > 0} class="stack-4">
+              <FootballField outputs={m.outputs} reference={m.referencePrice} ticker={m.ticker} note />
+
+              <div class="sheet stack-4">
+                <div class="sheet__head">
+                  <div>
+                    <span class="eyebrow">{m.ticker} Executive Summary · {m.sector}</span>
+                    <h3 class="t-h3">{m.report.headline}</h3>
+                  </div>
+                  <span class="badge badge--navy">{m.downloads.length} Excel Models</span>
+                </div>
+
+                {m.investmentQuestion && (
+                  <p class="t-small">
+                    <strong>Analytical Question:</strong> {m.investmentQuestion}
+                  </p>
+                )}
+
+                <div>
+                  <p class="eyebrow">Key Model Inputs &amp; Calibrations</p>
+                  <dl class="desk-assumptions">
+                    {assumptions.map((a) => (
+                      <div>
+                        <dt>{a.label}</dt>
+                        <dd>{a.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+
+                <div class="btn-row">
+                  <a class="btn btn--primary btn--sm" href={`/research/${m.slug}`}>
+                    Read Full {m.ticker} Report
+                  </a>
+                  <a class="btn btn--secondary btn--sm" href={`/research/${m.slug}/tear-sheet`}>
+                    Printable A4 Tear Sheet
+                  </a>
+                  {tearSize && (
+                    <a class="btn btn--ghost btn--sm" href={tearHref} download>
+                      Download Tear Sheet PDF ({tearSize})
+                    </a>
+                  )}
+                  {m.downloads.map((d) => (
+                    <a class="btn btn--ghost btn--sm" href={d.href} download>
+                      {d.label} ({d.format})
+                    </a>
+                  ))}
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -96,48 +229,209 @@ const reports = valuationModels.map((m) => {
     </div>
   </section>
 
-  <section class="section statement" id="approach" data-moment="word-highlight" aria-label="How a company is valued">
-    <div class="wrap">
-      <p class="t-label muted">How a company is valued</p>
-      <p class="mo-wh__text">Each company gets the methods that fit its business: a DCF, peer multiples, a bank's price to book, a deal or a buyout. The results stay apart, set against the price the model used. Where the methods disagree, <strong>the spread is the finding</strong>, and every workbook is open so the reader can check it.</p>
-    </div>
-  </section>
-
-  <section class="section ground-surface" id="notes" aria-labelledby="notes-h">
-    <div class="wrap">
-      <div class="section-head--split">
-        <div><h2 id="notes-h">Market notes on the VN-Index</h2><p class="t-lead muted">Index levels, liquidity, foreign flow and sectors, every week and every month.</p></div>
-        <a class="link" href="/market-views">Read every note</a>
-      </div>
+  <!-- 3. Methodology & Analytical Discipline -->
+  <section class="section" id="approach" aria-labelledby="approach-h">
+    <div class="wrap stack-6">
       <div class="grid grid--top">
-        <div class="sheet span-7">
-          <p class="t-label">VN-Index weekly close, {formatDate(trend[0].time)} to {formatDate(trend[trend.length - 1].time)}</p>
-          <VnIndexChart trendData={trend} label="VN-Index weekly closes taken from the weekly market notes" height="md" />
+        <div class="span-5 stack-3">
+          <span class="eyebrow">Valuation Philosophy · Methodological Discipline</span>
+          <h2 id="approach-h">Where valuation methods disagree, the spread is the finding.</h2>
         </div>
-        <ul class="rows span-4 start-9">
-          {latest.map((n) => (
-            <li>
-              <span class="rows__name"><a href={n.href}>{n.headline}</a></span>
-              <span class:list={['rows__value num', n.change >= 0 ? 'up' : 'down']}>{signedPct(n.change)}</span>
-              <p class="t-small muted">{n.kind} · {n.period}</p>
-            </li>
-          ))}
-        </ul>
+        <div class="span-7 stack-3">
+          <p class="t-lead secondary">
+            Each company is valued with the methodologies that fit its capital structure and cash-flow cycle—an unlevered FCFF DCF, peer multiples, control-premium transactions, or a financial-sponsor LBO.
+          </p>
+          <p class="muted">
+            Outputs are never blended into a single artificial target price. Comparing intrinsic cash-flow discipline against public market multiples or sponsor affordability reveals what the current share price is actually implying.
+          </p>
+        </div>
+      </div>
+
+      <div class="grid">
+        {methodCards.map((mc) => (
+          <a class="card card--rule span-4" href={mc.href}>
+            <div class="sheet__head">
+              <span class="eyebrow">{mc.index} · {mc.group.eyebrow}</span>
+              <span class="badge badge--navy">{mc.tickers.length} Reports</span>
+            </div>
+            <h3>{mc.group.title}</h3>
+            <p class="t-small secondary">{mc.group.description}</p>
+            <div class="tickers">
+              {mc.tickers.map((t) => <Ticker label={t} />)}
+            </div>
+          </a>
+        ))}
       </div>
     </div>
   </section>
 
+  <!-- 4. Vietnam Market Intelligence & Live HOSE Foreign Flow -->
+  <section class="section ground-surface" id="notes" aria-labelledby="notes-h">
+    <div class="wrap stack-6">
+      <div class="section-head--split">
+        <div>
+          <span class="eyebrow">Systematic Market Intelligence · VN-Index &amp; Macro</span>
+          <h2 id="notes-h">Weekly &amp; Monthly Vietnam Market Notes</h2>
+          <p class="t-lead muted">
+            Index structure, HOSE liquidity, daily foreign institutional flows, sector rotation, and global cross-asset synthesis (DXY, USD/VND, WTI, Gold, BTC).
+          </p>
+        </div>
+        <div class="btn-row">
+          <a class="btn btn--secondary btn--sm" href="/market-views">
+            All {weekly.length + monthly.length} Market Notes →
+          </a>
+          <a class="btn btn--ghost btn--sm" href="/monthly-views">
+            Monthly Reviews ({monthly.length})
+          </a>
+        </div>
+      </div>
+
+      <div class="grid grid--top">
+        <div class="span-7 stack-5">
+          <div class="sheet sheet--accent">
+            <div class="sheet__head">
+              <span class="eyebrow">VN-Index Weekly Closing Trajectory</span>
+              <span class="mono t-label muted">
+                {formatDate(trend[0].time)} → {formatDate(trend[trend.length - 1].time)}
+              </span>
+            </div>
+            <VnIndexChart trendData={trend} label="VN-Index weekly closes taken from the weekly market notes" height="md" />
+          </div>
+
+          <ForeignFlowMonitor compact />
+        </div>
+
+        <div class="span-5 sheet sheet--accent stack-4">
+          <div class="sheet__head">
+            <span class="eyebrow">Latest Published Dispatches</span>
+            <a class="link t-label" href="/rss.xml">RSS Feed</a>
+          </div>
+          <ul class="rows">
+            {latestNotes.map((n) => (
+              <li>
+                <div>
+                  <span class="eyebrow">
+                    <span class:list={['badge', n.kind === 'Monthly' ? 'badge--navy' : '']}>{n.kind}</span>
+                    {n.period}
+                  </span>
+                  <p class="rows__name">
+                    <a class="link" href={n.href}>{n.headline}</a>
+                  </p>
+                </div>
+                <div class="rows__value">
+                  <span class="num t-small">{formatIndex(n.close)}</span>
+                  <br />
+                  <span class:list={['badge', n.change >= 0 ? 'badge--up' : 'badge--down']}>
+                    {signedPct(n.change)}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <a class="btn btn--secondary btn--sm" href="/market-views">
+            Browse Complete Archive ({weekly.length} Weekly · {monthly.length} Monthly)
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Analyst Profile & A4 Tear-Sheet Specimen -->
   <section class="section" id="about" aria-labelledby="about-h">
     <div class="wrap grid grid--top">
-      <div class="span-5 stack-5">
-        <h2 id="about-h">About Huy</h2>
-        <p class="t-lead">Finance and Banking student at the University of Economics Ho Chi Minh City (UEH), GPA 3.64 out of 4.00, who has passed Level II of the CFA Program.</p>
-        <p class="muted">At Hoan Loc Viet I worked with financial data, reporting and analysis workflows. The reports here are built in Excel, Power BI and Stata, and every model ends in a one-page tear sheet.</p>
-        <a class="link" href="/contact">Contact Huy</a>
+      <div class="span-6 stack-5">
+        <div>
+          <span class="eyebrow">Analyst Dossier · Ho Chi Minh City</span>
+          <h2 id="about-h">Nguyen Vu Truong Huy</h2>
+        </div>
+        <p class="t-lead secondary">
+          Finance and Banking student at the University of Economics Ho Chi Minh City (UEH), GPA 3.64 / 4.00, who has passed Level II of the CFA Program.
+        </p>
+        <p class="muted">
+          At Hoan Loc Viet, I worked across financial data pipelines, corporate reporting, and analytical workflows. Every equity report on this platform is built from primary financial statements in Excel, cross-checked across valuation methodologies, and distilled into a printable one-page A4 institutional tear sheet.
+        </p>
+
+        <dl class="facts">
+          <div>
+            <dt>CFA Program</dt>
+            <dd>Passed Level II of the CFA Program</dd>
+          </div>
+          <div>
+            <dt>University</dt>
+            <dd>UEH — B.A. in Finance &amp; Banking (GPA 3.64 / 4.00)</dd>
+          </div>
+          <div>
+            <dt>Technical Stack</dt>
+            <dd class="mono">Excel Financial Modeling · Power BI · Stata · Python</dd>
+          </div>
+          <div>
+            <dt>Target Roles</dt>
+            <dd>Equity Research · Investment Banking · Capital Markets</dd>
+          </div>
+        </dl>
+
+        <div class="btn-row">
+          <a class="btn btn--primary" href="/cv.pdf" target="_blank" rel="noopener">
+            Download the CV (PDF)
+          </a>
+          <a class="btn btn--secondary" href="/contact">
+            Contact Details &amp; LinkedIn
+          </a>
+        </div>
       </div>
-      <figure class="paper span-6 start-7">
-        <a href="/research/hpg/tear-sheet"><img src="/research/tear-sheets/hpg-page.png" width="794" height="1123" alt="The one-page tear sheet for Hoa Phat Group: football field, outputs, assumptions, conclusion and risks" loading="lazy" /></a>
+
+      <figure class="paper span-6">
+        <div class="stack-3">
+          <a href="/research/hpg/tear-sheet">
+            <img
+              src="/research/tear-sheets/hpg-page.png"
+              width="794"
+              height="1123"
+              alt="One-page A4 tear sheet for Hoa Phat Group (HPG): football field, valuation outputs, assumptions, conclusion and key risks"
+              loading="lazy"
+            />
+          </a>
+          <figcaption class="sheet__head t-label muted">
+            <span>Specimen: Hoa Phat Group (HPG) One-Page A4 Tear Sheet</span>
+            <a class="link" href="/research/hpg/tear-sheet">Inspect Printable View →</a>
+          </figcaption>
+        </div>
       </figure>
     </div>
   </section>
 </BaseLayout>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-valuation-desk]').forEach((desk) => {
+    const tabs = Array.from(desk.querySelectorAll<HTMLButtonElement>('[data-desk-tab]'));
+    const rows = Array.from(desk.querySelectorAll<HTMLElement>('[data-desk-row]'));
+    const panels = Array.from(desk.querySelectorAll<HTMLElement>('[data-desk-panel]'));
+
+    const activate = (slug: string) => {
+      tabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.deskTab === slug)));
+      rows.forEach((r) => r.classList.toggle('is-active', r.dataset.deskRow === slug));
+      panels.forEach((p) => {
+        p.hidden = p.dataset.deskPanel !== slug;
+      });
+    };
+
+    tabs.forEach((t) => {
+      t.addEventListener('click', () => {
+        if (t.dataset.deskTab) activate(t.dataset.deskTab);
+      });
+    });
+
+    rows.forEach((r) => {
+      const slug = r.dataset.deskRow;
+      if (!slug) return;
+      r.addEventListener('click', () => activate(slug));
+      r.addEventListener('pointerenter', () => activate(slug));
+      r.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          activate(slug);
+        }
+      });
+    });
+  });
+</script>

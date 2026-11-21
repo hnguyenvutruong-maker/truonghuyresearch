@@ -1,71 +1,46 @@
-# Design system (master)
+# Design System (Master): Institutional Editorial / Sovereign Research
 
-The source of truth for the site's look since the second November 2026 redesign (it replaced
-"Ledger", 2026-11-08). The site is built **on the Taste kit**, not merely inspired by it: the kit's
-runtime ships in `public/assets/taste/` and owns layout, nav, footer, buttons, cards, rows,
-motion and the moment. `src/styles/site.css` holds only what Taste lets a page write: the dealt
-`:root` block (palette, type) and CSS inside visuals (charts, tables, the note body).
+The source of truth for the visual architecture of **Truong Huy Research** (`truonghuyresearch.xyz`), replacing the previous Taste-kit service template.
 
-## Where it comes from
+## 1. Visual Direction & Philosophy
 
-- **Taste** (`Leonxlnx/taste-skill`). Kind: *service* (people hire an analyst; site-kind other).
-  The deal, one value per part:
+- **Aesthetic Persona:** Institutional Equity Research & Financial Editorial (inspired by *Financial Times*, *Goldman Sachs Global Investment Research*, and *Stripe Press*).
+- **Core Principles:**
+  - **Natural Document Flow:** Zero forced `100svh` screen slides or scroll-jacked gimmicks. Every section sizes naturally to its analytical content, separated by crisp `1px` structural hairlines.
+  - **True Tabular Numerics:** Every ticker, share price, WACC input, sensitivity matrix cell, date, and implied upside/downside badge is set in **IBM Plex Mono** (`tabular-nums`), visually distinct from editorial commentary in **Source Serif 4** and **Libre Franklin**.
+  - **Archival Warmth & High Contrast:** Warm alabaster paper (`#F7F6F2`) paired with elevated crisp white data sheets (`#FFFFFF`), `2px solid #0F1A2A` institutional top rules (`.sheet--accent`, `.card--rule`), and deep institutional navy (`#16325B`).
+  - **Strict CSP Compliance:** Zero inline `style=""` attributes and zero inline executable scripts. Dynamic visual states use SVG presentation/geometry attributes, `<progress value max>`, `hidden`, `aria-*`, `data-*`, and bundled external Astro `<script>` modules.
 
-  | Part | Value |
-  |---|---|
-  | hero | split: copy left, the work (every model's range) as the picture |
-  | nav | nav-split (links left, wordmark centre, the CV button right) |
-  | footer | footer-columns, with the close-word close ("Download the CV", then the name across the wrap) |
-  | rhythm | surface pairs (`#notes` and alternate doc sections on the surface ground) |
-  | buttons | tonal |
-  | mark | stack |
-  | radius | sharp |
-  | moment | word-highlight (the "How a company is valued" statement; there are no photographs) |
-  | palette | Frost and slate, accent institutional navy |
-  | type | source-serif: Source Serif 4 at 400 over Libre Franklin |
-
-  The kit's scripts (dealer, gate) could not run in the cloud build sandbox, so the deal was drawn
-  by hand from the libraries and the pages were checked with an equivalent script at 390, 768,
-  820, 1024 and 1440 wide: no sideways scroll, no text under 13px, equal content edges, the hero
-  exactly one screen with its content inside, home sections whole screens, the moment mounted,
-  the entrance flag set, no console errors.
-- **UI/UX Pro Max** (`nextlevelbuilder/ui-ux-pro-max-skill`) supplied the colour: institutional
-  navy `#1E3A5F` from *Research Lab*, kept on Frost and slate grounds.
-
-## Home page plan (one screen per section)
-
-| Screen | Content |
-|---|---|
-| hero | notice "Passed Level II of the CFA Program", h1, lead, "Download the CV" + "See the five reports", three facts; `CoverageStrip` as the picture |
-| `#research` | peek list: five report rows; pointing at a row shows its football field in the frame (frame hidden under 1024px) |
-| `#approach` | word-highlight statement; "the spread is the finding" is the highlighted phrase |
-| `#notes` | surface ground: weekly VN-Index chart + the latest four notes |
-| `#about` | the record beside a real tear-sheet page (`/research/tear-sheets/hpg-page.png`) |
-| close | close-word footer |
-
-Inner pages wrap their content in `<div class="doc">`, which opts out of the one-section-per-screen
-rule, and open with `DocHead` (back link, label, h1, lead, aside).
-
-## Tokens (`html:root` in site.css, outranking the kit's `:root`)
+## 2. Tokens (`:root` in `src/styles/site.css`)
 
 | Role | Token | Value |
-|---|---|---|
-| Ground / surface | `--p-bg` / `--p-surface` | `#F7F9FA` / `#ECF0F2` |
-| Ink / muted | `--p-ink` / `--p-muted` | `#13212E` / `#4F5D6B` |
-| Accent and action | `--p-accent` / `--p-action` | `#1E3A5F` |
-| Inverse (footer) | `--p-inv-bg` / `--p-inv-ink` | `#0F1E2E` / `#EEF2F5` |
-| Gain / loss | `--up` / `--down` (+ `-soft`, `-mid`) | `#13703A` / `#B42318` |
-| Price a model used, dated figures | `--amber` | `#94590A` |
-| Method lanes | `--m-dcf` `--m-comps` `--m-prec` `--m-lbo` | navy → pale steel |
+| :--- | :--- | :--- |
+| Primary Paper Canvas | `--bg-paper` | `#F7F6F2` |
+| Inset Surface / Band | `--bg-subtle` | `#EFECE6` |
+| Elevated Data Sheet / Card | `--bg-elevated` | `#FFFFFF` |
+| Sticky Header Glass | `--bg-glass` | `rgba(247, 246, 242, 0.92)` |
+| Inverse Colophon / Tape | `--bg-navy` | `#0F1A2A` |
+| Primary Ink | `--ink-primary` | `#0F1A2A` |
+| Secondary Prose Ink | `--ink-secondary` | `#2D3B4E` |
+| Muted Caption / Label Ink | `--ink-muted` | `#56657A` |
+| Institutional Navy Action | `--accent-navy` / `--accent-navy-hover` | `#16325B` / `#0E2240` |
+| Implied Upside / Gain | `--up` / `--up-soft` / `--up-mid` | `#0E6F3C` / `#E3F3EA` / `#C2E5D1` |
+| Implied Downside / Loss | `--down` / `--down-soft` / `--down-mid` | `#B42318` / `#FBE9E7` / `#F5C6C2` |
+| Reference Price / Dated Notice | `--amber` / `--amber-soft` | `#9A5B0A` / `#F9EFE0` |
+| Method Lanes | `--m-dcf`, `--m-comps`, `--m-prec`, `--m-lbo` | `#16325B`, `#2B5B84`, `#5B82A6`, `#8FAABF` |
 
-Type: `--font-display` Source Serif 4 (weight 400, tracking −0.02em), `--font-text` Libre
-Franklin 400/500; figures are tabular. All self-hosted via `@fontsource`.
+## 3. Typography (Self-Hosted via `@fontsource`)
 
-## Rules
+- **Display (`--font-display`):** `Source Serif 4 Variable` (weight 400, `-0.02em` tracking) for headlines (`h1`–`h3`) and core analytical questions.
+- **Sans (`--font-sans`):** `Libre Franklin` (weights 400, 500, 600) for body prose, navigation, buttons, and table descriptions.
+- **Monospace (`--font-mono`):** `IBM Plex Mono` (weights 400, 500, 600) for `.eyebrow` labels, `.ticker` badges, `.num` figures, financial tables, sensitivity matrices, and telemetry bars.
 
-- Never edit files under `public/assets/taste/`; restyle through the `:root` block or visual CSS.
-- Kit markup only for layout: `.wrap`, `.grid` + `.span-N`/`.start-N`, `.section-head(--split)`,
-  `.rows`, `.card`, `.btn--primary/--secondary/--sm`, `.link`, `.t-*`, `.stack-N`, `.ground-surface`.
-- One primary button per view. Labels in sentence case; nothing under 13px.
-- CSP: the only inline script is the `m-enter` line in `BaseLayout`, whose hash is in `vercel.json`.
-  No inline `style=""`; every figure carries its sign so colour is never the only channel.
+## 4. Interactive Feature Architecture
+
+1. **Global Command Palette (`CommandPalette.astro`, `Ctrl+K` / `⌘K` / `/`):** Instant diacritic-insensitive search across all 5 company valuation reports, 3 methodology hubs, 5 A4 tear sheets, and all 27+ weekly/monthly market notes.
+2. **Interactive Company Valuation Desk (`index.astro` `#research`):** Desktop split selector + mobile/desktop ticker tabs (`HPG`, `BID`, `FPT`, `BMP`, `PNJ`) revealing each company's Football Field, executive stance, core analytical question, top 4 calibrated inputs, and direct workbook/PDF downloads.
+3. **Interactive DCF Scenario Inspector (`SensitivityTable.astro`):** Live 5×5 WACC × Exit EV/EBITDA crosshair inspector showing selected inputs, implied share price, move vs. reference price, and delta vs. DCF base case.
+4. **Method Spread & Divergence Comparator (`ValuationComparator.astro`) & Open Workbook Vault (`WorkbookVault.astro`):** Full coverage analytics and 14-file repository matrix on `/research`.
+5. **HOSE Foreign Flow Monitor (`ForeignFlowMonitor.astro`):** Interactive 20-day / 60-day / All-session SVG bar and cumulative flow tracker powered by `_foreign_flow_cache.json`.
+6. **Active Macro & Technical Framework Tracker (`MacroThesisTracker.astro`):** Visual SVG VN-Index Support/Resistance Ruler (`1,750`–`1,880`) and 3-tab narrative synthesis powered by `_quarterly_summary.json` and `_monthly_summary.json`.
+7. **Market Note Reader (`MarketNote.astro`):** CSP-safe `<progress>` reading progress bar, diverging SVG cross-asset cards, sticky section spy TOC with word count & reading time, and `←`/`→` keyboard pagination.

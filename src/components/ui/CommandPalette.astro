@@ -1,0 +1,249 @@
+---
+// Global Command Palette (Ctrl+K / Cmd+K / /): searches all 5 company valuation reports,
+// 3 valuation methodology hubs, 5 printable A4 tear sheets, and all weekly/monthly market notes.
+import { getCollection } from 'astro:content';
+import { impliedMovePct, methodPages, valuationGroups, valuationModels } from '../../data/valuation-models';
+import { formatIndex, signedPct } from '../../lib/format';
+import { monthlySummary, weeklySummary } from '../../lib/notes';
+
+type CmdItem = {
+  category: 'companies' | 'methods' | 'notes';
+  categoryLabel: string;
+  title: string;
+  subtitle: string;
+  badge: string;
+  tone: 'up' | 'down' | 'neutral';
+  href: string;
+  keywords: string;
+};
+
+const weekly = (await getCollection('market-views')).map(weeklySummary);
+const monthly = (await getCollection('monthly-views')).map(monthlySummary);
+const notes = [...weekly, ...monthly].sort((a, b) => b.date.valueOf() - a.date.valueOf());
+
+const companyItems: CmdItem[] = valuationModels.map((m) => {
+  const moves = m.outputs.map((o) => impliedMovePct(o, m.referencePrice));
+  const low = Math.min(...moves);
+  const high = Math.max(...moves);
+  return {
+    category: 'companies',
+    categoryLabel: 'Company Report',
+    title: `${m.ticker} — ${m.company}`,
+    subtitle: `${m.sector} · ${m.report.stance}`,
+    badge: `${signedPct(low, 0)} to ${signedPct(high, 0)}`,
+    tone: high >= 0 ? 'up' : 'down',
+    href: `/research/${m.slug}`,
+    keywords: `${m.ticker} ${m.company} ${m.sector} ${m.methods.join(' ')} ${m.report.headline}`.toLowerCase(),
+  };
+});
+
+const methodItems: CmdItem[] = [
+  ...methodPages.map((p) => {
+    const g = valuationGroups.find((grp) => grp.id === p.id)!;
+    const tickers = valuationModels
+      .filter((m) => m.valuationNotes.some((n) => n.groups.includes(p.id)))
+      .map((m) => m.ticker);
+    return {
+      category: 'methods' as const,
+      categoryLabel: 'Methodology Hub',
+      title: `${g.title} — ${g.eyebrow}`,
+      subtitle: `${g.description}`,
+      badge: tickers.join(', '),
+      tone: 'neutral' as const,
+      href: p.href,
+      keywords: `method ${g.title} ${g.eyebrow} ${tickers.join(' ')}`.toLowerCase(),
+    };
+  }),
+  ...valuationModels.map((m) => ({
+    category: 'methods' as const,
+    categoryLabel: 'A4 Tear Sheet',
+    title: `${m.ticker} One-Page Tear Sheet (${m.company})`,
+    subtitle: `Printable A4 valuation summary & PDF export · ${m.methods.join(', ')}`,
+    badge: 'A4 / PDF',
+    tone: 'neutral' as const,
+    href: `/research/${m.slug}/tear-sheet`,
+    keywords: `tear sheet pdf a4 ${m.ticker} ${m.company}`.toLowerCase(),
+  })),
+];
+
+const noteItems: CmdItem[] = notes.map((n) => ({
+  category: 'notes',
+  categoryLabel: `${n.kind} Note`,
+  title: n.headline,
+  subtitle: `${n.kind} Market View · ${n.period} · VN-Index Close ${formatIndex(n.close)}`,
+  badge: signedPct(n.change),
+  tone: n.change >= 0 ? 'up' : 'down',
+  href: n.href,
+  keywords: `${n.kind} ${n.period} ${n.headline} ${n.slug} vn-index market note`.toLowerCase(),
+}));
+
+const allItems: CmdItem[] = [...companyItems, ...methodItems, ...noteItems];
+---
+
+<dialog class="cmd-dialog no-print" id="cmd-palette" aria-label="Search research coverage, valuation methods, and market notes">
+  <div class="cmd-head">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+      <circle cx="7" cy="7" r="4.8" />
+      <path d="M10.6 10.6 14 14" stroke-linecap="round" />
+    </svg>
+    <input
+      type="search"
+      class="cmd-input"
+      id="cmd-search-input"
+      placeholder="Search tickers (HPG, FPT, BID...), methods (DCF, LBO), or market notes..."
+      autocomplete="off"
+      spellcheck="false"
+      aria-label="Search query"
+    />
+    <button type="button" class="cmd-cat" data-cmd-close aria-label="Close search dialog">Esc</button>
+  </div>
+
+  <div class="cmd-cats" role="group" aria-label="Filter search category">
+    <button type="button" class="cmd-cat" data-cmd-cat="all" aria-pressed="true">All ({allItems.length})</button>
+    <button type="button" class="cmd-cat" data-cmd-cat="companies" aria-pressed="false">Companies ({companyItems.length})</button>
+    <button type="button" class="cmd-cat" data-cmd-cat="methods" aria-pressed="false">Methods & Tear Sheets ({methodItems.length})</button>
+    <button type="button" class="cmd-cat" data-cmd-cat="notes" aria-pressed="false">Market Notes ({noteItems.length})</button>
+  </div>
+
+  <ul class="cmd-list" id="cmd-results-list" role="listbox" aria-label="Search results">
+    {allItems.map((item, idx) => (
+      <li
+        class="cmd-item"
+        role="option"
+        data-cmd-item
+        data-category={item.category}
+        data-keywords={item.keywords}
+        data-href={item.href}
+        data-active={idx === 0 ? 'true' : 'false'}
+      >
+        <a href={item.href}>
+          <div>
+            <span class="cmd-item__title">{item.title}</span>
+            <span class="cmd-item__sub">{item.categoryLabel} · {item.subtitle}</span>
+          </div>
+          <span class:list={['badge', item.tone === 'up' ? 'badge--up' : item.tone === 'down' ? 'badge--down' : 'badge--navy']}>
+            {item.badge}
+          </span>
+        </a>
+      </li>
+    ))}
+  </ul>
+
+  <div class="cmd-foot">
+    <span>↑↓ Navigate · Enter Open · Esc Close</span>
+    <span data-cmd-count>{allItems.length} results</span>
+  </div>
+</dialog>
+
+<script>
+  const dialog = document.getElementById('cmd-palette') as HTMLDialogElement | null;
+  const input = document.getElementById('cmd-search-input') as HTMLInputElement | null;
+  const items = Array.from(document.querySelectorAll<HTMLElement>('[data-cmd-item]'));
+  const catButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-cmd-cat]'));
+  const countEl = document.querySelector<HTMLElement>('[data-cmd-count]');
+
+  let currentCat = 'all';
+  let activeIdx = 0;
+
+  const stripDiacritics = (str: string) =>
+    str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+  const visibleItems = () => items.filter((el) => !el.hidden);
+
+  const setActive = (index: number) => {
+    const vis = visibleItems();
+    items.forEach((el) => el.setAttribute('data-active', 'false'));
+    if (vis.length === 0) {
+      activeIdx = 0;
+      return;
+    }
+    activeIdx = ((index % vis.length) + vis.length) % vis.length;
+    const target = vis[activeIdx];
+    target.setAttribute('data-active', 'true');
+    target.scrollIntoView({ block: 'nearest' });
+  };
+
+  const filterList = () => {
+    const q = stripDiacritics(input?.value.trim() ?? '');
+    let visibleCount = 0;
+    items.forEach((el) => {
+      const catMatch = currentCat === 'all' || el.dataset.category === currentCat;
+      const kw = stripDiacritics(el.dataset.keywords ?? '');
+      const qMatch = !q || q.split(/\s+/).every((token) => kw.includes(token));
+      const show = catMatch && qMatch;
+      el.hidden = !show;
+      if (show) visibleCount++;
+    });
+    if (countEl) countEl.textContent = `${visibleCount} result${visibleCount === 1 ? '' : 's'}`;
+    setActive(0);
+  };
+
+  const openPalette = () => {
+    if (!dialog) return;
+    if (!dialog.open) dialog.showModal();
+    if (input) {
+      input.value = '';
+      filterList();
+      input.focus();
+    }
+  };
+
+  document.querySelectorAll('[data-cmd-open]').forEach((btn) => {
+    btn.addEventListener('click', openPalette);
+  });
+
+  document.querySelectorAll('[data-cmd-close]').forEach((btn) => {
+    btn.addEventListener('click', () => dialog?.close());
+  });
+
+  dialog?.addEventListener('click', (e) => {
+    if (e.target === dialog) dialog.close();
+  });
+
+  input?.addEventListener('input', filterList);
+
+  catButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      currentCat = btn.dataset.cmdCat ?? 'all';
+      catButtons.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      filterList();
+      input?.focus();
+    });
+  });
+
+  document.addEventListener('keydown', (e) => {
+    const target = e.target as HTMLElement | null;
+    const inEditable = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      if (dialog?.open) dialog.close();
+      else openPalette();
+      return;
+    }
+
+    if (e.key === '/' && !inEditable && !dialog?.open) {
+      e.preventDefault();
+      openPalette();
+      return;
+    }
+
+    if (!dialog?.open) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActive(activeIdx + 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActive(activeIdx - 1);
+    } else if (e.key === 'Enter') {
+      const vis = visibleItems();
+      const chosen = vis[activeIdx];
+      if (chosen?.dataset.href) {
+        e.preventDefault();
+        dialog.close();
+        window.location.href = chosen.dataset.href;
+      }
+    }
+  });
+</script>

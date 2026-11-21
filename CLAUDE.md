@@ -55,7 +55,7 @@ deliberately not committed to this public repo.
 ├── .github/workflows/            # 3 scheduled bot workflows (see §9)
 ├── public/
 │   ├── cv.pdf, og-image.png, favicon.*, robots.txt
-│   ├── assets/taste/             # ★ Taste kit runtime (never edit; see §4)
+│   ├── research/tear-sheets/       # generated A4 tear-sheet PDFs + hpg-page.png specimen
 │   └── research/valuation-models/  # downloadable .xlsx/.xls/.zip model files
 └── src/
     ├── content/
@@ -66,10 +66,10 @@ deliberately not committed to this public repo.
     ├── lib/format.ts             # shared number/date formatters (UTC dates, signed %, VND k)
     ├── lib/notes.ts              # normalises weekly + monthly entries into one NoteSummary
     ├── lib/files.ts              # build-time sizes of public/ downloads
-    ├── layouts/BaseLayout.astro  # shell: head/meta, fonts, header, main, footer
-    ├── styles/site.css           # dealt :root palette/type + CSS inside visuals (see §4), print
+    ├── layouts/BaseLayout.astro  # shell: head/meta, fonts, header, main, footer, CommandPalette
+    ├── styles/site.css           # ★ Institutional Editorial design system + A4 print stylesheet
     ├── components/               # ValuationMethodPage (see §7)
-    │   └── ui/                   # header/footer, DocHead, CoverageStrip, charts, tables, note views
+    │   └── ui/                   # header/footer, DocHead, CommandPalette, charts, tables, monitors
     └── pages/                    # routes (see §7)
 ```
 
@@ -77,8 +77,7 @@ deliberately not committed to this public repo.
 
 ## 3. Stack & commands
 
-- **Astro 5** (`output: 'static'`), TypeScript **strict**, the **Taste kit** (plain CSS/JS in
-  `public/assets/taste/`; no Tailwind), `@astrojs/sitemap`, `@astrojs/rss`, `sharp`, `@vercel/analytics`.
+- **Astro 5** (`output: 'static'`), TypeScript **strict**, bespoke **Institutional Editorial Vanilla CSS** in `src/styles/site.css` (no Tailwind, no Taste kit), `@astrojs/sitemap`, `@astrojs/rss`, `sharp`, `@vercel/analytics`.
 - `lightweight-charts` renders the VN-Index chart (`VnIndexChart.astro`).
 - **Python** bots use `yfinance`, `feedparser`, `requests`+`beautifulsoup4` (all optional — code
   degrades if a lib/source is missing). **`vnstock` was removed on 2026-10-02**: its PyPI project
@@ -91,63 +90,29 @@ deliberately not committed to this public repo.
 | `npm run build` | Production build → `dist/` (must pass with **0 errors**) |
 | `npx astro check` | TypeScript / content-schema check (0 errors expected) |
 | `pip install -r requirements.txt` | Install bot deps |
-| `npm run tear-sheets` | Build, then export `public/research/tear-sheets/*.pdf` (needs Chrome) |
+| `npm run tear-sheets` | Build, then export `public/research/tear-sheets/*.pdf` + `hpg-page.png` (needs Chrome) |
 | `python weekly_bot.py` | Generate the latest Weekly Market View |
 | `python monthly_bot.py` | Generate the previous Monthly Market View |
 
 ---
 
-## 4. Design system: built on the Taste kit (2026-11)
+## 4. Design system: Institutional Editorial / Sovereign Research (2026-11)
 
-The site is built **on the Taste kit** (`Leonxlnx/taste-skill`), with UI/UX Pro Max's institutional
-navy as the accent. Full record, the deal, the home-page plan and the tokens:
+The site uses a bespoke **Institutional Editorial / Sovereign Research** design system in `src/styles/site.css` (replacing the earlier Taste kit, Ledger, and Desk systems). Full specification:
 [design-system/truong-huy-research/MASTER.md](design-system/truong-huy-research/MASTER.md).
-"Ledger" (Tailwind + IBM Plex, 2026-11-08) and "Desk" before it were removed.
 
-- **Kit runtime** in `public/assets/taste/` (`system.css`, `system.js`, `ui/`, `motion/`,
-  `moments/`), loaded by `BaseLayout` via `<link>` and module `<script>`. **Never edit kit files.**
-  It owns layout, nav, footer, buttons, cards, rows, motion and the moment.
-- **Deal:** kind service · hero split · nav-split · footer-columns + close-word · rhythm surface
-  pairs · buttons tonal · mark stack · radius sharp · moment word-highlight. `<html>` carries
-  `data-type="service" data-radius="sharp" data-buttons="tonal" data-motion`.
-- **Tokens:** `src/styles/site.css` holds only the dealt `html:root` block (`--p-bg`, `--p-surface`,
-  `--p-ink`, `--p-muted`, `--p-accent`, `--p-action`, `--p-inv-*`, fonts) plus data colours
-  (`--up`, `--down`, `--amber`, `--m-*` method lanes) and CSS inside visuals (charts, tables,
-  `.prose` note bodies, tear sheet). **Never hard-code a hex in a component.** Light grade only.
-- **Type:** Source Serif 4 at weight 400 (display) over Libre Franklin 400/500 (text, figures
-  tabular), self-hosted via `@fontsource`. Use the kit's `.t-*` classes; labels sentence case,
-  **nothing under 13px**.
-- **Kit markup:** `.wrap`, `.grid` + `.span-N` / `.start-N`, `.section-head(--split)`, `.rows`
-  (`.rows__name`, `.rows__value`), `.card`, `.btn--primary/--secondary/--sm` (one primary per view),
-  `.link`, `.stack-N`, `.ground-surface`, `.muted`. Hero:
-  `section.hero.hero--split[data-enter] > .wrap > .hero-text.grid.hero-split > .hero-copy + .hero-visual`.
-  Peek list: `[data-peek]`, `[data-peek-to]`, `[data-peek-for]` (handled by `system.js`).
-- **Pages:** the home page's `main > section`s are one screen each. Every inner page wraps its
-  content in `<div class="doc">` (opts out of one-section-per-screen) and opens with `DocHead`
-  (back link, label, h1, lead, `aside` slot).
-- **Components** (`components/ui/`): `SiteHeader` (nav-split; Research, Methods, Notes, Contact and
-  "Download the CV"; the kit builds the phone sheet), `SiteFooter` (close-word + columns + legal),
-  `DocHead`, `Ticker`, `DatedNote`, `Disclaimer`, `CoverageStrip` (hero picture), `CoverageTable`
-  (`sortable`), `FootballField` (`note`), `SensitivityTable`, `VnIndexChart`, `MarketNote`,
-  `NoteList`, `Icon`.
-- **Motion:** the kit's: the hero enters once (`m-enter`), word-highlight on `#approach`, hover
-  answers on buttons, links and cards. No scroll-reveal, no count-up; reduced motion respected.
-- **Copy:** headings name a thing; buttons are a verb and an object ("Read the HPG report",
-  "Download the CV"); never "Learn more" or a bare "Open".
+- **Natural Document Flow:** Zero forced `100svh` screen sections. Every section sizes naturally to its analytical content, separated by `1px solid var(--border-hairline)`.
+- **Tokens (`:root` in `src/styles/site.css`):** Warm archival paper (`--bg-paper: #F7F6F2`), inset bands (`--bg-subtle: #EFECE6`), elevated white data sheets (`--bg-elevated: #FFFFFF`) with `2px solid var(--ink-primary)` top borders (`.sheet--accent`, `.card--rule`), deep institutional navy (`--accent-navy: #16325B`), and semantic financial colors (`--up`, `--down`, `--amber`, `--m-*` method lanes).
+- **Type:** **Source Serif 4** (display headlines) + **Libre Franklin** (400/500/600 body prose & UI) + **IBM Plex Mono** (400/500/600 true tabular monospace for tickers, share prices, WACC inputs, sensitivity cells, eyebrows, and telemetry bars), all self-hosted via `@fontsource`.
+- **Components (`components/ui/`):** `SiteHeader` (top market tape + sticky nav + Command Palette trigger + mobile drawer), `SiteFooter` (recruiting mandate banner + institutional colophon), `CommandPalette` (`Ctrl+K` / `⌘K` / `/`), `DocHead`, `Ticker`, `DatedNote`, `Disclaimer`, `CoverageStrip`, `CoverageTable` (method-group filter + sortable columns), `ValuationComparator` (method spread analysis), `WorkbookVault` (all 9 Excel/ZIP models + 5 PDF tear sheets), `FootballField`, `SensitivityTable` (interactive DCF scenario inspector), `ForeignFlowMonitor` (109-session HOSE foreign flow tracker from `_foreign_flow_cache.json`), `MacroThesisTracker` (SVG VN-Index Support/Resistance ruler + quarterly/monthly thesis tabs), `VnIndexChart`, `MarketNote` (reading progress bar, diverging SVG cross-asset cards, sticky TOC spy, keyboard pagination), `NoteList` (instant search + frequency filter), `Icon`.
 
 ### Global rules
-- **CSP** (`vercel.json`) allows only same-origin scripts, styles, fonts and connections, plus one
-  inline-script hash: the `m-enter` line in `BaseLayout`. Astro never inlines scripts or CSS. If
-  you add an `is:inline` script, add its hash to `vercel.json`: `npm run build` runs
-  `scripts/check-csp.mjs`, which fails and prints the missing hash. JSON-LD blocks are fine.
-- No inline `style=""` (blocked by the CSP); set dynamic values through CSSOM or SVG attributes.
-- **Print:** site.css sets A4 and hides the header and footer (`.no-print` hides anything else).
+- **CSP** (`vercel.json`) allows only same-origin scripts, styles, fonts and connections (`style-src 'self'`). Astro never inlines scripts or CSS. `npm run build` runs `scripts/check-csp.mjs`, which fails if any unapproved inline executable `<script>` is emitted. JSON-LD blocks are fine.
+- No inline `style=""` (blocked by `style-src 'self'`); drive dynamic visuals through SVG attributes, `<progress value max>`, `hidden`, `aria-*`, `data-*`, and CSS classes.
+- **Print:** `site.css` sets A4 portrait and hides the tape, header, footer, command palette, and progress bar (`.no-print` hides anything else).
 - Mobile-first, must work at 375px with no horizontal page scroll. No `any`; props typed.
 - Zero lorem ipsum / no visible placeholders; finance-accurate English copy.
 - `npm run build` and `npx astro check` must pass with 0 errors before a task is done.
-
-The rejected alternative direction, **Sơn mài** (Vietnamese lacquer), lives on branch
-`redesign/son-mai` for reference only.
 
 ---
 

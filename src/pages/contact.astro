@@ -1,18 +1,100 @@
 ---
+// Analyst Contact & Recruiting Dossier (/contact)
 import BaseLayout from '../layouts/BaseLayout.astro';
 import DocHead from '../components/ui/DocHead.astro';
+import { valuationModels } from '../data/valuation-models';
+
 const rows = [
   { label: 'Email', value: 'hnguyenvutruong@gmail.com', href: 'mailto:hnguyenvutruong@gmail.com' },
   { label: 'Phone', value: '0962220094', href: 'tel:0962220094' },
   { label: 'LinkedIn', value: 'linkedin.com/in/trghuyy', href: 'https://www.linkedin.com/in/trghuyy/' },
 ];
+
+const workbooks = valuationModels.reduce((acc, m) => acc + m.downloads.length, 0);
 ---
-<BaseLayout title="Contact Nguyen Vu Truong Huy | Truong Huy Research" description="Contact Nguyen Vu Truong Huy about equity research, capital markets and investment banking internships in Ho Chi Minh City.">
+
+<BaseLayout
+  title="Contact Nguyen Vu Truong Huy | Truong Huy Research"
+  description="Contact Nguyen Vu Truong Huy about equity research, capital markets and investment banking internships in Ho Chi Minh City."
+>
   <div class="doc">
-    <DocHead label="Ho Chi Minh City" title="Contact Huy" lead="Open to equity research, capital markets and investment banking internships. Questions about a model or a note are welcome too.">
+    <DocHead
+      label="Analyst Contact &amp; Recruiting Dossier · Ho Chi Minh City"
+      title="Contact Nguyen Vu Truong Huy"
+      lead="Open to equity research, investment banking, and capital markets opportunities in Ho Chi Minh City. Questions or technical discussions regarding any valuation model, Excel workbook, or market note on this site are always welcome."
+      back={{ href: '/', label: 'Home' }}
+    >
+      <div class="btn-row">
+        <a class="btn btn--primary" href="/cv.pdf" target="_blank" rel="noopener">
+          Download the CV (PDF)
+        </a>
+        <a class="btn btn--secondary" href="mailto:hnguyenvutruong@gmail.com">
+          Send Direct Email
+        </a>
+        <a class="btn btn--ghost" href="https://www.linkedin.com/in/trghuyy/" target="_blank" rel="noopener">
+          LinkedIn Profile
+        </a>
+      </div>
+
       <dl slot="aside" class="facts contact">
-        {rows.map((r) => <div><dt>{r.label}</dt><dd><a class="link" href={r.href}>{r.value}</a></dd></div>)}
+        {rows.map((r) => (
+          <div>
+            <dt>{r.label}</dt>
+            <dd>
+              <a class="link" href={r.href} target={r.href.startsWith('http') ? '_blank' : undefined} rel={r.href.startsWith('http') ? 'noopener' : undefined}>
+                {r.value}
+              </a>
+            </dd>
+          </div>
+        ))}
       </dl>
     </DocHead>
+
+    <section class="ground-surface" aria-label="Candidate credentials and portfolio summary">
+      <div class="wrap grid">
+        <div class="span-6 sheet sheet--accent stack-4">
+          <span class="eyebrow">Academic &amp; Professional Profile</span>
+          <h2 class="t-h3">Credentials &amp; Technical Preparation</h2>
+          <dl class="facts">
+            <div>
+              <dt>CFA Program</dt>
+              <dd>Passed Level II of the CFA Program</dd>
+            </div>
+            <div>
+              <dt>Education</dt>
+              <dd>University of Economics Ho Chi Minh City (UEH) — Finance &amp; Banking (GPA 3.64 / 4.00)</dd>
+            </div>
+            <div>
+              <dt>Experience</dt>
+              <dd>Hoan Loc Viet — Financial data, corporate reporting &amp; analysis workflows</dd>
+            </div>
+            <div>
+              <dt>Modeling Tools</dt>
+              <dd class="mono">Excel (DCF / Comps / Precedent / LBO) · Power BI · Stata · Python</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="span-6 sheet sheet--accent stack-4">
+          <span class="eyebrow">Portfolio Work Samples</span>
+          <h2 class="t-h3">Quick Inspection Links for Recruiters</h2>
+          <p class="t-small secondary">
+            Every valuation report includes an auditable Excel workbook ({workbooks} total files) and a printable one-page A4 tear sheet:
+          </p>
+          <ul class="rows">
+            {valuationModels.map((m) => (
+              <li>
+                <a class="rows__name link" href={`/research/${m.slug}`}>
+                  <span class="mono">{m.ticker}</span> — {m.company} ({m.methods.join(', ')})
+                </a>
+                <a class="rows__value t-label link" href={`/research/${m.slug}/tear-sheet`}>
+                  A4 Tear Sheet →
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
   </div>
 </BaseLayout>

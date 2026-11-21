@@ -1,24 +1,99 @@
 ---
+// Market Intelligence Hub (/market-views):
+// 1. Document Masthead + VN-Index Multi-Week Closing Chart
+// 2. Live HOSE Foreign Flow Monitor (109 trading days from _foreign_flow_cache.json)
+// 3. Active Macro & Quarterly Thesis Tracker (VN-Index Support/Resistance Ruler & Risk Radar)
+// 4. Filterable & Searchable Archive of all Weekly & Monthly Market Notes
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Disclaimer from '../../components/ui/Disclaimer.astro';
 import DocHead from '../../components/ui/DocHead.astro';
+import ForeignFlowMonitor from '../../components/ui/ForeignFlowMonitor.astro';
+import MacroThesisTracker from '../../components/ui/MacroThesisTracker.astro';
 import NoteList from '../../components/ui/NoteList.astro';
 import VnIndexChart from '../../components/ui/VnIndexChart.astro';
 import { getCollection } from 'astro:content';
-import { formatDate } from '../../lib/format';
+import { formatDate, formatIndex, signedPct } from '../../lib/format';
 import { monthlySummary, weeklySummary } from '../../lib/notes';
 
 const weekly = (await getCollection('market-views')).map(weeklySummary);
 const monthly = (await getCollection('monthly-views')).map(monthlySummary);
 const notes = [...weekly, ...monthly];
-const trend = [...weekly].sort((a, b) => a.date.valueOf() - b.date.valueOf()).map((n) => ({ time: n.date.toISOString().slice(0, 10), value: n.close }));
+const trend = [...weekly]
+  .sort((a, b) => a.date.valueOf() - b.date.valueOf())
+  .map((n) => ({ time: n.date.toISOString().slice(0, 10), value: n.close }));
 const latest = [...notes].sort((a, b) => b.date.valueOf() - a.date.valueOf())[0];
 ---
-<BaseLayout title="Market notes on the VN-Index | Truong Huy Research" description="Weekly and monthly Vietnam market notes: VN-Index levels, liquidity, foreign flow, sector rotation and cross-asset context.">
+
+<BaseLayout
+  title="Market notes on the VN-Index | Truong Huy Research"
+  description="Weekly and monthly Vietnam market notes: VN-Index levels, liquidity, live HOSE foreign flow telemetry, sector rotation and cross-asset context."
+>
   <div class="doc">
-    <DocHead label={`${weekly.length} weekly and ${monthly.length} monthly notes · latest ${formatDate(latest.date)}`} title="Market notes on the VN-Index" lead="Index levels, liquidity, foreign flow, sector rotation, and what the dollar, oil and gold mean for local shares.">
-      <div slot="aside" class="sheet"><p class="t-label">VN-Index weekly close, {trend.length} weeks</p><VnIndexChart trendData={trend} label="VN-Index weekly closes taken from the notes below" height="md" /></div>
+    <DocHead
+      label={`Vietnam Market Intelligence · ${weekly.length} Weekly & ${monthly.length} Monthly Dispatches · Latest ${formatDate(latest.date)}`}
+      title="Market Notes &amp; HOSE Telemetry"
+      lead="Systematic weekly and monthly reads on the VN-Index: price structure, liquidity, daily foreign institutional flow, sector rotation, and global cross-asset channels (DXY, USD/VND, WTI, Gold, BTC)."
+    >
+      <div class="toc">
+        <a href="#foreign-flow">01 HOSE Foreign Flow</a>
+        <a href="#thesis-tracker">02 Technical Levels &amp; Macro Thesis</a>
+        <a href="#archive">03 Market Notes Archive ({notes.length})</a>
+      </div>
+      <div slot="aside" class="sheet sheet--accent">
+        <div class="sheet__head">
+          <span class="eyebrow">VN-Index Weekly Close ({trend.length} Weeks)</span>
+          <span class="mono t-label">
+            Latest: <strong>{formatIndex(latest.close)}</strong>{' '}
+            <span class:list={[latest.change >= 0 ? 'up' : 'down']}>({signedPct(latest.change)})</span>
+          </span>
+        </div>
+        <VnIndexChart trendData={trend} label="VN-Index weekly closes taken from the notes below" height="md" />
+      </div>
     </DocHead>
-    <section class="ground-surface" aria-label="All notes"><div class="wrap"><NoteList notes={notes} filter /><Disclaimer /></div></section>
+
+    <section id="foreign-flow" class="ground-surface" aria-labelledby="flow-h">
+      <div class="wrap stack-5">
+        <div class="section-head">
+          <span class="eyebrow">01 · Daily Institutional Flow Cache</span>
+          <h2 id="flow-h">HOSE Foreign Investor Flow Monitor</h2>
+          <p class="t-lead muted">
+            Daily foreign buy, sell, and net values aggregated across HOSE equities. Hover or focus any session bar to inspect exact daily turnover and cumulative trajectory.
+          </p>
+        </div>
+        <ForeignFlowMonitor />
+      </div>
+    </section>
+
+    <section id="thesis-tracker" aria-labelledby="thesis-h">
+      <div class="wrap stack-5">
+        <div class="section-head">
+          <span class="eyebrow">02 · Structural Memory &amp; Key Levels</span>
+          <h2 id="thesis-h">Active Macro Regime &amp; Technical Levels Framework</h2>
+          <p class="t-lead muted">
+            Shared narrative state linking weekly dispatches, monthly regime shifts, support/resistance pivots, and the forward risk radar.
+          </p>
+        </div>
+        <MacroThesisTracker />
+      </div>
+    </section>
+
+    <section id="archive" class="ground-surface" aria-labelledby="archive-h">
+      <div class="wrap stack-5">
+        <div class="section-head--split">
+          <div>
+            <span class="eyebrow">03 · Complete Publication Archive</span>
+            <h2 id="archive-h">All Weekly &amp; Monthly Market Notes</h2>
+          </div>
+          <div class="btn-row">
+            <a class="btn btn--secondary btn--sm" href="/monthly-views">Monthly Notes Only ({monthly.length})</a>
+            <a class="btn btn--ghost btn--sm" href="/rss.xml">Subscribe via RSS</a>
+          </div>
+        </div>
+        <div class="sheet sheet--accent">
+          <NoteList notes={notes} filter />
+        </div>
+        <Disclaimer />
+      </div>
+    </section>
   </div>
 </BaseLayout>

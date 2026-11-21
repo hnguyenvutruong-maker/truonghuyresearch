@@ -1,69 +1,184 @@
 ---
-// Coverage table: company, price used, each method's output with its implied move, low and high move.
-// With `sortable`, the headings sort the rows (missing values sink to the bottom).
+// CoverageTable: interactive method-group filter + sortable coverage matrix showing company,
+// reference price used, each method's VND output with implied move, and low/high move spread.
 import Ticker from './Ticker.astro';
 import { formatOutput, impliedMovePct, valuationModels, type OutputMethod } from '../../data/valuation-models';
 import { formatVndK, signedPct } from '../../lib/format';
-interface Props { sortable?: boolean }
-const { sortable = false } = Astro.props;
+
+interface Props {
+  sortable?: boolean;
+  filterable?: boolean;
+}
+const { sortable = false, filterable = true } = Astro.props;
+
 const columns: Array<{ method: OutputMethod; label: string }> = [
-  { method: 'DCF', label: 'DCF' }, { method: 'Comparable', label: 'Comparables' }, { method: 'Precedent', label: 'Precedent' }, { method: 'LBO', label: 'LBO' },
+  { method: 'DCF', label: 'Intrinsic DCF' },
+  { method: 'Comparable', label: 'Comparables' },
+  { method: 'Precedent', label: 'Precedent' },
+  { method: 'LBO', label: 'Sponsor LBO' },
 ];
-const rows = [...valuationModels].sort((a, b) => a.ticker.localeCompare(b.ticker)).map((model) => {
-  const moves = model.outputs.map((o) => impliedMovePct(o, model.referencePrice));
-  const by = Object.fromEntries(model.outputs.map((o) => [o.method, { text: formatOutput(o), move: impliedMovePct(o, model.referencePrice) }])) as Partial<Record<OutputMethod, { text: string; move: number }>>;
-  return { model, by, low: Math.min(...moves), high: Math.max(...moves) };
-});
-const heads = [{ key: 'price', label: 'Price used' }, ...columns.map((c) => ({ key: c.method.toLowerCase(), label: c.label })), { key: 'low', label: 'Low move' }, { key: 'high', label: 'High move' }];
+
+const rows = [...valuationModels]
+  .sort((a, b) => a.ticker.localeCompare(b.ticker))
+  .map((model) => {
+    const moves = model.outputs.map((o) => impliedMovePct(o, model.referencePrice));
+    const by = Object.fromEntries(
+      model.outputs.map((o) => [
+        o.method,
+        { text: formatOutput(o), move: impliedMovePct(o, model.referencePrice) },
+      ])
+    ) as Partial<Record<OutputMethod, { text: string; move: number }>>;
+    const groups = [...new Set(model.valuationNotes.flatMap((n) => n.groups))];
+    return { model, by, groups, low: Math.min(...moves), high: Math.max(...moves) };
+  });
+
+const heads = [
+  { key: 'price', label: 'Price Used' },
+  ...columns.map((c) => ({ key: c.method.toLowerCase(), label: c.label })),
+  { key: 'low', label: 'Low Move' },
+  { key: 'high', label: 'High Move' },
+];
+
+const dcfCount = rows.filter((r) => r.groups.includes('dcf')).length;
+const compCount = rows.filter((r) => r.groups.includes('comparable')).length;
+const lboCount = rows.filter((r) => r.groups.includes('transaction-lbo')).length;
 ---
-<div class="table-scroll" tabindex="0" role="region" aria-label="Coverage table">
-  <table class="data" data-sortable={sortable ? '' : undefined}>
-    <caption class="sr-only">Valuation coverage in VND per share, with implied moves against the price each model used</caption>
-    <thead>
-      <tr>
-        <th scope="col" aria-sort={sortable ? 'ascending' : undefined}>{sortable ? <button type="button" class="sort" data-sort="ticker" data-type="text">Company <span data-arrow aria-hidden="true">↑</span></button> : 'Company'}</th>
-        {heads.map((h) => <th scope="col" aria-sort={sortable ? 'none' : undefined}>{sortable ? <button type="button" class="sort" data-sort={h.key}>{h.label} <span data-arrow aria-hidden="true"></span></button> : h.label}</th>)}
-      </tr>
-    </thead>
-    <tbody>
-      {rows.map((r) => (
-        <tr data-ticker={r.model.ticker} data-price={r.model.referencePrice.value} data-low={r.low} data-high={r.high} {...Object.fromEntries(columns.map((c) => [`data-${c.method.toLowerCase()}`, r.by[c.method]?.move ?? '']))}>
-          <th scope="row"><a href={`/research/${r.model.slug}`}><Ticker label={r.model.ticker} /><span><span class="data__name">{r.model.company}</span><span class="data__sub">{r.model.sector}</span></span></a></th>
-          <td class="num">{formatVndK(r.model.referencePrice.value)}</td>
-          {columns.map((c) => {
-            const cell = r.by[c.method];
-            return <td>{cell ? <><span class="num">{cell.text}</span><br /><span class:list={['move', cell.move >= 0 ? 'move--up' : 'move--down']}>{signedPct(cell.move, 1)}</span></> : <span class="muted">—</span>}</td>;
-          })}
-          <td class:list={['num', r.low >= 0 ? 'up' : 'down']}>{signedPct(r.low, 1)}</td>
-          <td class:list={['num', r.high >= 0 ? 'up' : 'down']}>{signedPct(r.high, 1)}</td>
+
+<div class="stack-4" data-coverage-root>
+  {filterable && (
+    <div class="filter-bar">
+      <div class="filter" role="group" aria-label="Filter companies by valuation method">
+        <button type="button" data-cov-filter="all" aria-pressed="true">All Coverage ({rows.length})</button>
+        <button type="button" data-cov-filter="dcf" aria-pressed="false">Intrinsic DCF ({dcfCount})</button>
+        <button type="button" data-cov-filter="comparable" aria-pressed="false">Comparable Analysis ({compCount})</button>
+        <button type="button" data-cov-filter="transaction-lbo" aria-pressed="false">Precedent &amp; LBO ({lboCount})</button>
+      </div>
+      <span class="mono t-label muted">Click any column header to sort · Figures in VND per share</span>
+    </div>
+  )}
+
+  <div class="table-scroll" tabindex="0" role="region" aria-label="Coverage table">
+    <table class="data" data-sortable={sortable ? '' : undefined}>
+      <caption class="sr-only">Valuation coverage in VND per share, with implied moves against the price each model used</caption>
+      <thead>
+        <tr>
+          <th scope="col" aria-sort={sortable ? 'ascending' : undefined}>
+            {sortable ? (
+              <button type="button" class="sort" data-sort="ticker" data-type="text">
+                Company <span data-arrow aria-hidden="true">↑</span>
+              </button>
+            ) : (
+              'Company'
+            )}
+          </th>
+          {heads.map((h) => (
+            <th scope="col" aria-sort={sortable ? 'none' : undefined}>
+              {sortable ? (
+                <button type="button" class="sort" data-sort={h.key}>
+                  {h.label} <span data-arrow aria-hidden="true">↕</span>
+                </button>
+              ) : (
+                h.label
+              )}
+            </th>
+          ))}
         </tr>
-      ))}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr
+            data-cov-row
+            data-groups={r.groups.join(' ')}
+            data-ticker={r.model.ticker}
+            data-price={r.model.referencePrice.value}
+            data-low={r.low}
+            data-high={r.high}
+            {...Object.fromEntries(columns.map((c) => [`data-${c.method.toLowerCase()}`, r.by[c.method]?.move ?? '']))}
+          >
+            <th scope="row">
+              <a href={`/research/${r.model.slug}`}>
+                <Ticker label={r.model.ticker} />
+                <span>
+                  <span class="data__name">{r.model.company}</span>
+                  <span class="data__sub">{r.model.sector}</span>
+                </span>
+              </a>
+            </th>
+            <td class="num">{formatVndK(r.model.referencePrice.value)}</td>
+            {columns.map((c) => {
+              const cell = r.by[c.method];
+              return (
+                <td>
+                  {cell ? (
+                    <>
+                      <span class="num">{cell.text}</span>
+                      <br />
+                      <span class:list={['move', cell.move >= 0 ? 'move--up' : 'move--down']}>
+                        {signedPct(cell.move, 1)}
+                      </span>
+                    </>
+                  ) : (
+                    <span class="muted mono">—</span>
+                  )}
+                </td>
+              );
+            })}
+            <td class:list={['num', r.low >= 0 ? 'up' : 'down']}>{signedPct(r.low, 1)}</td>
+            <td class:list={['num', r.high >= 0 ? 'up' : 'down']}>{signedPct(r.high, 1)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
 </div>
+
 <script>
-  document.querySelectorAll<HTMLTableElement>('table[data-sortable]').forEach((table) => {
+  document.querySelectorAll<HTMLElement>('[data-coverage-root]').forEach((root) => {
+    const filterButtons = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-cov-filter]'));
+    const tableRows = Array.from(root.querySelectorAll<HTMLTableRowElement>('[data-cov-row]'));
+
+    filterButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const group = btn.dataset.covFilter ?? 'all';
+        filterButtons.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+        tableRows.forEach((row) => {
+          const rowGroups = (row.dataset.groups ?? '').split(/\s+/);
+          row.hidden = group !== 'all' && !rowGroups.includes(group);
+        });
+      });
+    });
+
+    const table = root.querySelector<HTMLTableElement>('table[data-sortable]');
+    if (!table) return;
     const body = table.tBodies[0];
     const buttons = Array.from(table.querySelectorAll<HTMLButtonElement>('button[data-sort]'));
     let current = { key: 'ticker', dir: 1 };
+
     const sortBy = (key: string, isText: boolean) => {
       const dir = current.key === key ? -current.dir : isText ? 1 : -1;
       current = { key, dir };
-      Array.from(body.rows).sort((a, b) => {
-        const av = a.dataset[key] ?? '', bv = b.dataset[key] ?? '';
-        if (isText) return av.localeCompare(bv) * dir;
-        if (av === '' && bv === '') return 0;
-        if (av === '') return 1;
-        if (bv === '') return -1;
-        return (Number(av) - Number(bv)) * dir;
-      }).forEach((row) => body.appendChild(row));
+      Array.from(body.rows)
+        .sort((a, b) => {
+          const av = a.dataset[key] ?? '';
+          const bv = b.dataset[key] ?? '';
+          if (isText) return av.localeCompare(bv) * dir;
+          if (av === '' && bv === '') return 0;
+          if (av === '') return 1;
+          if (bv === '') return -1;
+          return (Number(av) - Number(bv)) * dir;
+        })
+        .forEach((row) => body.appendChild(row));
+
       buttons.forEach((b) => {
         const active = b.dataset.sort === key;
         b.closest('th')?.setAttribute('aria-sort', active ? (dir === 1 ? 'ascending' : 'descending') : 'none');
         const arrow = b.querySelector('[data-arrow]');
-        if (arrow) arrow.textContent = active ? (dir === 1 ? '↑' : '↓') : '';
+        if (arrow) arrow.textContent = active ? (dir === 1 ? '↑' : '↓') : '↕';
       });
     };
-    buttons.forEach((b) => b.addEventListener('click', () => sortBy(b.dataset.sort ?? 'ticker', b.dataset.type === 'text')));
+
+    buttons.forEach((b) =>
+      b.addEventListener('click', () => sortBy(b.dataset.sort ?? 'ticker', b.dataset.type === 'text'))
+    );
   });
 </script>

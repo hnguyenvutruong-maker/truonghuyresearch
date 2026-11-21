@@ -1,0 +1,237 @@
+---
+// HOSE Foreign Flow Monitor: visualizes real daily foreign investor buy/sell/net flows
+// from src/content/market-views/_foreign_flow_cache.json (collected daily via GitHub Actions).
+import rawFlow from '../../content/market-views/_foreign_flow_cache.json';
+import { formatDate, formatNumber, signedNumber } from '../../lib/format';
+
+interface Props {
+  compact?: boolean;
+}
+const { compact = false } = Astro.props;
+
+type RawEntry = { buy: number | null; sell: number | null; net: number };
+const entries = Object.entries(rawFlow as Record<string, RawEntry>)
+  .filter(([, v]) => v && typeof v.net === 'number')
+  .sort(([a], [b]) => a.localeCompare(b));
+
+const buildWindow = (id: string, label: string, count: number) => {
+  const slice = count > 0 ? entries.slice(-count) : entries;
+  let running = 0;
+  const sessions = slice.map(([date, v]) => {
+    running += v.net;
+    return {
+      date,
+      buy: v.buy ?? 0,
+      sell: v.sell ?? 0,
+      net: v.net,
+      cumNet: running,
+    };
+  });
+
+  const totalBuy = sessions.reduce((acc, s) => acc + s.buy, 0);
+  const totalSell = sessions.reduce((acc, s) => acc + s.sell, 0);
+  const totalNet = sessions.reduce((acc, s) => acc + s.net, 0);
+  const netBuyDays = sessions.filter((s) => s.net >= 0).length;
+  const netSellDays = sessions.length - netBuyDays;
+
+  const maxAbsNet = Math.max(...sessions.map((s) => Math.abs(s.net)), 1);
+  const cumValues = sessions.map((s) => s.cumNet);
+  const minCum = Math.min(...cumValues, 0);
+  const maxCum = Math.max(...cumValues, 0);
+  const cumSpan = Math.max(maxCum - minCum, 1);
+
+  const W = 1000;
+  const yZero = 110;
+  const N = sessions.length;
+  const slot = W / Math.max(N, 1);
+  const barW = Math.max(slot * 0.72, 3);
+
+  const bars = sessions.map((s, i) => {
+    const x = Number((i * slot + (slot - barW) / 2).toFixed(2));
+    const h = Number((Math.max((Math.abs(s.net) / maxAbsNet) * 86, 2)).toFixed(2));
+    const y = Number((s.net >= 0 ? yZero - h : yZero).toFixed(2));
+    const cx = Number((i * slot + slot / 2).toFixed(2));
+    const cy = Number((195 - ((s.cumNet - minCum) / cumSpan) * 170).toFixed(2));
+    return {
+      ...s,
+      x,
+      y,
+      w: Number(barW.toFixed(2)),
+      h,
+      cx,
+      cy,
+      dateLabel: formatDate(s.date),
+      buyLabel: `${formatNumber(s.buy, 1)} bn`,
+      sellLabel: `${formatNumber(s.sell, 1)} bn`,
+      netLabel: `${signedNumber(s.net, 1)} bn`,
+      cumLabel: `${signedNumber(s.cumNet, 1)} bn`,
+    };
+  });
+
+  const polyline = bars.map((b) => `${b.cx},${b.cy}`).join(' ');
+  const latest = bars[bars.length - 1];
+  const first = bars[0];
+
+  return {
+    id,
+    label,
+    sessions: bars,
+    polyline,
+    totalBuy,
+    totalSell,
+    totalNet,
+    netBuyDays,
+    netSellDays,
+    latest,
+    first,
+    yZero,
+  };
+};
+
+const windows = compact
+  ? [buildWindow('w30', 'Last 30 Sessions', 30)]
+  : [
+      buildWindow('w20', 'Last 20 Sessions (~1M)', 20),
+      buildWindow('w60', 'Last 60 Sessions (~3M)', 60),
+      buildWindow('all', `All ${entries.length} Sessions`, 0),
+    ];
+---
+
+<div class="sheet sheet--accent" data-flow-monitor>
+  <div class="sheet__head">
+    <div>
+      <span class="eyebrow">HOSE Institutional Flow Telemetry · Real-Time Cache</span>
+      <h3 class="t-h3">Foreign Investor Daily Net Flow & Cumulative Trajectory</h3>
+    </div>
+    {!compact && (
+      <div class="filter" role="tablist" aria-label="Foreign flow timeframe">
+        {windows.map((w, idx) => (
+          <button
+            type="button"
+            role="tab"
+            data-flow-tab={w.id}
+            aria-selected={idx === 0 ? 'true' : 'false'}
+          >
+            {w.label}
+          </button>
+        ))}
+      </div>
+    )}
+  </div>
+
+  {windows.map((w, idx) => (
+    <div data-flow-panel={w.id} hidden={idx > 0}>
+      <dl class="flow-kpi-grid">
+        <div class="flow-kpi">
+          <dt>Cumulative Net ({w.sessions.length}d)</dt>
+          <dd class:list={[w.totalNet >= 0 ? 'up' : 'down']}>{signedNumber(w.totalNet, 1)} bn VND</dd>
+        </div>
+        <div class="flow-kpi">
+          <dt>Gross Foreign Buy</dt>
+          <dd>{formatNumber(w.totalBuy, 0)} bn VND</dd>
+        </div>
+        <div class="flow-kpi">
+          <dt>Gross Foreign Sell</dt>
+          <dd>{formatNumber(w.totalSell, 0)} bn VND</dd>
+        </div>
+        <div class="flow-kpi">
+          <dt>Session Breadth (Buy / Sell)</dt>
+          <dd>
+            <span class="up">{w.netBuyDays}d in</span> · <span class="down">{w.netSellDays}d out</span>
+          </dd>
+        </div>
+      </dl>
+
+      {w.latest && (
+        <div class="flow-inspector" data-flow-readout>
+          <span>Session: <strong data-flow-date>{w.latest.dateLabel}</strong></span>
+          <span>Buy: <strong data-flow-buy>{w.latest.buyLabel}</strong></span>
+          <span>Sell: <strong data-flow-sell>{w.latest.sellLabel}</strong></span>
+          <span>Daily Net: <strong data-flow-net class:list={[w.latest.net >= 0 ? 'up' : 'down']}>{w.latest.netLabel}</strong></span>
+          <span>Window Cum. Net: <strong data-flow-cum class:list={[w.latest.cumNet >= 0 ? 'up' : 'down']}>{w.latest.cumLabel}</strong></span>
+        </div>
+      )}
+
+      <svg viewBox="0 0 1000 215" preserveAspectRatio="none" class="flow-svg" role="img" aria-label={`HOSE daily foreign net flow from ${w.first?.dateLabel} to ${w.latest?.dateLabel}`}>
+        <line x1="0" x2="1000" y1="24" y2="24" class="grid-line" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
+        <line x1="0" x2="1000" y1={w.yZero} y2={w.yZero} class="price-line" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+        <line x1="0" x2="1000" y1="196" y2="196" class="grid-line" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
+
+        {w.sessions.map((b) => (
+          <rect
+            x={b.x}
+            y={b.y}
+            width={b.w}
+            height={b.h}
+            rx="1"
+            class={b.net >= 0 ? 'flow-bar--up' : 'flow-bar--down'}
+            data-flow-bar
+            data-date={b.dateLabel}
+            data-buy={b.buyLabel}
+            data-sell={b.sellLabel}
+            data-net={b.netLabel}
+            data-cum={b.cumLabel}
+            data-net-pos={b.net >= 0 ? '1' : '0'}
+            data-cum-pos={b.cumNet >= 0 ? '1' : '0'}
+            tabindex="0"
+            aria-label={`${b.dateLabel}: Net ${b.netLabel}`}
+          />
+        ))}
+
+        <polyline points={w.polyline} class="flow-cum-line" vector-effect="non-scaling-stroke" />
+      </svg>
+
+      <div class="sheet__head t-label muted">
+        <span class="mono">{w.first?.dateLabel} → {w.latest?.dateLabel}</span>
+        <span class="mono">Bars: Daily Net Flow (bn VND) · Navy Line: Running Cumulative Net</span>
+      </div>
+    </div>
+  ))}
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-flow-monitor]').forEach((root) => {
+    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-flow-tab]'));
+    const panels = Array.from(root.querySelectorAll<HTMLElement>('[data-flow-panel]'));
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const targetId = tab.dataset.flowTab;
+        tabs.forEach((t) => t.setAttribute('aria-selected', String(t === tab)));
+        panels.forEach((p) => {
+          p.hidden = p.dataset.flowPanel !== targetId;
+        });
+      });
+    });
+
+    panels.forEach((panel) => {
+      const dateEl = panel.querySelector<HTMLElement>('[data-flow-date]');
+      const buyEl = panel.querySelector<HTMLElement>('[data-flow-buy]');
+      const sellEl = panel.querySelector<HTMLElement>('[data-flow-sell]');
+      const netEl = panel.querySelector<HTMLElement>('[data-flow-net]');
+      const cumEl = panel.querySelector<HTMLElement>('[data-flow-cum]');
+
+      const inspect = (bar: SVGRectElement) => {
+        if (dateEl) dateEl.textContent = bar.dataset.date ?? '';
+        if (buyEl) buyEl.textContent = bar.dataset.buy ?? '';
+        if (sellEl) sellEl.textContent = bar.dataset.sell ?? '';
+        if (netEl) {
+          netEl.textContent = bar.dataset.net ?? '';
+          netEl.classList.toggle('up', bar.dataset.netPos === '1');
+          netEl.classList.toggle('down', bar.dataset.netPos !== '1');
+        }
+        if (cumEl) {
+          cumEl.textContent = bar.dataset.cum ?? '';
+          cumEl.classList.toggle('up', bar.dataset.cumPos === '1');
+          cumEl.classList.toggle('down', bar.dataset.cumPos !== '1');
+        }
+      };
+
+      panel.querySelectorAll<SVGRectElement>('[data-flow-bar]').forEach((bar) => {
+        bar.addEventListener('pointerenter', () => inspect(bar));
+        bar.addEventListener('focus', () => inspect(bar));
+        bar.addEventListener('click', () => inspect(bar));
+      });
+    });
+  });
+</script>

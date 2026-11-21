@@ -1,31 +1,166 @@
 ---
-// Two-way DCF sensitivity: cells shaded around the price the model used (green above, red below, none
-// within ±2%); every value printed, so colour is never the only channel; the base case outlined.
+// Two-way DCF Sensitivity Matrix with Interactive Scenario Inspector:
+// Hovering, clicking, or focusing any cell highlights the WACC × Exit EV/EBITDA crosshairs
+// and displays implied share price, move vs reference price, and delta vs DCF base case.
 import type { ReferencePrice, SensitivityGrid } from '../../data/valuation-models';
-import { formatDate, formatVndK } from '../../lib/format';
-interface Props { grid: SensitivityGrid; reference: ReferencePrice }
+import { formatDate, formatVndK, signedPct } from '../../lib/format';
+
+interface Props {
+  grid: SensitivityGrid;
+  reference: ReferencePrice;
+}
 const { grid, reference } = Astro.props;
-const axis = (v: number, f: SensitivityGrid['rowFormat']) => (f === 'pct' ? `${(v * 100).toFixed(1)}%` : `${v.toFixed(1)}x`);
+
+const axis = (v: number, f: SensitivityGrid['rowFormat']) =>
+  f === 'pct' ? `${(v * 100).toFixed(1)}%` : `${v.toFixed(1)}x`;
+
 const refK = reference.value / 1000;
+const baseK = grid.values[grid.baseRow]?.[grid.baseCol] ?? refK;
+const baseMovePct = (baseK / refK - 1) * 100;
+
 const shade = (k: number) => {
   const m = (k / refK - 1) * 100;
   return m >= 10 ? 's-up2' : m >= 2 ? 's-up1' : m > -2 ? 's-mid' : m > -10 ? 's-dn1' : 's-dn2';
 };
 ---
-<figure class="sheet">
-  <div class="table-scroll" tabindex="0" role="region" aria-label={`${grid.title}, scrolls sideways`}>
-    <table class="data sens">
-      <caption class="t-label">{grid.title}</caption>
-      <thead><tr><th scope="col">{grid.rowLabel} by {grid.colLabel}</th>{grid.cols.map((c) => <th scope="col">{axis(c, grid.colFormat)}</th>)}</tr></thead>
+
+<figure class="sheet sheet--accent" data-sens-root>
+  <div class="sheet__head">
+    <div>
+      <span class="eyebrow">Interactive DCF Scenario Matrix · Hover or Click Any Cell</span>
+      <h3 class="t-h3">{grid.title} ({grid.rowLabel} × {grid.colLabel})</h3>
+    </div>
+    <button type="button" class="btn btn--ghost btn--sm" data-sens-reset>
+      Reset to Base Case ({axis(grid.rows[grid.baseRow], grid.rowFormat)} / {axis(grid.cols[grid.baseCol], grid.colFormat)})
+    </button>
+  </div>
+
+  <div class="sens-inspector" aria-live="polite">
+    <div class="sens-inspector__metric">
+      <span>Selected Scenario Inputs</span>
+      <strong data-out-inputs>
+        {grid.rowLabel} {axis(grid.rows[grid.baseRow], grid.rowFormat)} · {grid.colLabel} {axis(grid.cols[grid.baseCol], grid.colFormat)}
+      </strong>
+    </div>
+    <div class="sens-inspector__metric">
+      <span>Implied Share Price</span>
+      <strong data-out-price>VND {baseK.toFixed(1)}k</strong>
+    </div>
+    <div class="sens-inspector__metric">
+      <span>vs. Price Used ({formatVndK(reference.value)})</span>
+      <strong data-out-spot class:list={[baseMovePct >= 0 ? 'up' : 'down']}>
+        {signedPct(baseMovePct, 1)}
+      </strong>
+    </div>
+    <div class="sens-inspector__metric">
+      <span>vs. DCF Base Case ({baseK.toFixed(1)}k)</span>
+      <strong data-out-base>0.0% (Base)</strong>
+    </div>
+  </div>
+
+  <div class="table-scroll" tabindex="0" role="region" aria-label={`${grid.title}, interactive sensitivity matrix`}>
+    <table class="data sens" role="grid">
+      <thead>
+        <tr>
+          <th scope="col">{grid.rowLabel} \ {grid.colLabel}</th>
+          {grid.cols.map((c, j) => (
+            <th scope="col" data-col-head={j} class:list={[j === grid.baseCol && 'is-axis-active']}>
+              {axis(c, grid.colFormat)}
+            </th>
+          ))}
+        </tr>
+      </thead>
       <tbody>
-        {grid.values.map((row, i) => (
-          <tr>
-            <th scope="row" class="num">{axis(grid.rows[i], grid.rowFormat)}</th>
-            {row.map((v, j) => <td class:list={['num', shade(v), i === grid.baseRow && j === grid.baseCol && 's-base']}>{v.toFixed(1)}</td>)}
-          </tr>
-        ))}
+        {grid.values.map((row, i) => {
+          const rowText = axis(grid.rows[i], grid.rowFormat);
+          return (
+            <tr>
+              <th scope="row" class:list={['num', i === grid.baseRow && 'is-axis-active']} data-row-head={i}>
+                {rowText}
+              </th>
+              {row.map((v, j) => {
+                const colText = axis(grid.cols[j], grid.colFormat);
+                const vsSpot = (v / refK - 1) * 100;
+                const vsBase = (v / baseK - 1) * 100;
+                const isBase = i === grid.baseRow && j === grid.baseCol;
+                return (
+                  <td
+                    role="gridcell"
+                    tabindex="0"
+                    class:list={['num', shade(v), isBase && 's-base is-selected']}
+                    data-sens-cell
+                    data-row-idx={i}
+                    data-col-idx={j}
+                    data-inputs={`${grid.rowLabel} ${rowText} · ${grid.colLabel} ${colText}`}
+                    data-price={`VND ${v.toFixed(1)}k`}
+                    data-spot={signedPct(vsSpot, 1)}
+                    data-spot-pos={vsSpot >= 0 ? '1' : '0'}
+                    data-base={isBase ? '0.0% (Base)' : signedPct(vsBase, 1)}
+                    data-base-pos={vsBase >= 0 ? '1' : '0'}
+                    data-is-base={isBase ? '1' : '0'}
+                  >
+                    {v.toFixed(1)}
+                  </td>
+                );
+              })}
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   </div>
-  <figcaption class="t-small muted field__note">VND thousands per share. Outlined: the model's base case. Green sits above and red below the {formatVndK(reference.value)} price used on {formatDate(reference.asOf)}; darker beyond ±10%. {grid.note}</figcaption>
+
+  <figcaption class="t-small muted field__note">
+    VND thousands per share. Outlined cell: the model's base case ({baseK.toFixed(1)}k). Green cells sit above and red cells below the {formatVndK(reference.value)} price used on {formatDate(reference.asOf)}; darker shading beyond ±10%. {grid.note}
+  </figcaption>
 </figure>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-sens-root]').forEach((root) => {
+    const cells = Array.from(root.querySelectorAll<HTMLTableCellElement>('[data-sens-cell]'));
+    const rowHeads = Array.from(root.querySelectorAll<HTMLTableCellElement>('[data-row-head]'));
+    const colHeads = Array.from(root.querySelectorAll<HTMLTableCellElement>('[data-col-head]'));
+    const inputsEl = root.querySelector<HTMLElement>('[data-out-inputs]');
+    const priceEl = root.querySelector<HTMLElement>('[data-out-price]');
+    const spotEl = root.querySelector<HTMLElement>('[data-out-spot]');
+    const baseEl = root.querySelector<HTMLElement>('[data-out-base]');
+    const resetBtn = root.querySelector<HTMLButtonElement>('[data-sens-reset]');
+
+    const selectCell = (cell: HTMLTableCellElement) => {
+      const rIdx = cell.dataset.rowIdx;
+      const cIdx = cell.dataset.colIdx;
+
+      cells.forEach((c) => c.classList.toggle('is-selected', c === cell));
+      rowHeads.forEach((th) => th.classList.toggle('is-axis-active', th.dataset.rowHead === rIdx));
+      colHeads.forEach((th) => th.classList.toggle('is-axis-active', th.dataset.colHead === cIdx));
+
+      if (inputsEl) inputsEl.textContent = cell.dataset.inputs ?? '';
+      if (priceEl) priceEl.textContent = cell.dataset.price ?? '';
+      if (spotEl) {
+        spotEl.textContent = cell.dataset.spot ?? '';
+        spotEl.classList.toggle('up', cell.dataset.spotPos === '1');
+        spotEl.classList.toggle('down', cell.dataset.spotPos !== '1');
+      }
+      if (baseEl) {
+        baseEl.textContent = cell.dataset.base ?? '';
+        if (cell.dataset.isBase === '1') {
+          baseEl.classList.remove('up', 'down');
+        } else {
+          baseEl.classList.toggle('up', cell.dataset.basePos === '1');
+          baseEl.classList.toggle('down', cell.dataset.basePos !== '1');
+        }
+      }
+    };
+
+    cells.forEach((cell) => {
+      cell.addEventListener('pointerenter', () => selectCell(cell));
+      cell.addEventListener('focus', () => selectCell(cell));
+      cell.addEventListener('click', () => selectCell(cell));
+    });
+
+    resetBtn?.addEventListener('click', () => {
+      const baseCell = cells.find((c) => c.dataset.isBase === '1');
+      if (baseCell) selectCell(baseCell);
+    });
+  });
+</script>

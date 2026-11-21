@@ -1,61 +1,118 @@
 ---
-// Market-note index: one ruled list per year, newest first; the All / Weekly / Monthly filter is synced to ?kind=.
+// Market-note index: grouped by year, newest first, with All / Weekly / Monthly filter tabs
+// synced to ?kind= AND an instant keyword search filter.
 import { formatIndex, signedPct } from '../../lib/format';
 import type { NoteSummary } from '../../lib/notes';
-interface Props { notes: NoteSummary[]; filter?: boolean }
+
+interface Props {
+  notes: NoteSummary[];
+  filter?: boolean;
+}
 const { notes, filter = false } = Astro.props;
 const sorted = [...notes].sort((a, b) => b.date.valueOf() - a.date.valueOf());
 const years = [...new Set(sorted.map((n) => n.date.getUTCFullYear()))];
 const filters = [
-  { key: 'all', label: 'All notes', count: notes.length },
-  { key: 'weekly', label: 'Weekly', count: notes.filter((n) => n.kind === 'Weekly').length },
-  { key: 'monthly', label: 'Monthly', count: notes.filter((n) => n.kind === 'Monthly').length },
+  { key: 'all', label: 'All Notes', count: notes.length },
+  { key: 'weekly', label: 'Weekly Views', count: notes.filter((n) => n.kind === 'Weekly').length },
+  { key: 'monthly', label: 'Monthly Views', count: notes.filter((n) => n.kind === 'Monthly').length },
 ];
 ---
+
 <div data-note-list class="stack-6">
   {filter && (
-    <div class="filter" role="group" aria-label="Filter notes">
-      {filters.map((f, i) => <button type="button" data-filter={f.key} aria-pressed={i === 0 ? 'true' : 'false'}>{f.label} <span class="muted">{f.count}</span></button>)}
+    <div class="filter-bar">
+      <div class="filter" role="group" aria-label="Filter notes by frequency">
+        {filters.map((f, i) => (
+          <button type="button" data-filter={f.key} aria-pressed={i === 0 ? 'true' : 'false'}>
+            {f.label} <span class="mono muted">({f.count})</span>
+          </button>
+        ))}
+      </div>
+      <input
+        type="search"
+        class="search-input"
+        data-note-search
+        placeholder="Filter notes by headline, month, or sector..."
+        aria-label="Filter market notes by keyword"
+      />
     </div>
   )}
+
   {years.map((year) => (
     <section data-year aria-labelledby={`y-${year}`}>
-      <div class="section-head--row"><h2 id={`y-${year}`}>{year}</h2><span class="t-label muted" data-year-count></span></div>
+      <div class="section-head--row">
+        <h2 id={`y-${year}`}>{year} Archive</h2>
+        <span class="mono t-label muted" data-year-count></span>
+      </div>
       <ol class="notelist">
-        {sorted.filter((n) => n.date.getUTCFullYear() === year).map((n) => (
-          <li data-kind={n.kind.toLowerCase()}>
-            <a href={n.href}>
-              <span class="t-label muted">{n.kind} · {n.period}</span>
-              <h3>{n.headline}</h3>
-              <span class="num t-small">{formatIndex(n.close)} <span class:list={[n.change >= 0 ? 'up' : 'down']}>{signedPct(n.change)}</span></span>
-            </a>
-          </li>
-        ))}
+        {sorted
+          .filter((n) => n.date.getUTCFullYear() === year)
+          .map((n) => (
+            <li
+              data-kind={n.kind.toLowerCase()}
+              data-search={`${n.kind} ${n.period} ${n.headline} ${n.slug}`.toLowerCase()}
+            >
+              <a href={n.href}>
+                <span class="mono t-label muted">
+                  <span class:list={['badge', n.kind === 'Monthly' ? 'badge--navy' : '']}>{n.kind}</span>{' '}
+                  {n.period}
+                </span>
+                <h3>{n.headline}</h3>
+                <span class="num t-small">
+                  {formatIndex(n.close)}{' '}
+                  <span class:list={['badge', n.change >= 0 ? 'badge--up' : 'badge--down']}>
+                    {signedPct(n.change)}
+                  </span>
+                </span>
+              </a>
+            </li>
+          ))}
       </ol>
     </section>
   ))}
 </div>
+
 <script>
   const root = document.querySelector<HTMLElement>('[data-note-list]');
   const buttons = Array.from(root?.querySelectorAll<HTMLButtonElement>('button[data-filter]') ?? []);
-  const apply = (kind: string) => {
+  const searchInput = root?.querySelector<HTMLInputElement>('[data-note-search]');
+
+  let currentKind = 'all';
+
+  const apply = () => {
     if (!root) return;
-    root.querySelectorAll<HTMLElement>('li[data-kind]').forEach((li) => { li.hidden = kind !== 'all' && li.dataset.kind !== kind; });
+    const q = (searchInput?.value ?? '').trim().toLowerCase();
+
+    root.querySelectorAll<HTMLElement>('li[data-kind]').forEach((li) => {
+      const kindMatch = currentKind === 'all' || li.dataset.kind === currentKind;
+      const textMatch = !q || (li.dataset.search ?? '').includes(q);
+      li.hidden = !(kindMatch && textMatch);
+    });
+
     root.querySelectorAll<HTMLElement>('[data-year]').forEach((sec) => {
       const n = sec.querySelectorAll('li[data-kind]:not([hidden])').length;
       sec.hidden = n === 0;
       const label = sec.querySelector('[data-year-count]');
       if (label) label.textContent = `${n} note${n === 1 ? '' : 's'}`;
     });
-    buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filter === kind)));
+
+    buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filter === currentKind)));
   };
-  buttons.forEach((b) => b.addEventListener('click', () => {
-    const kind = b.dataset.filter ?? 'all';
-    apply(kind);
-    const url = new URL(window.location.href);
-    if (kind === 'all') url.searchParams.delete('kind'); else url.searchParams.set('kind', kind);
-    history.replaceState(null, '', url);
-  }));
+
+  buttons.forEach((b) =>
+    b.addEventListener('click', () => {
+      currentKind = b.dataset.filter ?? 'all';
+      apply();
+      const url = new URL(window.location.href);
+      if (currentKind === 'all') url.searchParams.delete('kind');
+      else url.searchParams.set('kind', currentKind);
+      history.replaceState(null, '', url);
+    })
+  );
+
+  searchInput?.addEventListener('input', apply);
+
   const initial = new URLSearchParams(window.location.search).get('kind');
-  apply(initial === 'weekly' || initial === 'monthly' ? initial : 'all');
+  currentKind = initial === 'weekly' || initial === 'monthly' ? initial : 'all';
+  apply();
 </script>

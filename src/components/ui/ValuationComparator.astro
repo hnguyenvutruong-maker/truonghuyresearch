@@ -1,0 +1,75 @@
+---
+// Valuation Method Spread & Implied Upside/Downside Analyzer:
+// Breaks down why different valuation methods diverge for each company ("where methods disagree, the spread is the finding").
+import Ticker from './Ticker.astro';
+import { formatOutput, impliedMovePct, outputMethodLabel, valuationModels } from '../../data/valuation-models';
+import { formatVndK, signedPct } from '../../lib/format';
+
+const items = valuationModels.map((m) => {
+  const ref = m.referencePrice;
+  const outputs = m.outputs.map((o) => ({
+    ...o,
+    label: outputMethodLabel[o.method],
+    formatted: formatOutput(o),
+    move: impliedMovePct(o, ref),
+  }));
+  const moves = outputs.map((o) => o.move);
+  const lowMove = Math.min(...moves);
+  const highMove = Math.max(...moves);
+  const spreadPts = Math.abs(highMove - lowMove);
+  const whyDiffer =
+    m.report.assumptions.find((a) => a.label.toLowerCase().includes('differ') || a.label.toLowerCase().includes('range'))?.detail ??
+    m.conclusion;
+  return {
+    model: m,
+    outputs,
+    lowMove,
+    highMove,
+    spreadPts,
+    whyDiffer,
+  };
+});
+---
+
+<div class="grid">
+  {items.map(({ model, outputs, spreadPts, whyDiffer }) => (
+    <article class="card card--rule span-6">
+      <div class="sheet__head">
+        <a href={`/research/${model.slug}`} class="desk-selector__title">
+          <Ticker label={model.ticker} />
+          <div>
+            <span class="data__name">{model.company}</span>
+            <span class="data__sub">{model.sector} · Ref {formatVndK(model.referencePrice.value)}</span>
+          </div>
+        </a>
+        <span class="badge badge--navy">
+          {outputs.length > 1 ? `Method spread: ${spreadPts.toFixed(1)} pts` : 'Single-method band'}
+        </span>
+      </div>
+
+      <p class="t-small"><strong>Core question:</strong> {model.investmentQuestion ?? model.report.headline}</p>
+
+      <ul class="rows">
+        {outputs.map((o) => (
+          <li>
+            <div>
+              <span class="rows__name">{o.label}</span>
+              <span class="data__sub">{o.basis}</span>
+            </div>
+            <div class="rows__value">
+              <span class="num">{o.formatted}</span>
+              <span class:list={['badge', o.move >= 0 ? 'badge--up' : 'badge--down']}>{signedPct(o.move, 1)}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <p class="t-small muted">{whyDiffer}</p>
+
+      <div class="btn-row">
+        <a class="btn btn--secondary btn--sm" href={`/research/${model.slug}`}>Read {model.ticker} report</a>
+        <a class="btn btn--ghost btn--sm" href={`/research/${model.slug}/tear-sheet`}>A4 tear sheet</a>
+      </div>
+    </article>
+  ))}
+</div>
