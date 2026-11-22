@@ -1,47 +1,113 @@
 ---
-// Football field: each method's range (or point) against the share price the model used. Marks are SVG
-// on a 0–1000 scale per row; every label and figure is HTML. Navy bars, a white tick at the base case,
-// the price used as an amber dashed line.
-import { formatOutput, impliedMovePct, outputMethodLabel, type ReferencePrice, type ValuationOutput } from '../../data/valuation-models';
+import {
+  formatOutput,
+  impliedMovePct,
+  outputMethodLabel,
+  type ReferencePrice,
+  type ValuationModel,
+  type ValuationOutput,
+} from '../../data/valuation-models';
 import { formatDate, formatVndK, signedPct } from '../../lib/format';
 
-interface Props { outputs: ValuationOutput[]; reference: ReferencePrice; ticker: string; note?: boolean }
-const { outputs, reference, ticker, note = false } = Astro.props;
+interface Props {
+  outputs?: ValuationOutput[];
+  reference?: ReferencePrice;
+  ticker?: string;
+  note?: boolean;
+  models?: ValuationModel[];
+}
 
-const values = [...outputs.flatMap((o) => [o.low, o.high]), reference.value];
-const lo = Math.min(...values), hi = Math.max(...values);
-const step = [500, 1000, 2000, 2500, 5000, 10000, 20000, 25000, 50000].find((s) => (hi - lo) / s <= 4) ?? 100000;
-const dMin = Math.floor((lo - step * 0.25) / step) * step;
-const dMax = Math.ceil((hi + step * 0.25) / step) * step;
-const ticks: number[] = [];
-for (let t = dMin; t <= dMax + 1e-6; t += step) ticks.push(t);
-const W = 1000;
-const x = (v: number) => ((v - dMin) / (dMax - dMin)) * W;
-const label = (t: number) => (t % 1000 === 0 ? `${t / 1000}k` : formatVndK(t));
-const rows = outputs.map((o) => ({ o, move: impliedMovePct(o, reference), point: o.low === o.high }));
+const { outputs, reference, ticker, models } = Astro.props;
+
+const MIN_PCT = -35;
+const MAX_PCT = 35;
+const SPAN = MAX_PCT - MIN_PCT;
+const toX = (pct: number) => {
+  const clamped = Math.max(MIN_PCT, Math.min(MAX_PCT, pct));
+  return Number((((clamped - MIN_PCT) / SPAN) * 100).toFixed(2));
+};
+const zeroX = toX(0);
+
+const methodColorMap: Record<string, string> = {
+  DCF: 'var(--brand-color-strong)',
+  Comparable: 'var(--scheme-aqua-600)',
+  Precedent: 'var(--scheme-violet-600)',
+  LBO: 'var(--scheme-emerald-600)',
+};
+
+const listModels: ValuationModel[] = models
+  ? models
+  : outputs && reference && ticker
+    ? [
+        {
+          slug: ticker.toLowerCase(),
+          ticker,
+          company: ticker,
+          sector: '',
+          methods: [],
+          referencePrice: reference,
+          outputs,
+          summary: '',
+          conclusion: '',
+          valuationNotes: [],
+          report: {
+            headline: '',
+            stance: '',
+            thesis: [],
+            assumptions: [],
+            valuationResult: [],
+            interpretation: [],
+            risks: [],
+            disclaimer: '',
+          },
+          downloads: [],
+        },
+      ]
+    : [];
+
+const rows = listModels.map((m) => {
+  const moves = m.outputs.map((o) => impliedMovePct(o, m.referencePrice));
+  const low = Math.min(...moves);
+  const high = Math.max(...moves);
+  const bars = m.outputs.map((o, idx) => {
+    const lowPct = ((o.low - m.referencePrice.value) / m.referencePrice.value) * 100;
+    const highPct = ((o.high - m.referencePrice.value) / m.referencePrice.value) * 100;
+    const x1 = toX(Math.min(lowPct, highPct));
+    const x2 = toX(Math.max(lowPct, highPct));
+    return {
+      method: o.method,
+      label: outputMethodLabel[o.method],
+      formatted: formatOutput(o),
+      moveText: signedPct(impliedMovePct(o, m.referencePrice), 1),
+      x: x1,
+      width: Math.max(2.2, Number((x2 - x1).toFixed(2))),
+      y: 4 + idx * 7,
+      color: methodColorMap[o.method] ?? 'var(--brand-color-strong)',
+    };
+  });
+  return {
+    slug: m.slug,
+    ticker: m.ticker,
+    refText: `VND ${formatVndK(m.referencePrice.value)} (${formatDate(m.referencePrice.asOf)})`,
+    spreadText: `${signedPct(low, 0)} to ${signedPct(high, 0)}`,
+    bars,
+  };
+});
 ---
 
-<figure class="sheet">
-  <figcaption class="sheet__head">
-    <span class="t-label">{ticker}, VND per share</span>
-    <span class="t-label muted"><span class="swatch swatch--price"></span> Price used {formatVndK(reference.value)}, {formatDate(reference.asOf)}</span>
-  </figcaption>
-  {rows.map(({ o, move, point }) => (
-    <div class="field__row">
-      <div>
-        <p class="t-label muted">{outputMethodLabel[o.method]}</p>
-        <p class="num">{formatOutput(o)} <span class:list={['t-label', move >= 0 ? 'up' : 'down']}>{signedPct(move, 1)}</span></p>
-      </div>
-      <svg viewBox={`0 0 ${W} 44`} preserveAspectRatio="none" aria-hidden="true">
-        {ticks.map((t) => <line x1={x(t)} x2={x(t)} y1="0" y2="44" class="grid-line" stroke-width="1" vector-effect="non-scaling-stroke" />)}
-        {point
-          ? <line x1={x(o.low)} x2={x(o.low)} y1="10" y2="34" class="bar-point" stroke-width="6" vector-effect="non-scaling-stroke" />
-          : <rect x={x(o.low)} y="14" width={Math.max(x(o.high) - x(o.low), 0)} height="16" rx="1" class="bar" />}
-        {o.base !== undefined && <line x1={x(o.base)} x2={x(o.base)} y1="12" y2="32" class="bar-base" stroke-width="2.5" vector-effect="non-scaling-stroke" />}
-        <line x1={x(reference.value)} x2={x(reference.value)} y1="0" y2="44" class="price-line" stroke-width="2" stroke-dasharray="4 3" vector-effect="non-scaling-stroke" />
+<div class="once-val-rows">
+  {rows.map((row) => (
+    <a href={`/research/${row.slug}`} class="once-val-row">
+      <span class="once-val-ticker">{row.ticker}</span>
+      <svg class="once-val-svg" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true">
+        <line x1={toX(-20)} y1="0" x2={toX(-20)} y2="28" stroke="var(--neutral-alpha-weak)" stroke-width="0.35" />
+        <line x1={zeroX} y1="0" x2={zeroX} y2="28" stroke="var(--scheme-yellow-600)" stroke-width="0.65" />
+        <line x1={toX(20)} y1="0" x2={toX(20)} y2="28" stroke="var(--neutral-alpha-weak)" stroke-width="0.35" />
+        {row.bars.map((bar) => (
+          <rect x={bar.x} y={bar.y} width={bar.width} height="5.5" rx="1.5" fill={bar.color} />
+        ))}
       </svg>
-    </div>
+      <span class="once-val-spread on-brand-weak">{row.spreadText}</span>
+    </a>
   ))}
-  <div class="field__axis t-label" aria-hidden="true"><span></span><div>{ticks.map((t) => <span>{label(t)}</span>)}</div></div>
-  {note && <p class="t-small muted field__note">A white tick inside a bar is the base case; a short heavy bar is a point estimate. Percentages compare each method's base case or midpoint with the {formatVndK(reference.value)} price used on {formatDate(reference.asOf)}.</p>}
-</figure>
+</div>

@@ -1,100 +1,217 @@
 ---
-// Analyst Contact & Recruiting Dossier (/contact)
 import BaseLayout from '../layouts/BaseLayout.astro';
-import DocHead from '../components/ui/DocHead.astro';
-import { valuationModels } from '../data/valuation-models';
-
-const rows = [
-  { label: 'Email', value: 'hnguyenvutruong@gmail.com', href: 'mailto:hnguyenvutruong@gmail.com' },
-  { label: 'Phone', value: '0962220094', href: 'tel:0962220094' },
-  { label: 'LinkedIn', value: 'linkedin.com/in/trghuyy', href: 'https://www.linkedin.com/in/trghuyy/' },
-];
-
-const workbooks = valuationModels.reduce((acc, m) => acc + m.downloads.length, 0);
+import { impliedMovePct, valuationModels } from '../data/valuation-models';
+import { formatDate, formatVndK, signedPct } from '../lib/format';
 ---
 
 <BaseLayout
-  title="Contact Nguyen Vu Truong Huy | Truong Huy Research"
-  description="Contact Nguyen Vu Truong Huy about equity research, capital markets and investment banking internships in Ho Chi Minh City."
+  title="About – Nguyen Vu Truong Huy | Truong Huy Research"
+  description="Meet Nguyen Vu Truong Huy, Equity Research Analyst (Passed CFA Level II, B.A. in Corporate Finance at UEH) based in Ho Chi Minh City."
 >
-  <div class="doc">
-    <DocHead
-      label="Analyst Contact &amp; Recruiting Dossier · Ho Chi Minh City"
-      title="Contact Nguyen Vu Truong Huy"
-      lead="Open to equity research, investment banking, and capital markets opportunities in Ho Chi Minh City. Questions or technical discussions regarding any valuation model, Excel workbook, or market note on this site are always welcome."
-      back={{ href: '/', label: 'Home' }}
-    >
-      <div class="btn-row">
-        <a class="btn btn--primary" href="/cv.pdf" target="_blank" rel="noopener">
-          Download the CV (PDF)
-        </a>
-        <a class="btn btn--secondary" href="mailto:hnguyenvutruong@gmail.com">
-          Send Direct Email
-        </a>
-        <a class="btn btn--ghost" href="https://www.linkedin.com/in/trghuyy/" target="_blank" rel="noopener">
-          LinkedIn Profile
-        </a>
-      </div>
+  <!-- Fixed Left Table of Contents (magic-portfolio/src/components/about/TableOfContents.tsx) -->
+  <nav class="once-about-toc" aria-label="About page sections">
+    <a class="once-toc-link" href="#Introduction">
+      <span class="once-toc-dash" aria-hidden="true"></span>
+      <span>Introduction</span>
+    </a>
+    <a class="once-toc-link" href="#Research-Coverage">
+      <span class="once-toc-dash" aria-hidden="true"></span>
+      <span>Work Experience</span>
+    </a>
+    <a class="once-toc-link" href="#Studies">
+      <span class="once-toc-dash" aria-hidden="true"></span>
+      <span>Studies</span>
+    </a>
+    <a class="once-toc-link" href="#Technical-Skills">
+      <span class="once-toc-dash" aria-hidden="true"></span>
+      <span>Technical skills</span>
+    </a>
+  </nav>
 
-      <dl slot="aside" class="facts contact">
-        {rows.map((r) => (
-          <div>
-            <dt>{r.label}</dt>
-            <dd>
-              <a class="link" href={r.href} target={r.href.startsWith('http') ? '_blank' : undefined} rel={r.href.startsWith('http') ? 'noopener' : undefined}>
-                {r.value}
-              </a>
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </DocHead>
+  <div class="once-col-m">
+    <div class="once-about-row">
+      <!-- Left Sticky Avatar Column (magic-portfolio/src/app/about/page.tsx lines 84-112) -->
+      <aside class="once-about-avatar-col" data-reveal>
+        <div class="once-avatar once-avatar-xl" aria-label="Nguyen Vu Truong Huy">TH</div>
 
-    <section class="ground-surface" aria-label="Candidate credentials and portfolio summary">
-      <div class="wrap grid">
-        <div class="span-6 sheet sheet--accent stack-4">
-          <span class="eyebrow">Academic &amp; Professional Profile</span>
-          <h2 class="t-h3">Credentials &amp; Technical Preparation</h2>
-          <dl class="facts">
-            <div>
-              <dt>CFA Program</dt>
-              <dd>Passed Level II of the CFA Program</dd>
-            </div>
-            <div>
-              <dt>Education</dt>
-              <dd>University of Economics Ho Chi Minh City (UEH) — Finance &amp; Banking (GPA 3.64 / 4.00)</dd>
-            </div>
-            <div>
-              <dt>Experience</dt>
-              <dd>Hoan Loc Viet — Financial data, corporate reporting &amp; analysis workflows</dd>
-            </div>
-            <div>
-              <dt>Modeling Tools</dt>
-              <dd class="mono">Excel (DCF / Comps / Precedent / LBO) · Power BI · Stata · Python</dd>
-            </div>
-          </dl>
+        <div class="once-post-author body-default-s">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--brand-on-background-weak)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+            <path d="M2 12h20" />
+          </svg>
+          <span>Asia/Ho_Chi_Minh</span>
         </div>
 
-        <div class="span-6 sheet sheet--accent stack-4">
-          <span class="eyebrow">Portfolio Work Samples</span>
-          <h2 class="t-h3">Quick Inspection Links for Recruiters</h2>
-          <p class="t-small secondary">
-            Every valuation report includes an auditable Excel workbook ({workbooks} total files) and a printable one-page A4 tear sheet:
+        <div class="once-project-tags">
+          <span class="once-tag">English</span>
+          <span class="once-tag">Vietnamese</span>
+          <span class="once-tag once-tag-brand">CFA Level II</span>
+        </div>
+      </aside>
+
+      <!-- Right Content Column (magic-portfolio/src/app/about/page.tsx lines 114-342) -->
+      <div class="once-about-main-col">
+        <section id="Introduction" data-reveal>
+          <a class="once-schedule-pill" href="/cv.pdf" target="_blank" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--brand-on-background-weak)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+              <line x1="16" x2="16" y1="2" y2="6" />
+              <line x1="8" x2="8" y1="2" y2="6" />
+              <line x1="3" x2="21" y1="10" y2="10" />
+            </svg>
+            <span>Schedule a call / Download CV</span>
+            <span class="once-schedule-icon-btn" aria-hidden="true">→</span>
+          </a>
+
+          <h1 class="display-strong-xl">Nguyen Vu Truong Huy</h1>
+          <p class="display-default-xs on-neutral-weak">
+            Equity Research Analyst · Passed CFA Level II
           </p>
-          <ul class="rows">
-            {valuationModels.map((m) => (
-              <li>
-                <a class="rows__name link" href={`/research/${m.slug}`}>
-                  <span class="mono">{m.ticker}</span> — {m.company} ({m.methods.join(', ')})
-                </a>
-                <a class="rows__value t-label link" href={`/research/${m.slug}/tear-sheet`}>
-                  A4 Tear Sheet →
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
+
+          <div class="once-project-tags">
+            <a class="once-btn once-btn-s once-btn-secondary" href="https://github.com/hnguyenvutruong-maker/truonghuyresearch" target="_blank" rel="noopener">
+              <span>GitHub</span>
+            </a>
+            <a class="once-btn once-btn-s once-btn-secondary" href="https://www.linkedin.com/in/trghuyy/" target="_blank" rel="noopener">
+              <span>LinkedIn</span>
+            </a>
+            <a class="once-btn once-btn-s once-btn-secondary" href="mailto:hnguyenvutruong@gmail.com">
+              <span>Email</span>
+            </a>
+            <a class="once-btn once-btn-s once-btn-secondary" href="/cv.pdf" target="_blank" rel="noopener">
+              <span>CV (PDF)</span>
+            </a>
+            <a class="once-btn once-btn-s once-btn-secondary" href="tel:0962220094">
+              <span>0962220094</span>
+            </a>
+          </div>
+
+          <p class="body-default-l on-neutral-medium">
+            Truong Huy is a Ho Chi Minh City-based finance graduate from the University of Economics Ho Chi Minh City (UEH) who has passed Level II of the CFA Program. His work transforms complex Vietnamese corporate disclosures and macro data into transparent, cell-by-cell auditable valuation models across FCFF DCF, trading comparables, precedent transactions, and sponsor LBOs.
+          </p>
+        </section>
+
+        <!-- Work Experience / Research Coverage -->
+        <section id="Research-Coverage" data-reveal>
+          <h2 class="display-strong-s">Work Experience &amp; Coverage</h2>
+
+          <div class="once-val-rows">
+            {valuationModels.map((m) => {
+              const moves = m.outputs.map((o) => impliedMovePct(o, m.referencePrice));
+              const low = Math.min(...moves);
+              const high = Math.max(...moves);
+              return (
+                <div class="once-surface-card">
+                  <div class="once-Slide-header">
+                    <a href={`/research/${m.slug}`} class="heading-strong-l">
+                      {m.ticker} — {m.company}
+                    </a>
+                    <span class="heading-default-xs on-neutral-weak">
+                      Ref {formatDate(m.referencePrice.asOf)} · VND {formatVndK(m.referencePrice.value)}
+                    </span>
+                  </div>
+                  <p class="body-default-s on-brand-weak">
+                    {m.sector} · {m.methods.join(' + ')} · Implied Move: {signedPct(low, 0)} to {signedPct(high, 0)}
+                  </p>
+                  <p class="body-default-m on-neutral-medium">
+                    {m.report.headline} {m.summary}
+                  </p>
+                  <div class="once-project-links">
+                    <a class="once-smart-link" href={`/research/${m.slug}`}>
+                      <span>Read case study</span>
+                      <span class="once-arrow-icon" aria-hidden="true">→</span>
+                    </a>
+                    <a class="once-smart-link" href={`/research/${m.slug}/tear-sheet`}>
+                      <span>Printable A4 Tear Sheet</span>
+                      <span class="once-arrow-icon" aria-hidden="true">↗</span>
+                    </a>
+                    {m.downloads.map((d) => (
+                      <a class="once-smart-link" href={d.href} download>
+                        <span>{d.label} ({d.format})</span>
+                        <span class="once-arrow-icon" aria-hidden="true">↓</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <!-- Studies -->
+        <section id="Studies" data-reveal>
+          <h2 class="display-strong-s">Studies</h2>
+
+          <div class="once-val-rows">
+            <div class="once-surface-card">
+              <div class="once-Slide-header">
+                <h3 class="heading-strong-l">CFA Institute</h3>
+                <span class="heading-default-xs on-brand-weak">Passed Level II</span>
+              </div>
+              <p class="body-default-m on-neutral-weak">
+                Passed Level I and Level II of the CFA Program covering equity valuation, financial reporting and analysis, corporate issuers, fixed income, derivatives, and portfolio management.
+              </p>
+            </div>
+
+            <div class="once-surface-card">
+              <div class="once-Slide-header">
+                <h3 class="heading-strong-l">University of Economics Ho Chi Minh City (UEH)</h3>
+                <span class="heading-default-xs on-neutral-weak">B.A. in Corporate Finance</span>
+              </div>
+              <p class="body-default-m on-neutral-weak">
+                Studied corporate finance, capital budgeting, financial statement analysis, and Vietnamese capital markets.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Technical Skills -->
+        <section id="Technical-Skills" data-reveal>
+          <h2 class="display-strong-s">Technical skills</h2>
+
+          <div class="once-val-rows">
+            <div class="once-surface-card">
+              <h3 class="heading-strong-l">Intrinsic FCFF Discounted Cash Flow</h3>
+              <p class="body-default-m on-neutral-weak">
+                5-year explicit revenue, margin, working-capital, and capex schedules with WACC build-up, terminal value cross-checks, and 5×5 sensitivity matrices.
+              </p>
+              <div class="once-project-tags">
+                <span class="once-tag once-tag-brand">FCFF DCF</span>
+                <span class="once-tag">WACC Build</span>
+                <span class="once-tag">HPG</span>
+                <span class="once-tag">FPT</span>
+              </div>
+            </div>
+
+            <div class="once-surface-card">
+              <h3 class="heading-strong-l">Public Comparables &amp; Precedent Transactions</h3>
+              <p class="body-default-m on-neutral-weak">
+                Normalized peer P/E, EV/EBITDA, and P/B multiple distributions alongside historical M&amp;A control transaction benchmarks.
+              </p>
+              <div class="once-project-tags">
+                <span class="once-tag once-tag-brand">Trading Multiples</span>
+                <span class="once-tag">M&amp;A Precedents</span>
+                <span class="once-tag">BID</span>
+                <span class="once-tag">PNJ</span>
+                <span class="once-tag">BMP</span>
+              </div>
+            </div>
+
+            <div class="once-surface-card">
+              <h3 class="heading-strong-l">Sponsor LBO &amp; VN-Index Market Telemetry</h3>
+              <p class="body-default-m on-neutral-weak">
+                5-year debt sweep and IRR floor modeling paired with weekly VN-Index technical structure and 109-session HOSE foreign flow tracking.
+              </p>
+              <div class="once-project-tags">
+                <span class="once-tag once-tag-brand">Sponsor LBO</span>
+                <span class="once-tag">HOSE Foreign Flow</span>
+                <span class="once-tag">27 Market Notes</span>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
-    </section>
+    </div>
   </div>
 </BaseLayout>

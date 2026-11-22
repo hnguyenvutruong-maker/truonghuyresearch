@@ -1,90 +1,40 @@
 ---
-// CoverageStrip: displays every covered company on a unified scale of implied move against
-// the reference price its model used. One lane per valuation method, amber line at 0%.
-import Ticker from './Ticker.astro';
-import { impliedMovePct, outputMethodLabel, valuationModels, type OutputMethod } from '../../data/valuation-models';
-import { formatDate, signedPct } from '../../lib/format';
+import { impliedMovePct, valuationModels } from '../../data/valuation-models';
+import { signedPct } from '../../lib/format';
 
-const methods: Array<{ id: OutputMethod; cls: string; label: string }> = [
-  { id: 'DCF', cls: 'lane-dcf', label: 'Intrinsic DCF' },
-  { id: 'Comparable', cls: 'lane-comps', label: 'Comparables' },
-  { id: 'Precedent', cls: 'lane-prec', label: 'Precedent' },
-  { id: 'LBO', cls: 'lane-lbo', label: 'Sponsor LBO' },
-];
+interface Props {
+  current?: string;
+  activeSlug?: string;
+}
 
-const rows = valuationModels.map((model) => {
-  const ref = model.referencePrice.value;
-  const lanes = methods.flatMap((m) => {
-    const o = model.outputs.find((item) => item.method === m.id);
-    return o ? [{ ...m, low: o.low / ref - 1, high: o.high / ref - 1, point: o.low === o.high }] : [];
-  });
+const { current, activeSlug } = Astro.props;
+const active = current ?? activeSlug;
+
+const items = valuationModels.map((model) => {
   const moves = model.outputs.map((o) => impliedMovePct(o, model.referencePrice));
-  return { model, lanes, low: Math.min(...moves), high: Math.max(...moves) };
+  const low = Math.min(...moves);
+  const high = Math.max(...moves);
+  return {
+    slug: model.slug,
+    ticker: model.ticker,
+    company: model.company,
+    moveText: `${signedPct(low, 0)} / ${signedPct(high, 0)}`,
+  };
 });
-
-const all = rows.flatMap((r) => r.lanes.flatMap((l) => [l.low, l.high]));
-const dMin = Math.min(-0.2, Math.floor((Math.min(...all) - 0.05) * 10) / 10);
-const dMax = Math.max(0.2, Math.ceil((Math.max(...all) + 0.05) * 10) / 10);
-const W = 1000;
-const x = (v: number) => ((v - dMin) / (dMax - dMin)) * W;
-const ticks: number[] = [];
-for (let t = Math.ceil(dMin * 10) / 10; t <= dMax + 1e-9; t += 0.2) ticks.push(Math.round(t * 10) / 10);
-const LH = 9, GAP = 4;
 ---
 
-<figure class="sheet sheet--accent">
-  <figcaption class="sheet__head">
-    <span class="eyebrow">Valuation Distribution · Implied Move vs. Price Used</span>
-    <span class="mono t-label muted">Ref. Prices: {formatDate(valuationModels[0].referencePrice.asOf)}</span>
-  </figcaption>
-
-  <ul class="strip">
-    {rows.map((row) => {
-      const h = row.lanes.length * (LH + GAP);
-      return (
-        <li>
-          <a href={`/research/${row.model.slug}`}>
-            <Ticker label={row.model.ticker} />
-            <svg viewBox={`0 0 ${W} ${h}`} preserveAspectRatio="none" height={h} aria-hidden="true">
-              {ticks.map((t) => <line x1={x(t)} x2={x(t)} y1="0" y2={h} class="grid-line" stroke-width="1" vector-effect="non-scaling-stroke" />)}
-              {row.lanes.map((l, i) => (
-                <rect x={l.point ? x(l.low) - 4 : x(l.low)} y={i * (LH + GAP)} width={l.point ? 8 : Math.max(x(l.high) - x(l.low), 6)} height={LH} rx="1" class={l.cls} />
-              ))}
-              <line x1={x(0)} x2={x(0)} y1="-4" y2={h + 2} class="price-line" stroke-width="2" vector-effect="non-scaling-stroke" />
-            </svg>
-            <span class="strip__range num">
-              <span class:list={[row.low >= 0 ? 'up' : 'down']}>{signedPct(row.low, 0)}</span>
-              <span class="muted"> to </span>
-              <span class:list={[row.high >= 0 ? 'up' : 'down']}>{signedPct(row.high, 0)}</span>
-            </span>
-            <span class="sr-only">
-              {row.model.company}: {row.lanes.map((l) => `${outputMethodLabel[l.id]} ${signedPct(l.low * 100, 0)}${l.point ? '' : ` to ${signedPct(l.high * 100, 0)}`}`).join('; ')}. Open the report.
-            </span>
-          </a>
-        </li>
-      );
-    })}
-  </ul>
-
-  <div class="strip__axis" aria-hidden="true">
-    <span></span>
-    <div>
-      {ticks.map((t, i) => (
-        <span class:list={[i > 0 && i < ticks.length - 1 && 'mid']}>
-          {t === 0 ? '0%' : `${t > 0 ? '+' : '−'}${Math.abs(t * 100).toFixed(0)}%`}
-        </span>
-      ))}
-    </div>
-    <span></span>
-  </div>
-
-  <ul class="legend">
-    {methods.map((m) => (
-      <li>
-        <span class:list={['swatch', `swatch--${m.cls.replace('lane-', '')}`]}></span>
-        {m.label}
-      </li>
+<nav class="coverage-subbar no-print" aria-label="Covered companies">
+  <div class="coverage-subbar-inner">
+    {items.map((item) => (
+      <a
+        href={`/research/${item.slug}`}
+        class:list={['coverage-pill', active === item.slug && 'is-active']}
+        aria-current={active === item.slug ? 'page' : undefined}
+      >
+        <span class="coverage-pill-ticker">{item.ticker}</span>
+        <span class="coverage-pill-name">{item.company}</span>
+        <span class="coverage-pill-move">{item.moveText}</span>
+      </a>
     ))}
-    <li><span class="swatch swatch--price"></span>Price Used (0%)</li>
-  </ul>
-</figure>
+  </div>
+</nav>

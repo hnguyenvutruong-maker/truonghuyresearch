@@ -1,21 +1,40 @@
-# Design System (Master): Fey × Mercury × Koyfin Financial UI & `transitions.dev` Motion
+# Truong Huy Research — Design System Master (`@once-ui-system/magic-portfolio` v2.3.0)
 
-The source of truth for the visual and interaction architecture of **Truong Huy Research** (`truonghuyresearch.xyz`).
+## 1. Aesthetic & Architecture
+- **Reference Benchmark**: [`once-ui-system/magic-portfolio`](https://github.com/once-ui-system/magic-portfolio) built on `@once-ui-system/core` v2.1.0 OKLCH tokens (`src/styles/once-ui-tokens.css` & `src/styles/site.css`).
+- **Root Configuration (`<html>`)**:
+  - `data-theme="dark"` (default) | `data-theme="light"` (toggleable via View Transitions)
+  - `data-neutral="gray"` (`oklch(0.1448 0 0)` `#0a0a0a` page canvas in dark mode)
+  - `data-brand="cyan"`
+  - `data-accent="red"`
+  - `data-solid="contrast"`
+  - `data-solid-style="flat"`
+  - `data-border="playful"`
+  - `data-surface="translucent"` (`backdrop-filter: blur(1rem)`)
+  - `data-transition="all"`
+  - `data-scaling="100"`
+- **Typography**:
+  - `--font-heading`, `--font-body`, `--font-label`: **Geist Sans** (`@fontsource/geist-sans`)
+  - `--font-code`: **Geist Mono** (`@fontsource/geist-mono`) with `font-variant-numeric: tabular-nums`
 
-## 1. Benchmarks & Skills Applied
-
-1. **Fey (`fey.com`) & Koyfin (`DIXI 10 Rules`):**
-   - **Obsidian Dark Mode Default (`html[data-theme="dark"]`):** Deep obsidian canvas (`#070A10`), glass-lit elevated bento surfaces (`#0F1522` with `inset 0 1px 0 rgba(255, 255, 255, 0.07)` top inner rim light and `1px solid rgba(255, 255, 255, 0.09)` borders), radial ambient sapphire glow behind the hero stage, and luminous signal colors (`#10B981` emerald gain, `#F43F5E` rose loss, `#F59E0B` amber reference marker).
-2. **Mercury (`mercury.com` / `getdesign.md/mercury`):**
-   - **Mercury Daylight Mode (`html[data-theme="light"]`):** Instant theme switcher in the floating glass navbar (`startViewTransition` theme morphing) switching to `#F5F7FB` cool alabaster canvas and `#FFFFFF` cards with multi-layered material shadows.
-   - **Floating Pill Navigation & Tactile Controls:** Pill-shaped navigation track (`.nav__links`), electric cobalt primary action pill (`#3B6BFF`), and tactile press scaling (`scale(0.975)`).
-3. **`transitions.dev` (`Jakubantalik/transitions.dev`) Motion Architecture:**
-   - **Motion Tokens:** `--duration-stagger: 45ms`, `--duration-micro: 90ms`, `--duration-quick: 160ms`, `--duration-fast: 250ms`, `--duration-medium: 340ms`, `--duration-slow: 440ms`, `--ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1)`, `--ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1)`.
-   - **Cross-Document View Transitions (`@view-transition { navigation: auto; }`):** Smooth cross-blur + vertical glide (`::view-transition-old(page-stage)` / `::view-transition-new(page-stage)`) across page navigations, paired with hover link prefetching and a top route progress indicator.
-   - **Cross-Blur Panel Morphing (`.panel-stack > .panel-item`, `07-panel-reveal`):** Tabbed views (Home Company Valuation Desk, HOSE Foreign Flow windows, Macro Thesis tabs) overlap in a CSS grid stack and cross-blur smoothly (`opacity`, `filter: blur(4px)`, `translateY(8px)`) with animated SVG bar scaling instead of harsh `display: none` snapping.
-   - **Staggered Scroll-Reveal (`[data-reveal]`, `18-texts-reveal`):** Cards, charts, and sections glide into focus via `IntersectionObserver`.
-4. **`unslop-ui` (`felipebasurto/unslop-ui`) Anti-Slop Discipline:**
-   - Zero decorative `01 ·`, `02 ·` section numbering (Rule U2).
-   - Zero redundant stacked uppercase eyebrows over every heading and card (Rule U1).
-   - Zero botsplaining or reading instructions ("Hover or click any cell...", Rule U4/U13).
-   - Zero fake pulsing "LIVE" dots (Rule U10) or heavy `2px` black top bars on every card (Rule U15).
+## 2. Signature Once UI Magic Portfolio Components
+1. **Ambient `<Background>` & `<Fade>` (`BaseLayout.astro`)**:
+   - Top & bottom fixed `<Fade>` edge blur masks (`backdrop-filter: blur(0.5rem)`).
+   - Full-viewport radial-masked `<Background>` combining a top-centered cyan radial glow (`.once-bg-gradient`) and a 16px brand dot matrix (`.once-bg-dots`, `opacity: 0.42`).
+2. **Floating Dock `<Header>` (`SiteHeader.astro`)**:
+   - Left: `Asia/Ho_Chi_Minh` location indicator.
+   - Center: Translucent pill dock (`.once-dock`) with icon+label `ToggleButton`s (`Home`, `About`, `Work`, `Blog`, `Models`), vertical dividers (`.once-dock-divider`), `⌘K` Command Search trigger, and `ThemeToggle`.
+   - Right: Live ticking 24-hour clock (`[data-once-clock]`) in `Asia/Ho_Chi_Minh`.
+   - Mobile (`max-width: 768px`): Dock floats at the bottom above the home indicator.
+3. **Centered Display Hero & Shimmer `<Badge>` (`index.astro`)**:
+   - Continuous diagonal shimmer `<Badge>` (`onceShineDefault` / `onceShineHover`).
+   - `display-strong-l` (`4rem`) balanced headline + `heading-default-xl` (`1.5rem`) subline.
+   - Rounded pill `<Button id="about">` with embedded circular `<Avatar>` (`TH`) and animated right arrow (`→`).
+4. **Interactive Multi-Slide `<ProjectCard>` (`index.astro`, `research.astro`)**:
+   - Cross-blur `<Carousel>` (`[data-once-carousel]`) with 2px horizontal line indicators (`.once-carousel-indicators`) and a 5:7 split row below (`flex: 5` title, `flex: 7` tags + summary + `SmartLink` actions).
+5. **Offset `<Line>` Blog Split & `<Newsletter>` Surface (`index.astro`, `market-views/index.astro`)**:
+   - 1:3 split section framed by offset horizontal `<Line>` dividers, pairing `"Latest from the blog"` with a 2-column grid of `<Post>` cards (with author `<Avatar size="s">` + date + title + tag).
+   - Masked `<Newsletter>` callout surface with internal radial gradient + dot matrix.
+6. **Sticky Avatar & Fixed Left `<TableOfContents>` About Page (`contact.astro`)**:
+   - Fixed left `<TableOfContents>` with 16px horizontal dash indicators that slide right on hover.
+   - Sticky left column with `160px` circular `<Avatar size="xl">`, timezone globe row, and language/CFA tags; right column with schedule pill, `display-strong-xl` name, social buttons, and structured experience/studies/technical sections.

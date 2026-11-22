@@ -1,99 +1,120 @@
 ---
-// Floating Glass Header (Fey / Mercury pill navigation + Command Palette trigger + Day/Night Theme Toggle)
-const links = [
-  { label: 'Overview', href: '/', match: (p: string) => p === '/' },
-  { label: 'Research', href: '/research', match: (p: string) => p.startsWith('/research') && !/^\/research\/(dcf|comparable|precedent)/.test(p) },
-  { label: 'Methods', href: '/research/dcf', match: (p: string) => /^\/research\/(dcf|comparable|precedent)/.test(p) },
-  { label: 'Market Notes', href: '/market-views', match: (p: string) => p.startsWith('/market-views') || p.startsWith('/monthly-views') },
-  { label: 'Contact', href: '/contact', match: (p: string) => p.startsWith('/contact') },
-];
-
-const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+const pathname = Astro.url.pathname;
+const isHome = pathname === '/';
+const isAbout = pathname.startsWith('/contact');
+const isMethods =
+  pathname.startsWith('/research/dcf') ||
+  pathname.startsWith('/research/comparable-analysis') ||
+  pathname.startsWith('/research/precedent-transactions-lbo');
+const isResearch = pathname.startsWith('/research') && !isMethods;
+const isMarketNotes = pathname.startsWith('/market-views') || pathname.startsWith('/monthly-views');
 ---
 
-<header class="site-header no-print">
-  <div class="wrap nav__bar">
-    <a class="skip-link" href="#top">Skip to content</a>
+<header class="once-header no-print" data-border="rounded">
+  <div class="once-header-left">
+    <span>Asia/Ho_Chi_Minh</span>
+  </div>
 
-    <a class="brand-lockup" href="/">
-      <span class="brand-monogram" aria-hidden="true">TH</span>
-      <span class="brand-text">
-        <span class="brand-name">Truong Huy Research</span>
-        <span class="brand-sub">Vietnam Equities · CFA L2 Passed</span>
-      </span>
-    </a>
-
-    <nav class="nav__links" aria-label="Main navigation">
-      {links.map((link) => (
-        <a class="nav__link" href={link.href} aria-current={link.match(path) ? 'page' : undefined}>
-          {link.label}
-        </a>
-      ))}
-    </nav>
-
-    <div class="nav__actions">
-      <button type="button" class="cmd-trigger" data-cmd-open aria-label="Search tickers, methods, and market notes (Ctrl+K)">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-          <circle cx="7" cy="7" r="4.8" />
-          <path d="M10.6 10.6 14 14" stroke-linecap="round" />
+  <div class="once-header-center">
+    <nav class="once-dock" aria-label="Primary navigation">
+      <a
+        class:list={['once-toggle-btn', 'is-icon-only', isHome && 'is-selected']}
+        href="/"
+        aria-label="Home"
+        aria-current={isHome ? 'page' : undefined}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
         </svg>
-        <span>Search</span>
-        <kbd class="cmd-kbd">⌘K</kbd>
+      </a>
+
+      <span class="once-dock-divider" aria-hidden="true"></span>
+
+      <a
+        class:list={['once-toggle-btn', isAbout && 'is-selected']}
+        href="/contact"
+        aria-current={isAbout ? 'page' : undefined}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M20 21a8 8 0 0 0-16 0" />
+        </svg>
+        <span class="once-toggle-label">About</span>
+      </a>
+
+      <a
+        class:list={['once-toggle-btn', isResearch && 'is-selected']}
+        href="/research"
+        aria-current={isResearch ? 'page' : undefined}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect width="7" height="7" x="3" y="3" rx="1" />
+          <rect width="7" height="7" x="14" y="3" rx="1" />
+          <rect width="7" height="7" x="14" y="14" rx="1" />
+          <rect width="7" height="7" x="3" y="14" rx="1" />
+        </svg>
+        <span class="once-toggle-label">Work</span>
+      </a>
+
+      <a
+        class:list={['once-toggle-btn', isMarketNotes && 'is-selected']}
+        href="/market-views"
+        aria-current={isMarketNotes ? 'page' : undefined}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+        </svg>
+        <span class="once-toggle-label">Blog</span>
+      </a>
+
+      <a
+        class:list={['once-toggle-btn', isMethods && 'is-selected']}
+        href="/research/dcf"
+        aria-current={isMethods ? 'page' : undefined}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect width="18" height="18" x="3" y="3" rx="2" />
+          <path d="M3 9h18" />
+          <path d="M9 21V9" />
+        </svg>
+        <span class="once-toggle-label">Models</span>
+      </a>
+
+      <span class="once-dock-divider" aria-hidden="true"></span>
+
+      <button
+        type="button"
+        class="once-toggle-btn is-icon-only"
+        data-cmd-open
+        aria-label="Search research, tickers, and models (Command+K)"
+        title="Search (⌘K)"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.5-3.5" />
+        </svg>
       </button>
 
-      <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch between dark and light theme" title="Toggle Dark / Light Theme">
-        <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="4.5" />
-          <path d="M12 2v2.5M12 19.5V22M4.93 4.93l1.77 1.77M17.3 17.3l1.77 1.77M2 12h2.5M19.5 12H22M4.93 19.07l1.77-1.77M17.3 6.7l1.77-1.77" />
+      <button
+        type="button"
+        class="once-toggle-btn is-icon-only"
+        data-theme-toggle
+        aria-label="Toggle color theme"
+        title="Switch theme"
+      >
+        <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
         </svg>
-        <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
         </svg>
       </button>
-
-      <a class="btn btn--primary btn--sm nav__cv-desktop" href="/cv.pdf" target="_blank" rel="noopener">
-        Download CV
-      </a>
-
-      <button class="nav__toggle" type="button" data-mobile-toggle aria-expanded="false" aria-controls="mobile-nav-drawer" aria-label="Toggle navigation menu">
-        <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
-          <path d="M2.5 5h13M2.5 9h13M2.5 13h13" />
-        </svg>
-      </button>
-    </div>
+    </nav>
   </div>
 
-  <div class="mobile-drawer" id="mobile-nav-drawer" hidden>
-    <nav class="mobile-drawer__nav" aria-label="Mobile navigation">
-      {links.map((link) => (
-        <a class="mobile-drawer__link" href={link.href} aria-current={link.match(path) ? 'page' : undefined}>
-          <span>{link.label}</span>
-          <span class="mono muted" aria-hidden="true">→</span>
-        </a>
-      ))}
-    </nav>
-    <div class="btn-row">
-      <a class="btn btn--primary btn--sm" href="/cv.pdf" target="_blank" rel="noopener">Download CV (PDF)</a>
-      <button type="button" class="btn btn--secondary btn--sm" data-cmd-open>Search Reports &amp; Notes</button>
-    </div>
+  <div class="once-header-right">
+    <span data-once-clock>16:45:00</span>
   </div>
 </header>
-
-<script>
-  const toggleBtn = document.querySelector<HTMLButtonElement>('[data-mobile-toggle]');
-  const drawer = document.getElementById('mobile-nav-drawer');
-
-  toggleBtn?.addEventListener('click', () => {
-    if (!drawer) return;
-    const isOpen = !drawer.hidden;
-    drawer.hidden = isOpen;
-    toggleBtn.setAttribute('aria-expanded', String(!isOpen));
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && drawer && !drawer.hidden) {
-      drawer.hidden = true;
-      toggleBtn?.setAttribute('aria-expanded', 'false');
-    }
-  });
-</script>

@@ -1,12 +1,7 @@
 ---
-// MarketNote reader: features CSP-safe reading progress bar, VN-Index & Cross-Asset Scorecard
-// with diverging SVG bars, session telemetry strip, daily candlestick chart, sticky TOC with
-// active section spy, and keyboard-enabled prev/next note pagination.
 import type { MarkdownHeading } from 'astro';
-import Disclaimer from './Disclaimer.astro';
-import DocHead from './DocHead.astro';
 import VnIndexChart from './VnIndexChart.astro';
-import { formatIndex, formatNumber, signedNumber, signedPct } from '../../lib/format';
+import { formatDate, formatIndex, formatNumber, signedNumber, signedPct } from '../../lib/format';
 import type { NoteSummary } from '../../lib/notes';
 
 interface Props {
@@ -18,257 +13,131 @@ interface Props {
 }
 
 const { note, headings, prev, next, listHref } = Astro.props;
-const unit = note.kind === 'Weekly' ? 'week' : 'month';
-const toc = headings.filter((h) => h.depth === 2);
-const legacy = note.kind === 'Weekly' && note.date < new Date('2026-10-01T00:00:00Z');
-const basis = legacy
-  ? "In notes before October 2026 these cross-asset changes may reflect the final session's move rather than week-on-week (a historical calculation rule since updated)."
-  : `All changes are ${unit}-on-${unit}.`;
-const tone = (v: number | null) => (v == null ? 'muted' : v >= 0 ? 'up' : 'down');
-
-const figures = [
-  { label: 'VN-Index Open', value: formatIndex(note.open) },
-  { label: 'Period High', value: formatIndex(note.high) },
-  { label: 'Period Low', value: formatIndex(note.low) },
-  { label: 'Avg Daily Liquidity', value: `${formatNumber(note.liquidity, 0)} bn VND` },
-  {
-    label: 'Foreign Net Flow',
-    value: note.foreignNet != null ? `${signedNumber(note.foreignNet)} bn VND` : 'Not collected',
-    tone: tone(note.foreignNet),
-  },
-  ...(note.foreignBuy != null && note.foreignSell != null
-    ? [
-        {
-          label: 'Foreign Buy / Sell',
-          value: `${formatNumber(note.foreignBuy, 0)} / ${formatNumber(note.foreignSell, 0)} bn`,
-        },
-      ]
-    : []),
-  ...note.extras,
-];
+const tocHeadings = headings.filter((h) => h.depth === 2);
 ---
 
-<progress class="read-progress no-print" data-read-progress value="0" max="100" aria-label="Article reading progress"></progress>
+<div class="note-progress-track no-print" aria-hidden="true">
+  <progress class="note-progress-bar" data-reading-progress value="0" max="100"></progress>
+</div>
 
-<div class="doc" data-note-reader data-prev-href={prev?.href} data-next-href={next?.href}>
-  <DocHead
-    label={`${note.kind} Market Intelligence · ${note.period}`}
-    title={note.headline}
-    back={{ href: listHref, label: 'All Market Notes' }}
-  >
-    <dl slot="aside" class="facts">
-      <div>
-        <dt>VN-Index Close</dt>
-        <dd class="num t-h3">{formatIndex(note.close)}</dd>
-      </div>
-      <div>
-        <dt>{note.kind} Change</dt>
-        <dd class:list={['num', tone(note.change)]}>
-          <span class:list={['badge', note.change >= 0 ? 'badge--up' : 'badge--down']}>{signedPct(note.change)}</span>
-        </dd>
-      </div>
-      <div>
-        <dt>Session Tone</dt>
-        <dd class="mono">{note.tone.toUpperCase()}</dd>
-      </div>
-      <div>
-        <dt>Foreign Net</dt>
-        <dd class:list={['num', tone(note.foreignNet)]}>
-          {note.foreignNet != null ? `${signedNumber(note.foreignNet)} bn VND` : 'Not collected'}
-        </dd>
-      </div>
-    </dl>
-  </DocHead>
+<!-- Once UI Blog Post Layout (magic-portfolio/src/app/blog/[slug]/page.tsx) -->
+<div class="once-article-layout">
+  <header class="once-article-header" data-reveal>
+    <a class="once-smart-link" href={listHref}>
+      <span class="label-strong-m on-brand-weak">← {note.kind} Market Notes</span>
+    </a>
+    <span class="body-default-xs on-neutral-weak">
+      {formatDate(note.date)} · {note.period}
+    </span>
+    <h1 class="display-strong-m">{note.headline}</h1>
 
-  <section class="ground-surface" aria-label="Session telemetry and cross-asset snapshot">
-    <div class="wrap stack-5">
-      <div class="stack-2">
-        <p class="eyebrow">VN-Index Period Telemetry ({note.period})</p>
-        <dl class="flow-kpi-grid">
-          {figures.map((f) => (
-            <div class="flow-kpi">
-              <dt>{f.label}</dt>
-              <dd class:list={['num', 'tone' in f ? f.tone : '']}>{f.value}</dd>
-            </div>
-          ))}
-        </dl>
+    <div class="once-post-author-row">
+      <div class="once-post-author">
+        <span class="once-avatar once-avatar-s" aria-hidden="true">TH</span>
+        <span class="label-default-s on-brand-weak">Nguyen Vu Truong Huy · CFA Level II Passed</span>
       </div>
-
-      <div class="stack-2">
-        <p class="eyebrow">Global Cross-Asset Dashboard ({unit}-on-{unit})</p>
-        <div class="macro-strip">
-          {note.macro.map((m) => {
-            const pct = Math.max(-8, Math.min(8, m.change ?? 0));
-            const w = Number(((Math.abs(pct) / 8) * 46).toFixed(2));
-            const x = Number((pct >= 0 ? 50 : 50 - w).toFixed(2));
-            return (
-              <div class="macro-card">
-                <div class="macro-card__top">
-                  <span class="eyebrow">{m.label}</span>
-                  <span class:list={['badge', m.change == null ? '' : m.change >= 0 ? 'badge--up' : 'badge--down']}>
-                    {signedPct(m.change)}
-                  </span>
-                </div>
-                <span class="num t-h3">{formatNumber(m.value, m.decimals)}</span>
-                <svg viewBox="0 0 100 8" preserveAspectRatio="none" class="macro-card__bar" aria-hidden="true">
-                  <rect x="0" y="2" width="100" height="4" rx="1" fill="#EFECE6" />
-                  {m.change != null && (
-                    <rect x={x} y="1" width={Math.max(w, 2)} height="6" rx="1" class={pct >= 0 ? 'bar-up' : 'bar-down'} />
-                  )}
-                  <line x1="50" x2="50" y1="0" y2="8" stroke="#94A3B8" stroke-width="1" />
-                </svg>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <p class="t-label muted">
-        {basis} A dash means the figure was unavailable when the note was published.
-      </p>
-
-      {note.daily.length > 0 && (
-        <div class="sheet sheet--accent">
-          <div class="sheet__head">
-            <span class="eyebrow">VN-Index Daily OHLC Candlesticks · {note.period}</span>
-            <span class="mono t-label muted">{note.daily.length} trading sessions</span>
-          </div>
-          <VnIndexChart candleData={note.daily} label={`VN-Index daily candles, ${note.period}`} height="md" />
-        </div>
-      )}
     </div>
+  </header>
+
+  <!-- Telemetry & Cross-Asset Scorecard Surface -->
+  <section class="once-surface-card" data-reveal>
+    <div class="once-Slide-header">
+      <span class="once-slide-kicker">{note.kind} Session Telemetry · {note.period}</span>
+      <span class="once-slide-meta">VN-Index Close: {formatIndex(note.close)} ({signedPct(note.change)})</span>
+    </div>
+
+    <div class="once-kpi-grid">
+      <div class="once-kpi-box">
+        <span class="once-kpi-label">VN-Index Close</span>
+        <span class="once-kpi-value">{formatIndex(note.close)}</span>
+        <span class="once-kpi-sub">{signedPct(note.change)} · Open {formatIndex(note.open)}</span>
+      </div>
+      <div class="once-kpi-box">
+        <span class="once-kpi-label">High / Low Range</span>
+        <span class="once-kpi-value">{formatIndex(note.high)} / {formatIndex(note.low)}</span>
+        <span class="once-kpi-sub">Intoperiod trading range</span>
+      </div>
+      <div class="once-kpi-box">
+        <span class="once-kpi-label">Avg Daily Liquidity</span>
+        <span class="once-kpi-value">{formatNumber(note.liquidity, 0)} bn VND</span>
+        <span class="once-kpi-sub">HOSE matched value</span>
+      </div>
+      <div class="once-kpi-box">
+        <span class="once-kpi-label">Foreign Net Flow</span>
+        <span class="once-kpi-value">
+          {note.foreignNet != null ? `${signedNumber(note.foreignNet)} bn VND` : '—'}
+        </span>
+        <span class="once-kpi-sub">
+          {note.foreignBuy != null && note.foreignSell != null
+            ? `Buy ${formatNumber(note.foreignBuy, 0)} / Sell ${formatNumber(note.foreignSell, 0)} bn`
+            : 'HOSE foreign institutional flow'}
+        </span>
+      </div>
+    </div>
+
+    {note.daily.length > 0 && (
+      <div>
+        <VnIndexChart
+          candleData={note.daily}
+          label={`${note.period} daily OHLC candlesticks`}
+        />
+      </div>
+    )}
   </section>
 
-  <section>
-    <div class="wrap grid grid--top">
-      {toc.length > 0 && (
-        <aside class="span-3 note-toc stack-3">
-          <p class="eyebrow">In This Note</p>
-          <p class="mono t-label muted" data-reading-time></p>
-          <ol class="note-toc__list">
-            {toc.map((h, i) => (
-              <li>
-                <a href={`#${h.slug}`} data-toc-link={h.slug} aria-current={i === 0 ? 'true' : undefined}>
-                  {h.text}
-                </a>
-              </li>
-            ))}
-          </ol>
-          <div>
-            <a class="link t-small" href="#top">↑ Back to top</a>
-          </div>
-        </aside>
-      )}
-      <article class:list={[toc.length > 0 ? 'span-8 start-5' : 'span-8']} data-note-article>
-        <div class="prose">
-          <slot />
-        </div>
-      </article>
-    </div>
-  </section>
+  <!-- Main Article Prose + Sticky HeadingNav (blog/[slug]/page.tsx lines 145-171) -->
+  <div class="once-article-grid">
+    <article class="once-article-prose" data-note-article>
+      <slot />
+    </article>
 
-  <section class="ground-surface">
-    <div class="wrap stack-5">
-      <div class="sheet__head">
-        <span class="eyebrow">Chronological Archive Navigation</span>
-        <span class="mono t-label muted">Tip: Use ← and → arrow keys to switch notes</span>
-      </div>
-      <nav class="grid" aria-label={`${note.kind} notes pagination`}>
-        {prev ? (
-          <a class="card card--rule span-6" href={prev.href}>
-            <span class="eyebrow">← Older {note.kind} Note · {prev.period}</span>
-            <h3>{prev.headline}</h3>
-            <span class="mono t-small muted">
-              VN-Index {formatIndex(prev.close)}{' '}
-              <span class:list={[prev.change >= 0 ? 'up' : 'down']}>({signedPct(prev.change)})</span>
-            </span>
+    {tocHeadings.length > 0 && (
+      <aside class="once-article-toc" aria-label="On this page">
+        <span class="label-strong-s on-neutral-strong">On this page</span>
+        {tocHeadings.map((h) => (
+          <a class="once-toc-link" href={`#${h.slug}`} data-toc-link={h.slug}>
+            <span>{h.text}</span>
           </a>
-        ) : (
-          <span class="span-6"></span>
-        )}
-        {next && (
-          <a class="card card--rule span-6 card--end" href={next.href}>
-            <span class="eyebrow">Newer {note.kind} Note · {next.period} →</span>
-            <h3>{next.headline}</h3>
-            <span class="mono t-small muted">
-              VN-Index {formatIndex(next.close)}{' '}
-              <span class:list={[next.change >= 0 ? 'up' : 'down']}>({signedPct(next.change)})</span>
-            </span>
-          </a>
-        )}
-      </nav>
-      <Disclaimer />
+        ))}
+      </aside>
+    )}
+  </div>
+
+  <!-- Adjacent Posts (blog/[slug]/page.tsx lines 151-157) -->
+  <section class="once-blog-section" data-reveal>
+    <div class="once-line-h"></div>
+    <h2 class="heading-strong-xl">Recent posts</h2>
+    <div class="once-posts-grid">
+      {next && (
+        <a class="once-post-card is-surface" href={next.href}>
+          <span class="label-strong-s on-brand-weak">← Newer · {formatDate(next.date)}</span>
+          <h3 class="heading-strong-l">{next.headline}</h3>
+          <span class="body-default-xs on-neutral-weak">VN-Index {formatIndex(next.close)} ({signedPct(next.change)})</span>
+        </a>
+      )}
+      {prev && (
+        <a class="once-post-card is-surface" href={prev.href}>
+          <span class="label-strong-s on-neutral-weak">Earlier · {formatDate(prev.date)} →</span>
+          <h3 class="heading-strong-l">{prev.headline}</h3>
+          <span class="body-default-xs on-neutral-weak">VN-Index {formatIndex(prev.close)} ({signedPct(prev.change)})</span>
+        </a>
+      )}
     </div>
   </section>
 </div>
 
 <script>
-  const progress = document.querySelector<HTMLProgressElement>('[data-read-progress]');
+  const progress = document.querySelector<HTMLProgressElement>('[data-reading-progress]');
   const article = document.querySelector<HTMLElement>('[data-note-article]');
-  const readTimeEl = document.querySelector<HTMLElement>('[data-reading-time]');
-  const tocLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-toc-link]'));
-  const readerRoot = document.querySelector<HTMLElement>('[data-note-reader]');
-
-  if (article && readTimeEl) {
-    const words = (article.textContent ?? '').trim().split(/\s+/).filter(Boolean).length;
-    const mins = Math.max(1, Math.round(words / 220));
-    readTimeEl.textContent = `${words.toLocaleString('en-US')} words · ~${mins} min read`;
-  }
 
   if (progress && article) {
-    let ticking = false;
     const updateProgress = () => {
       const rect = article.getBoundingClientRect();
-      const viewH = window.innerHeight;
-      const total = Math.max(rect.height - viewH * 0.5, 1);
-      const scrolled = Math.min(total, Math.max(0, -rect.top + viewH * 0.2));
+      const total = Math.max(1, article.offsetHeight - window.innerHeight * 0.5);
+      const scrolled = Math.min(total, Math.max(0, -rect.top));
       progress.value = Math.round((scrolled / total) * 100);
-      ticking = false;
     };
-    window.addEventListener(
-      'scroll',
-      () => {
-        if (!ticking) {
-          window.requestAnimationFrame(updateProgress);
-          ticking = true;
-        }
-      },
-      { passive: true }
-    );
+    window.addEventListener('scroll', updateProgress, { passive: true });
     updateProgress();
   }
-
-  if (tocLinks.length > 0 && 'IntersectionObserver' in window) {
-    const headings = tocLinks
-      .map((link) => document.getElementById(link.dataset.tocLink ?? ''))
-      .filter((el): el is HTMLElement => Boolean(el));
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const id = entry.target.id;
-            tocLinks.forEach((link) => {
-              if (link.dataset.tocLink === id) link.setAttribute('aria-current', 'true');
-              else link.removeAttribute('aria-current');
-            });
-            break;
-          }
-        }
-      },
-      { rootMargin: '-15% 0px -72% 0px' }
-    );
-    headings.forEach((h) => observer.observe(h));
-  }
-
-  document.addEventListener('keydown', (e) => {
-    const target = e.target as HTMLElement | null;
-    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
-    if (e.metaKey || e.ctrlKey || e.altKey) return;
-    if (e.key === 'ArrowLeft' && readerRoot?.dataset.prevHref) {
-      window.location.href = readerRoot.dataset.prevHref;
-    } else if (e.key === 'ArrowRight' && readerRoot?.dataset.nextHref) {
-      window.location.href = readerRoot.dataset.nextHref;
-    }
-  });
 </script>

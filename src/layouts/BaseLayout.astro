@@ -1,13 +1,12 @@
 ---
-// Fey × Mercury page shell: self-hosted Source Serif 4, Libre Franklin, and IBM Plex Mono.
-// Includes View Transitions API choreography, staggered scroll-reveal observer, and theme switcher.
-import '@fontsource-variable/source-serif-4/wght.css';
-import '@fontsource/libre-franklin/400.css';
-import '@fontsource/libre-franklin/500.css';
-import '@fontsource/libre-franklin/600.css';
-import '@fontsource/ibm-plex-mono/400.css';
-import '@fontsource/ibm-plex-mono/500.css';
-import '@fontsource/ibm-plex-mono/600.css';
+import '@fontsource/geist-sans/400.css';
+import '@fontsource/geist-sans/500.css';
+import '@fontsource/geist-sans/600.css';
+import '@fontsource/geist-sans/700.css';
+import '@fontsource/geist-mono/400.css';
+import '@fontsource/geist-mono/500.css';
+import '@fontsource/geist-mono/600.css';
+import '../styles/once-ui-tokens.css';
 import '../styles/site.css';
 import Analytics from '@vercel/analytics/astro';
 import SiteHeader from '../components/ui/SiteHeader.astro';
@@ -29,17 +28,31 @@ const {
 } = Astro.props;
 
 const canonicalURL = Astro.url.href;
-const ogImageURL = new URL(image, Astro.site).toString();
+const ogImageURL = new URL(image, Astro.site ?? 'https://truonghuyresearch.xyz').toString();
 ---
 
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html
+  lang="en"
+  data-theme="dark"
+  data-neutral="gray"
+  data-brand="cyan"
+  data-accent="red"
+  data-solid="contrast"
+  data-solid-style="flat"
+  data-border="playful"
+  data-surface="translucent"
+  data-transition="all"
+  data-scaling="100"
+  data-viz-style="gradient"
+>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#070A10" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="color-scheme" content="dark light" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="alternate icon" href="/favicon.ico" />
     <link rel="canonical" href={canonicalURL} />
@@ -55,76 +68,147 @@ const ogImageURL = new URL(image, Astro.site).toString();
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:creator" content="@trghuyy" />
   </head>
-  <body>
+  <body class="once-body">
     <div class="route-loader no-print" aria-hidden="true"></div>
+    <a class="skip-link" href="#top">Skip to content</a>
+
+    <!-- Once UI Ambient Background (<RevealFx><Background mask gradient dots /></RevealFx>) -->
+    <div class="once-bg-layer no-print" aria-hidden="true">
+      <div class="once-bg-mask">
+        <div class="once-bg-gradient"></div>
+        <div class="once-bg-dots"></div>
+      </div>
+    </div>
+
+    <!-- Once UI Edge Fade Blur Strips (<Fade>) -->
+    <div class="once-fade-top no-print" aria-hidden="true"></div>
+    <div class="once-fade-bottom no-print" aria-hidden="true"></div>
+
+    <div class="once-top-spacer no-print" aria-hidden="true"></div>
     <SiteHeader />
-    <main id="top">
+
+    <main id="top" class="once-main">
       <slot />
     </main>
+
     <SiteFooter />
     <CommandPalette />
-    <Analytics />
 
     <script>
-      // 1. Theme initialization & toggle (Fey Obsidian Dark <-> Mercury Daylight)
+      const THEME_KEY = 'data-theme';
       const root = document.documentElement;
-      const savedTheme = localStorage.getItem('thr-theme');
-      if (savedTheme === 'light' || savedTheme === 'dark') {
-        root.setAttribute('data-theme', savedTheme);
+
+      function applyTheme(theme: 'dark' | 'light') {
+        root.setAttribute('data-theme', theme);
+        const metaTheme = document.querySelector('meta[name="theme-color"]');
+        if (metaTheme) {
+          metaTheme.setAttribute('content', theme === 'light' ? '#ffffff' : '#0a0a0a');
+        }
+      }
+
+      try {
+        const saved = localStorage.getItem(THEME_KEY);
+        if (saved === 'light' || saved === 'dark') {
+          applyTheme(saved);
+        } else {
+          applyTheme('dark');
+        }
+      } catch {
+        applyTheme('dark');
       }
 
       document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]').forEach((btn) => {
         btn.addEventListener('click', () => {
-          const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-          const applyTheme = () => {
-            root.setAttribute('data-theme', next);
-            localStorage.setItem('thr-theme', next);
+          const current = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+          const next = current === 'dark' ? 'light' : 'dark';
+
+          const runSwitch = () => {
+            applyTheme(next);
+            try {
+              localStorage.setItem(THEME_KEY, next);
+            } catch {
+              // ignore storage errors
+            }
           };
-          if ('startViewTransition' in document) {
-            (document as Document & { startViewTransition: (cb: () => void) => void }).startViewTransition(applyTheme);
+
+          if ('startViewTransition' in document && typeof (document as any).startViewTransition === 'function') {
+            (document as any).startViewTransition(runSwitch);
           } else {
-            applyTheme();
+            runSwitch();
           }
         });
       });
 
-      // 2. Staggered Scroll-Reveal Choreography (transitions.dev 18-texts-reveal)
-      const revealTargets = Array.from(
-        document.querySelectorAll<HTMLElement>('.section > .wrap, .doc > section > .wrap, .card, .sheet')
-      );
-      revealTargets.forEach((el) => {
-        if (!el.closest('.hero-dossier') && !el.closest('.doc-head') && !el.closest('.ts')) {
-          el.setAttribute('data-reveal', '');
-        }
+      // Live Clock (Once UI Header TimeDisplay for Asia/Ho_Chi_Minh)
+      const clockEls = document.querySelectorAll<HTMLElement>('[data-once-clock]');
+      if (clockEls.length > 0) {
+        const updateClock = () => {
+          try {
+            const now = new Date();
+            const formatted = new Intl.DateTimeFormat('en-GB', {
+              timeZone: 'Asia/Ho_Chi_Minh',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false
+            }).format(now);
+            clockEls.forEach((el) => {
+              el.textContent = formatted;
+            });
+          } catch {
+            // fallback
+          }
+        };
+        updateClock();
+        setInterval(updateClock, 1000);
+      }
+
+      // Once UI Carousel Slide Controller
+      document.querySelectorAll<HTMLElement>('[data-once-carousel]').forEach((carousel) => {
+        const slides = Array.from(carousel.querySelectorAll<HTMLElement>('[data-carousel-slide]'));
+        const dots = Array.from(carousel.querySelectorAll<HTMLButtonElement>('[data-carousel-dot]'));
+        if (slides.length <= 1) return;
+
+        const activateSlide = (idx: number) => {
+          slides.forEach((s, i) => s.classList.toggle('is-active', i === idx));
+          dots.forEach((d, i) => {
+            d.classList.toggle('is-active', i === idx);
+            d.setAttribute('aria-selected', i === idx ? 'true' : 'false');
+          });
+        };
+
+        dots.forEach((dot, idx) => {
+          dot.addEventListener('click', () => activateSlide(idx));
+        });
       });
 
-      if ('IntersectionObserver' in window) {
-        const io = new IntersectionObserver(
+      // Staggered RevealFx Observer
+      const revealEls = document.querySelectorAll<HTMLElement>('[data-reveal]');
+      if ('IntersectionObserver' in window && revealEls.length > 0) {
+        const observer = new IntersectionObserver(
           (entries) => {
             entries.forEach((entry) => {
               if (entry.isIntersecting) {
                 entry.target.classList.add('is-revealed');
-                io.unobserve(entry.target);
+                observer.unobserve(entry.target);
               }
             });
           },
-          { threshold: 0.08, rootMargin: '0px 0px -30px 0px' }
+          { rootMargin: '0px 0px -30px 0px', threshold: 0.05 }
         );
-        document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => io.observe(el));
+        revealEls.forEach((el) => observer.observe(el));
       } else {
-        document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => el.classList.add('is-revealed'));
+        revealEls.forEach((el) => el.classList.add('is-revealed'));
       }
 
-      // 3. Instant Link Prefetch & Navigation Progress Feedback
+      // Instant Hover Prefetch & Route Loader
       const prefetched = new Set<string>();
-      document.querySelectorAll<HTMLAnchorElement>('a[href^="/"]').forEach((a) => {
-        const href = a.getAttribute('href');
-        if (!href || href.startsWith('/#') || a.hasAttribute('download')) return;
-
-        a.addEventListener(
+      document.querySelectorAll<HTMLAnchorElement>('a[href^="/"]').forEach((anchor) => {
+        anchor.addEventListener(
           'pointerenter',
           () => {
-            if (prefetched.has(href)) return;
+            const href = anchor.getAttribute('href');
+            if (!href || prefetched.has(href) || href.startsWith('/models/') || href.endsWith('.pdf')) return;
             prefetched.add(href);
             const link = document.createElement('link');
             link.rel = 'prefetch';
@@ -134,11 +218,24 @@ const ogImageURL = new URL(image, Astro.site).toString();
           { passive: true }
         );
 
-        a.addEventListener('click', (e) => {
-          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.target === '_blank') return;
+        anchor.addEventListener('click', (e) => {
+          const href = anchor.getAttribute('href');
+          if (
+            !href ||
+            href.startsWith('#') ||
+            anchor.hasAttribute('download') ||
+            anchor.target === '_blank' ||
+            e.metaKey ||
+            e.ctrlKey ||
+            e.shiftKey ||
+            e.altKey
+          ) {
+            return;
+          }
           root.classList.add('is-navigating');
         });
       });
     </script>
+    <Analytics />
   </body>
 </html>
