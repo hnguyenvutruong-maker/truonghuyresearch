@@ -1,6 +1,5 @@
 ---
-// Open Workbook & Tear Sheet Vault: consolidates all 9 downloadable Excel/ZIP valuation workbooks
-// and 5 PDF A4 tear sheets into a filterable institutional repository table.
+// Open Workbook & Tear Sheet Vault (unslop-ui clean header)
 import Ticker from './Ticker.astro';
 import { valuationModels } from '../../data/valuation-models';
 import { publicFileSize } from '../../lib/files';
@@ -55,28 +54,24 @@ const workbookCount = rows.filter((r) => r.kind === 'workbook').length;
 const tearCount = rows.filter((r) => r.kind === 'tearsheet').length;
 ---
 
-<div class="sheet sheet--accent stack-4" data-vault-root>
+<div class="sheet stack-4" data-vault-root>
   <div class="sheet__head">
-    <div>
-      <span class="eyebrow">Open Model Repository · Auditable Formulas</span>
-      <h3 class="t-h3">{workbookCount} Excel Workbooks & {tearCount} Printable A4 Tear Sheets</h3>
-    </div>
+    <h3 class="t-h3">{workbookCount} Excel models &amp; {tearCount} PDF tear sheets</h3>
     <div class="filter" role="group" aria-label="Filter repository files">
-      <button type="button" data-vault-filter="all" aria-pressed="true">All Files ({rows.length})</button>
-      <button type="button" data-vault-filter="workbook" aria-pressed="false">Excel / ZIP Models ({workbookCount})</button>
+      <button type="button" data-vault-filter="all" aria-pressed="true">All ({rows.length})</button>
+      <button type="button" data-vault-filter="workbook" aria-pressed="false">Excel / ZIP ({workbookCount})</button>
       <button type="button" data-vault-filter="tearsheet" aria-pressed="false">PDF Tear Sheets ({tearCount})</button>
     </div>
   </div>
 
   <div class="table-scroll" tabindex="0" role="region" aria-label="Model workbooks and tear sheets repository">
     <table class="data">
-      <caption>Every model pack is open for download so readers can audit the schedules, formulas, and peer sets directly.</caption>
       <thead>
         <tr>
           <th scope="col">Company</th>
-          <th scope="col">Deliverable / Model Type</th>
-          <th scope="col">Included Worksheets & Schedules</th>
-          <th scope="col">Format & Size</th>
+          <th scope="col">Model / File</th>
+          <th scope="col">Worksheets &amp; Contents</th>
+          <th scope="col">Format &amp; Size</th>
           <th scope="col">Download</th>
         </tr>
       </thead>
@@ -90,7 +85,7 @@ const tearCount = rows.filter((r) => r.kind === 'tearsheet').length;
               </a>
             </th>
             <td class="text-left">{r.title}</td>
-            <td class="t-small muted">{r.sheets}</td>
+            <td class="t-small muted text-left">{r.sheets}</td>
             <td class="num">
               <span class="badge">{r.format}</span>
               <span class="muted t-label"> {r.size}</span>

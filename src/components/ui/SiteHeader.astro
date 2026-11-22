@@ -1,60 +1,25 @@
 ---
-// Top Institutional Market Tape + Sticky Navigation Bar with Command Palette trigger and mobile drawer.
-import { valuationModels } from '../../data/valuation-models';
-import rawFlow from '../../content/market-views/_foreign_flow_cache.json';
-import { formatDate, signedNumber } from '../../lib/format';
-
+// Floating Glass Header (Fey / Mercury pill navigation + Command Palette trigger + Day/Night Theme Toggle)
 const links = [
-  { label: 'Research Coverage', href: '/research', match: (p: string) => p.startsWith('/research') && !/^\/research\/(dcf|comparable|precedent)/.test(p) },
-  { label: 'Valuation Methods', href: '/research/dcf', match: (p: string) => /^\/research\/(dcf|comparable|precedent)/.test(p) },
+  { label: 'Overview', href: '/', match: (p: string) => p === '/' },
+  { label: 'Research', href: '/research', match: (p: string) => p.startsWith('/research') && !/^\/research\/(dcf|comparable|precedent)/.test(p) },
+  { label: 'Methods', href: '/research/dcf', match: (p: string) => /^\/research\/(dcf|comparable|precedent)/.test(p) },
   { label: 'Market Notes', href: '/market-views', match: (p: string) => p.startsWith('/market-views') || p.startsWith('/monthly-views') },
   { label: 'Contact', href: '/contact', match: (p: string) => p.startsWith('/contact') },
 ];
 
 const path = Astro.url.pathname.replace(/\/$/, '') || '/';
-const workbooks = valuationModels.reduce((acc, m) => acc + m.downloads.length, 0);
-
-const flowDates = Object.keys(rawFlow).sort();
-const latestFlowDate = flowDates[flowDates.length - 1];
-const latestFlow = latestFlowDate ? (rawFlow as Record<string, { net: number }>)[latestFlowDate] : null;
 ---
-
-<div class="market-tape no-print" role="region" aria-label="Research portfolio telemetry">
-  <div class="wrap market-tape__inner">
-    <div class="market-tape__items">
-      <span class="market-tape__item">
-        <span class="market-tape__dot" aria-hidden="true"></span>
-        <strong>VIETNAM EQUITY RESEARCH</strong>
-      </span>
-      <span class="market-tape__sep" aria-hidden="true">·</span>
-      <span class="market-tape__item">
-        COVERAGE: <strong>{valuationModels.map((m) => m.ticker).join(' · ')}</strong>
-      </span>
-      <span class="market-tape__sep market-tape__hide-sm" aria-hidden="true">·</span>
-      <span class="market-tape__item market-tape__hide-sm">
-        DELIVERABLES: <strong>{workbooks} EXCEL MODELS &amp; {valuationModels.length} TEAR SHEETS</strong>
-      </span>
-    </div>
-    {latestFlow && (
-      <div class="market-tape__items market-tape__hide-sm">
-        <span class="market-tape__item">
-          HOSE FOREIGN FLOW ({formatDate(latestFlowDate)}):
-          <strong>{signedNumber(latestFlow.net, 1)} bn VND</strong>
-        </span>
-      </div>
-    )}
-  </div>
-</div>
 
 <header class="site-header no-print">
   <div class="wrap nav__bar">
-    <a class="skip-link" href="#top">Skip to main content</a>
+    <a class="skip-link" href="#top">Skip to content</a>
 
     <a class="brand-lockup" href="/">
       <span class="brand-monogram" aria-hidden="true">TH</span>
       <span class="brand-text">
         <span class="brand-name">Truong Huy Research</span>
-        <span class="brand-sub">Passed CFA Level II · Vietnam Equities</span>
+        <span class="brand-sub">Vietnam Equities · CFA L2 Passed</span>
       </span>
     </a>
 
@@ -76,12 +41,22 @@ const latestFlow = latestFlowDate ? (rawFlow as Record<string, { net: number }>)
         <kbd class="cmd-kbd">⌘K</kbd>
       </button>
 
+      <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch between dark and light theme" title="Toggle Dark / Light Theme">
+        <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.5" />
+          <path d="M12 2v2.5M12 19.5V22M4.93 4.93l1.77 1.77M17.3 17.3l1.77 1.77M2 12h2.5M19.5 12H22M4.93 19.07l1.77-1.77M17.3 6.7l1.77-1.77" />
+        </svg>
+        <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      </button>
+
       <a class="btn btn--primary btn--sm nav__cv-desktop" href="/cv.pdf" target="_blank" rel="noopener">
-        Download CV (PDF)
+        Download CV
       </a>
 
       <button class="nav__toggle" type="button" data-mobile-toggle aria-expanded="false" aria-controls="mobile-nav-drawer" aria-label="Toggle navigation menu">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+        <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
           <path d="M2.5 5h13M2.5 9h13M2.5 13h13" />
         </svg>
       </button>
@@ -98,8 +73,8 @@ const latestFlow = latestFlowDate ? (rawFlow as Record<string, { net: number }>)
       ))}
     </nav>
     <div class="btn-row">
-      <a class="btn btn--primary btn--sm" href="/cv.pdf" target="_blank" rel="noopener">Download the CV (PDF)</a>
-      <button type="button" class="btn btn--secondary btn--sm" data-cmd-open>Search All Reports &amp; Notes</button>
+      <a class="btn btn--primary btn--sm" href="/cv.pdf" target="_blank" rel="noopener">Download CV (PDF)</a>
+      <button type="button" class="btn btn--secondary btn--sm" data-cmd-open>Search Reports &amp; Notes</button>
     </div>
   </div>
 </header>

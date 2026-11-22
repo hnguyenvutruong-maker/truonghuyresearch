@@ -1,7 +1,6 @@
 ---
-// Active Macro & Quarterly Thesis Tracker: synthesizes _quarterly_summary.json,
-// _monthly_summary.json, and _market_memory.json into an interactive institutional dashboard
-// with a visual SVG VN-Index Support/Resistance Technical Levels Ruler.
+// Macro & Technical Levels Tracker: synthesizes _quarterly_summary.json and _monthly_summary.json
+// with an SVG VN-Index Support/Resistance ruler and smooth cross-blur tab transitions.
 import quarterlyData from '../../content/market-views/_quarterly_summary.json';
 import monthlyData from '../../content/monthly-views/_monthly_summary.json';
 import { formatDate } from '../../lib/format';
@@ -9,27 +8,26 @@ import { formatDate } from '../../lib/format';
 const qSummary = quarterlyData.summary;
 const mSummary = monthlyData.current_month;
 
-// Technical levels parsed from _quarterly_summary.json (1,750 - 1,880 range)
 const dMin = 1730;
 const dMax = 1900;
 const xPos = (lvl: number) => Math.round(((lvl - dMin) / (dMax - dMin)) * 1000);
 
 const levels = [
-  { label: 'S3: 1,750', val: 1750, x: xPos(1750), kind: 'support', sub: 'Major Floor' },
-  { label: 'S2: 1,775', val: 1775, x: xPos(1775), kind: 'support', sub: '200-Day MA' },
-  { label: 'S1: 1,798', val: 1798.05, x: xPos(1798.05), kind: 'support', sub: 'Week Low' },
-  { label: 'Close: 1,838.90', val: 1838.9, x: xPos(1838.9), kind: 'anchor', sub: 'Framework Close' },
-  { label: 'R1: 1,860', val: 1860, x: xPos(1860), kind: 'resistance', sub: 'Former Pivot' },
-  { label: 'R2: 1,871', val: 1871.09, x: xPos(1871.09), kind: 'resistance', sub: 'Week High' },
-  { label: 'R3: 1,880', val: 1880, x: xPos(1880), kind: 'resistance', sub: 'Upper Target' },
+  { label: 'S3 · 1,750', val: 1750, x: xPos(1750), kind: 'support', sub: 'Major Floor' },
+  { label: 'S2 · 1,775', val: 1775, x: xPos(1775), kind: 'support', sub: '200-Day MA' },
+  { label: 'S1 · 1,798', val: 1798.05, x: xPos(1798.05), kind: 'support', sub: 'Week Low' },
+  { label: '1,838.90', val: 1838.9, x: xPos(1838.9), kind: 'anchor', sub: 'Close Anchor' },
+  { label: 'R1 · 1,860', val: 1860, x: xPos(1860), kind: 'resistance', sub: 'Former Pivot' },
+  { label: 'R2 · 1,871', val: 1871.09, x: xPos(1871.09), kind: 'resistance', sub: 'Week High' },
+  { label: 'R3 · 1,880', val: 1880, x: xPos(1880), kind: 'resistance', sub: 'Upper Target' },
 ];
 ---
 
-<div class="sheet sheet--accent stack-5" data-macro-tracker>
+<div class="sheet stack-5" data-macro-tracker>
   <div class="sheet__head">
     <div>
-      <span class="eyebrow">Active Narrative Memory · {quarterlyData.quarter} Framework (As of {formatDate(quarterlyData.last_updated)})</span>
-      <h3 class="t-h3">VN-Index Technical Levels Ladder & Macro Regime Synthesis</h3>
+      <h3 class="t-h3">VN-Index technical levels &amp; macro regime</h3>
+      <span class="mono t-label muted">{quarterlyData.quarter} framework · {formatDate(quarterlyData.last_updated)}</span>
     </div>
     <div class="filter" role="tablist" aria-label="Macro and quarterly thesis tabs">
       <button type="button" role="tab" data-macro-tab="quarterly" aria-selected="true">
@@ -39,21 +37,16 @@ const levels = [
         {monthlyData.last_updated} Regime
       </button>
       <button type="button" role="tab" data-macro-tab="risks" aria-selected="false">
-        Forward Risk Radar ({qSummary.forward_risks.length})
+        Risk Radar ({qSummary.forward_risks.length})
       </button>
     </div>
   </div>
 
   <div class="tech-ruler">
-    <div class="sheet__head">
-      <span class="t-label">VN-Index Support & Resistance Structure (1,750 – 1,880 Band)</span>
-      <span class="mono t-label muted">Support: {qSummary.technical_levels.support} · Resistance: {qSummary.technical_levels.resistance}</span>
-    </div>
-    <svg viewBox="0 0 1000 76" preserveAspectRatio="none" role="img" aria-label="VN-Index technical support and resistance ruler from 1,750 to 1,880">
-      <!-- Track & Zone fills -->
-      <rect x={xPos(1750)} y="30" width={xPos(1798.05) - xPos(1750)} height="12" rx="2" class="bar-up" opacity="0.18" />
-      <rect x={xPos(1798.05)} y="30" width={xPos(1860) - xPos(1798.05)} height="12" rx="2" class="lane-comps" opacity="0.2" />
-      <rect x={xPos(1860)} y="30" width={xPos(1880) - xPos(1860)} height="12" rx="2" class="bar-down" opacity="0.18" />
+    <svg viewBox="0 0 1000 76" preserveAspectRatio="none" role="img" aria-label="VN-Index support and resistance levels from 1,750 to 1,880">
+      <rect x={xPos(1750)} y="30" width={xPos(1798.05) - xPos(1750)} height="12" rx="3" class="bar-up" opacity="0.22" />
+      <rect x={xPos(1798.05)} y="30" width={xPos(1860) - xPos(1798.05)} height="12" rx="3" class="lane-comps" opacity="0.22" />
+      <rect x={xPos(1860)} y="30" width={xPos(1880) - xPos(1860)} height="12" rx="3" class="bar-down" opacity="0.22" />
       <line x1="40" x2="960" y1="36" y2="36" class="grid-line" stroke-width="2" vector-effect="non-scaling-stroke" />
 
       {levels.map((lvl) => (
@@ -63,8 +56,7 @@ const levels = [
             x2={lvl.x}
             y1={lvl.kind === 'anchor' ? 14 : 20}
             y2={lvl.kind === 'anchor' ? 58 : 52}
-            class={lvl.kind === 'anchor' ? 'price-line' : lvl.kind === 'support' ? 'bar-up' : 'bar-down'}
-            stroke={lvl.kind === 'anchor' ? '#9A5B0A' : lvl.kind === 'support' ? '#0E6F3C' : '#B42318'}
+            stroke={lvl.kind === 'anchor' ? '#F59E0B' : lvl.kind === 'support' ? '#10B981' : '#F43F5E'}
             stroke-width={lvl.kind === 'anchor' ? '3' : '2'}
             vector-effect="non-scaling-stroke"
           />
@@ -72,7 +64,7 @@ const levels = [
             cx={lvl.x}
             cy="36"
             r={lvl.kind === 'anchor' ? '5' : '3.5'}
-            fill={lvl.kind === 'anchor' ? '#9A5B0A' : lvl.kind === 'support' ? '#0E6F3C' : '#B42318'}
+            fill={lvl.kind === 'anchor' ? '#F59E0B' : lvl.kind === 'support' ? '#10B981' : '#F43F5E'}
           />
         </g>
       ))}
@@ -89,64 +81,54 @@ const levels = [
     </div>
   </div>
 
-  <!-- Tab 1: Quarterly Thesis -->
-  <div data-macro-panel="quarterly">
-    <div class="grid grid--top">
-      <div class="span-5 stack-4">
-        <p class="eyebrow">Macro & FX Posture</p>
-        <p class="t-small secondary">{qSummary.macro_environment}</p>
-        <div>
-          <p class="eyebrow">Tracked Sectors in {quarterlyData.quarter}</p>
+  <div class="panel-stack">
+    <div data-macro-panel="quarterly" class="panel-item is-active" aria-hidden="false">
+      <div class="grid grid--top">
+        <div class="span-5 stack-4">
+          <p class="t-small secondary">{qSummary.macro_environment}</p>
           <div class="tickers">
             {qSummary.sectors_covered.map((sec) => <span class="badge badge--navy">{sec}</span>)}
           </div>
         </div>
-      </div>
-      <div class="span-7 stack-3">
-        <p class="eyebrow">Active Quarterly Themes ({qSummary.key_themes.length})</p>
-        <ul class="rows">
-          {qSummary.key_themes.slice(0, 6).map((theme) => (
-            <li>
-              <span class="t-small">{theme}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tab 2: Monthly Regime -->
-  <div data-macro-panel="monthly" hidden>
-    <div class="grid grid--top">
-      <div class="span-6 stack-4">
-        <p class="eyebrow">{monthlyData.last_updated} Structural Read</p>
-        <p class="t-small secondary">{mSummary.vn_index_trend}</p>
-        <p class="eyebrow">Foreign Allocator Stance</p>
-        <p class="t-small secondary">{mSummary.foreign_flow_direction}</p>
-      </div>
-      <div class="span-6 stack-3">
-        <p class="eyebrow">Monthly Key Themes</p>
-        <ul class="rows">
-          {mSummary.key_themes.map((theme) => (
-            <li>
-              <span class="t-small">{theme}</span>
-            </li>
-          ))}
-        </ul>
+        <div class="span-7">
+          <ul class="rows">
+            {qSummary.key_themes.slice(0, 6).map((theme) => (
+              <li>
+                <span class="t-small">{theme}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Tab 3: Forward Risk Radar -->
-  <div data-macro-panel="risks" hidden>
-    <p class="eyebrow">Institutional Risk Checklist & Invalidation Triggers</p>
-    <ol class="rows risks">
-      {qSummary.forward_risks.map((risk) => (
-        <li>
-          <span class="t-small">{risk}</span>
-        </li>
-      ))}
-    </ol>
+    <div data-macro-panel="monthly" class="panel-item" aria-hidden="true">
+      <div class="grid grid--top">
+        <div class="span-6 stack-4">
+          <p class="t-small secondary">{mSummary.vn_index_trend}</p>
+          <p class="t-small muted">{mSummary.foreign_flow_direction}</p>
+        </div>
+        <div class="span-6">
+          <ul class="rows">
+            {mSummary.key_themes.map((theme) => (
+              <li>
+                <span class="t-small">{theme}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div data-macro-panel="risks" class="panel-item" aria-hidden="true">
+      <ol class="rows risks">
+        {qSummary.forward_risks.map((risk) => (
+          <li>
+            <span class="t-small">{risk}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
   </div>
 </div>
 
@@ -159,7 +141,9 @@ const levels = [
         const target = tab.dataset.macroTab;
         tabs.forEach((t) => t.setAttribute('aria-selected', String(t === tab)));
         panels.forEach((p) => {
-          p.hidden = p.dataset.macroPanel !== target;
+          const active = p.dataset.macroPanel === target;
+          p.classList.toggle('is-active', active);
+          p.setAttribute('aria-hidden', String(!active));
         });
       });
     });

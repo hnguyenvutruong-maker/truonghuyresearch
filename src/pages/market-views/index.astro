@@ -1,9 +1,5 @@
 ---
-// Market Intelligence Hub (/market-views):
-// 1. Document Masthead + VN-Index Multi-Week Closing Chart
-// 2. Live HOSE Foreign Flow Monitor (109 trading days from _foreign_flow_cache.json)
-// 3. Active Macro & Quarterly Thesis Tracker (VN-Index Support/Resistance Ruler & Risk Radar)
-// 4. Filterable & Searchable Archive of all Weekly & Monthly Market Notes
+// Market Intelligence Hub (/market-views) — Fey × Mercury × Koyfin clean layout
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Disclaimer from '../../components/ui/Disclaimer.astro';
 import DocHead from '../../components/ui/DocHead.astro';
@@ -30,34 +26,33 @@ const latest = [...notes].sort((a, b) => b.date.valueOf() - a.date.valueOf())[0]
 >
   <div class="doc">
     <DocHead
-      label={`Vietnam Market Intelligence · ${weekly.length} Weekly & ${monthly.length} Monthly Dispatches · Latest ${formatDate(latest.date)}`}
-      title="Market Notes &amp; HOSE Telemetry"
-      lead="Systematic weekly and monthly reads on the VN-Index: price structure, liquidity, daily foreign institutional flow, sector rotation, and global cross-asset channels (DXY, USD/VND, WTI, Gold, BTC)."
+      label={`${weekly.length} weekly & ${monthly.length} monthly notes · Latest ${formatDate(latest.date)}`}
+      title="VN-Index notes &amp; HOSE flow"
+      lead="Weekly and monthly reads on VN-Index structure, liquidity, daily foreign trading across HOSE, sector rotation, and global cross-asset channels."
     >
       <div class="toc">
-        <a href="#foreign-flow">01 HOSE Foreign Flow</a>
-        <a href="#thesis-tracker">02 Technical Levels &amp; Macro Thesis</a>
-        <a href="#archive">03 Market Notes Archive ({notes.length})</a>
+        <a href="#foreign-flow">HOSE Foreign Flow</a>
+        <a href="#thesis-tracker">Technical Levels &amp; Macro</a>
+        <a href="#archive">Notes Archive ({notes.length})</a>
       </div>
-      <div slot="aside" class="sheet sheet--accent">
+      <div slot="aside" class="sheet">
         <div class="sheet__head">
-          <span class="eyebrow">VN-Index Weekly Close ({trend.length} Weeks)</span>
+          <h3 class="t-h3">VN-Index weekly close</h3>
           <span class="mono t-label">
-            Latest: <strong>{formatIndex(latest.close)}</strong>{' '}
+            <strong>{formatIndex(latest.close)}</strong>{' '}
             <span class:list={[latest.change >= 0 ? 'up' : 'down']}>({signedPct(latest.change)})</span>
           </span>
         </div>
-        <VnIndexChart trendData={trend} label="VN-Index weekly closes taken from the notes below" height="md" />
+        <VnIndexChart trendData={trend} label="VN-Index weekly closes" height="md" />
       </div>
     </DocHead>
 
     <section id="foreign-flow" class="ground-surface" aria-labelledby="flow-h">
       <div class="wrap stack-5">
         <div class="section-head">
-          <span class="eyebrow">01 · Daily Institutional Flow Cache</span>
-          <h2 id="flow-h">HOSE Foreign Investor Flow Monitor</h2>
-          <p class="t-lead muted">
-            Daily foreign buy, sell, and net values aggregated across HOSE equities. Hover or focus any session bar to inspect exact daily turnover and cumulative trajectory.
+          <h2 id="flow-h">HOSE foreign investor flow</h2>
+          <p class="t-lead">
+            Daily foreign buy, sell, and net values aggregated across HOSE equities from 15 Jun to 20 Nov 2026.
           </p>
         </div>
         <ForeignFlowMonitor />
@@ -67,10 +62,9 @@ const latest = [...notes].sort((a, b) => b.date.valueOf() - a.date.valueOf())[0]
     <section id="thesis-tracker" aria-labelledby="thesis-h">
       <div class="wrap stack-5">
         <div class="section-head">
-          <span class="eyebrow">02 · Structural Memory &amp; Key Levels</span>
-          <h2 id="thesis-h">Active Macro Regime &amp; Technical Levels Framework</h2>
-          <p class="t-lead muted">
-            Shared narrative state linking weekly dispatches, monthly regime shifts, support/resistance pivots, and the forward risk radar.
+          <h2 id="thesis-h">Macro regime &amp; technical framework</h2>
+          <p class="t-lead">
+            Support and resistance levels, active macro themes, and forward risks linking weekly and monthly notes.
           </p>
         </div>
         <MacroThesisTracker />
@@ -80,16 +74,13 @@ const latest = [...notes].sort((a, b) => b.date.valueOf() - a.date.valueOf())[0]
     <section id="archive" class="ground-surface" aria-labelledby="archive-h">
       <div class="wrap stack-5">
         <div class="section-head--split">
-          <div>
-            <span class="eyebrow">03 · Complete Publication Archive</span>
-            <h2 id="archive-h">All Weekly &amp; Monthly Market Notes</h2>
-          </div>
+          <h2 id="archive-h">All market notes</h2>
           <div class="btn-row">
-            <a class="btn btn--secondary btn--sm" href="/monthly-views">Monthly Notes Only ({monthly.length})</a>
-            <a class="btn btn--ghost btn--sm" href="/rss.xml">Subscribe via RSS</a>
+            <a class="btn btn--secondary btn--sm" href="/monthly-views">Monthly Notes ({monthly.length})</a>
+            <a class="btn btn--ghost btn--sm" href="/rss.xml">RSS Feed</a>
           </div>
         </div>
-        <div class="sheet sheet--accent">
+        <div class="sheet">
           <NoteList notes={notes} filter />
         </div>
         <Disclaimer />

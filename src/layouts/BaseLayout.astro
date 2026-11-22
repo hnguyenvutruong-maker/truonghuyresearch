@@ -1,6 +1,6 @@
 ---
-// Institutional Editorial page shell: self-hosted Source Serif 4, Libre Franklin, and IBM Plex Mono.
-// Strict Content-Security-Policy compliant (no external Taste kit scripts, zero inline executable scripts).
+// Fey × Mercury page shell: self-hosted Source Serif 4, Libre Franklin, and IBM Plex Mono.
+// Includes View Transitions API choreography, staggered scroll-reveal observer, and theme switcher.
 import '@fontsource-variable/source-serif-4/wght.css';
 import '@fontsource/libre-franklin/400.css';
 import '@fontsource/libre-franklin/500.css';
@@ -33,13 +33,13 @@ const ogImageURL = new URL(image, Astro.site).toString();
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#F7F6F2" />
+    <meta name="theme-color" content="#070A10" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="alternate icon" href="/favicon.ico" />
     <link rel="canonical" href={canonicalURL} />
@@ -56,6 +56,7 @@ const ogImageURL = new URL(image, Astro.site).toString();
     <meta name="twitter:creator" content="@trghuyy" />
   </head>
   <body>
+    <div class="route-loader no-print" aria-hidden="true"></div>
     <SiteHeader />
     <main id="top">
       <slot />
@@ -63,5 +64,81 @@ const ogImageURL = new URL(image, Astro.site).toString();
     <SiteFooter />
     <CommandPalette />
     <Analytics />
+
+    <script>
+      // 1. Theme initialization & toggle (Fey Obsidian Dark <-> Mercury Daylight)
+      const root = document.documentElement;
+      const savedTheme = localStorage.getItem('thr-theme');
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        root.setAttribute('data-theme', savedTheme);
+      }
+
+      document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+          const applyTheme = () => {
+            root.setAttribute('data-theme', next);
+            localStorage.setItem('thr-theme', next);
+          };
+          if ('startViewTransition' in document) {
+            (document as Document & { startViewTransition: (cb: () => void) => void }).startViewTransition(applyTheme);
+          } else {
+            applyTheme();
+          }
+        });
+      });
+
+      // 2. Staggered Scroll-Reveal Choreography (transitions.dev 18-texts-reveal)
+      const revealTargets = Array.from(
+        document.querySelectorAll<HTMLElement>('.section > .wrap, .doc > section > .wrap, .card, .sheet')
+      );
+      revealTargets.forEach((el) => {
+        if (!el.closest('.hero-dossier') && !el.closest('.doc-head') && !el.closest('.ts')) {
+          el.setAttribute('data-reveal', '');
+        }
+      });
+
+      if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-revealed');
+                io.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.08, rootMargin: '0px 0px -30px 0px' }
+        );
+        document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => io.observe(el));
+      } else {
+        document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => el.classList.add('is-revealed'));
+      }
+
+      // 3. Instant Link Prefetch & Navigation Progress Feedback
+      const prefetched = new Set<string>();
+      document.querySelectorAll<HTMLAnchorElement>('a[href^="/"]').forEach((a) => {
+        const href = a.getAttribute('href');
+        if (!href || href.startsWith('/#') || a.hasAttribute('download')) return;
+
+        a.addEventListener(
+          'pointerenter',
+          () => {
+            if (prefetched.has(href)) return;
+            prefetched.add(href);
+            const link = document.createElement('link');
+            link.rel = 'prefetch';
+            link.href = href;
+            document.head.appendChild(link);
+          },
+          { passive: true }
+        );
+
+        a.addEventListener('click', (e) => {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.target === '_blank') return;
+          root.classList.add('is-navigating');
+        });
+      });
+    </script>
   </body>
 </html>

@@ -1,46 +1,21 @@
-# Design System (Master): Institutional Editorial / Sovereign Research
+# Design System (Master): Fey × Mercury × Koyfin Financial UI & `transitions.dev` Motion
 
-The source of truth for the visual architecture of **Truong Huy Research** (`truonghuyresearch.xyz`), replacing the previous Taste-kit service template.
+The source of truth for the visual and interaction architecture of **Truong Huy Research** (`truonghuyresearch.xyz`).
 
-## 1. Visual Direction & Philosophy
+## 1. Benchmarks & Skills Applied
 
-- **Aesthetic Persona:** Institutional Equity Research & Financial Editorial (inspired by *Financial Times*, *Goldman Sachs Global Investment Research*, and *Stripe Press*).
-- **Core Principles:**
-  - **Natural Document Flow:** Zero forced `100svh` screen slides or scroll-jacked gimmicks. Every section sizes naturally to its analytical content, separated by crisp `1px` structural hairlines.
-  - **True Tabular Numerics:** Every ticker, share price, WACC input, sensitivity matrix cell, date, and implied upside/downside badge is set in **IBM Plex Mono** (`tabular-nums`), visually distinct from editorial commentary in **Source Serif 4** and **Libre Franklin**.
-  - **Archival Warmth & High Contrast:** Warm alabaster paper (`#F7F6F2`) paired with elevated crisp white data sheets (`#FFFFFF`), `2px solid #0F1A2A` institutional top rules (`.sheet--accent`, `.card--rule`), and deep institutional navy (`#16325B`).
-  - **Strict CSP Compliance:** Zero inline `style=""` attributes and zero inline executable scripts. Dynamic visual states use SVG presentation/geometry attributes, `<progress value max>`, `hidden`, `aria-*`, `data-*`, and bundled external Astro `<script>` modules.
-
-## 2. Tokens (`:root` in `src/styles/site.css`)
-
-| Role | Token | Value |
-| :--- | :--- | :--- |
-| Primary Paper Canvas | `--bg-paper` | `#F7F6F2` |
-| Inset Surface / Band | `--bg-subtle` | `#EFECE6` |
-| Elevated Data Sheet / Card | `--bg-elevated` | `#FFFFFF` |
-| Sticky Header Glass | `--bg-glass` | `rgba(247, 246, 242, 0.92)` |
-| Inverse Colophon / Tape | `--bg-navy` | `#0F1A2A` |
-| Primary Ink | `--ink-primary` | `#0F1A2A` |
-| Secondary Prose Ink | `--ink-secondary` | `#2D3B4E` |
-| Muted Caption / Label Ink | `--ink-muted` | `#56657A` |
-| Institutional Navy Action | `--accent-navy` / `--accent-navy-hover` | `#16325B` / `#0E2240` |
-| Implied Upside / Gain | `--up` / `--up-soft` / `--up-mid` | `#0E6F3C` / `#E3F3EA` / `#C2E5D1` |
-| Implied Downside / Loss | `--down` / `--down-soft` / `--down-mid` | `#B42318` / `#FBE9E7` / `#F5C6C2` |
-| Reference Price / Dated Notice | `--amber` / `--amber-soft` | `#9A5B0A` / `#F9EFE0` |
-| Method Lanes | `--m-dcf`, `--m-comps`, `--m-prec`, `--m-lbo` | `#16325B`, `#2B5B84`, `#5B82A6`, `#8FAABF` |
-
-## 3. Typography (Self-Hosted via `@fontsource`)
-
-- **Display (`--font-display`):** `Source Serif 4 Variable` (weight 400, `-0.02em` tracking) for headlines (`h1`–`h3`) and core analytical questions.
-- **Sans (`--font-sans`):** `Libre Franklin` (weights 400, 500, 600) for body prose, navigation, buttons, and table descriptions.
-- **Monospace (`--font-mono`):** `IBM Plex Mono` (weights 400, 500, 600) for `.eyebrow` labels, `.ticker` badges, `.num` figures, financial tables, sensitivity matrices, and telemetry bars.
-
-## 4. Interactive Feature Architecture
-
-1. **Global Command Palette (`CommandPalette.astro`, `Ctrl+K` / `⌘K` / `/`):** Instant diacritic-insensitive search across all 5 company valuation reports, 3 methodology hubs, 5 A4 tear sheets, and all 27+ weekly/monthly market notes.
-2. **Interactive Company Valuation Desk (`index.astro` `#research`):** Desktop split selector + mobile/desktop ticker tabs (`HPG`, `BID`, `FPT`, `BMP`, `PNJ`) revealing each company's Football Field, executive stance, core analytical question, top 4 calibrated inputs, and direct workbook/PDF downloads.
-3. **Interactive DCF Scenario Inspector (`SensitivityTable.astro`):** Live 5×5 WACC × Exit EV/EBITDA crosshair inspector showing selected inputs, implied share price, move vs. reference price, and delta vs. DCF base case.
-4. **Method Spread & Divergence Comparator (`ValuationComparator.astro`) & Open Workbook Vault (`WorkbookVault.astro`):** Full coverage analytics and 14-file repository matrix on `/research`.
-5. **HOSE Foreign Flow Monitor (`ForeignFlowMonitor.astro`):** Interactive 20-day / 60-day / All-session SVG bar and cumulative flow tracker powered by `_foreign_flow_cache.json`.
-6. **Active Macro & Technical Framework Tracker (`MacroThesisTracker.astro`):** Visual SVG VN-Index Support/Resistance Ruler (`1,750`–`1,880`) and 3-tab narrative synthesis powered by `_quarterly_summary.json` and `_monthly_summary.json`.
-7. **Market Note Reader (`MarketNote.astro`):** CSP-safe `<progress>` reading progress bar, diverging SVG cross-asset cards, sticky section spy TOC with word count & reading time, and `←`/`→` keyboard pagination.
+1. **Fey (`fey.com`) & Koyfin (`DIXI 10 Rules`):**
+   - **Obsidian Dark Mode Default (`html[data-theme="dark"]`):** Deep obsidian canvas (`#070A10`), glass-lit elevated bento surfaces (`#0F1522` with `inset 0 1px 0 rgba(255, 255, 255, 0.07)` top inner rim light and `1px solid rgba(255, 255, 255, 0.09)` borders), radial ambient sapphire glow behind the hero stage, and luminous signal colors (`#10B981` emerald gain, `#F43F5E` rose loss, `#F59E0B` amber reference marker).
+2. **Mercury (`mercury.com` / `getdesign.md/mercury`):**
+   - **Mercury Daylight Mode (`html[data-theme="light"]`):** Instant theme switcher in the floating glass navbar (`startViewTransition` theme morphing) switching to `#F5F7FB` cool alabaster canvas and `#FFFFFF` cards with multi-layered material shadows.
+   - **Floating Pill Navigation & Tactile Controls:** Pill-shaped navigation track (`.nav__links`), electric cobalt primary action pill (`#3B6BFF`), and tactile press scaling (`scale(0.975)`).
+3. **`transitions.dev` (`Jakubantalik/transitions.dev`) Motion Architecture:**
+   - **Motion Tokens:** `--duration-stagger: 45ms`, `--duration-micro: 90ms`, `--duration-quick: 160ms`, `--duration-fast: 250ms`, `--duration-medium: 340ms`, `--duration-slow: 440ms`, `--ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1)`, `--ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1)`.
+   - **Cross-Document View Transitions (`@view-transition { navigation: auto; }`):** Smooth cross-blur + vertical glide (`::view-transition-old(page-stage)` / `::view-transition-new(page-stage)`) across page navigations, paired with hover link prefetching and a top route progress indicator.
+   - **Cross-Blur Panel Morphing (`.panel-stack > .panel-item`, `07-panel-reveal`):** Tabbed views (Home Company Valuation Desk, HOSE Foreign Flow windows, Macro Thesis tabs) overlap in a CSS grid stack and cross-blur smoothly (`opacity`, `filter: blur(4px)`, `translateY(8px)`) with animated SVG bar scaling instead of harsh `display: none` snapping.
+   - **Staggered Scroll-Reveal (`[data-reveal]`, `18-texts-reveal`):** Cards, charts, and sections glide into focus via `IntersectionObserver`.
+4. **`unslop-ui` (`felipebasurto/unslop-ui`) Anti-Slop Discipline:**
+   - Zero decorative `01 ·`, `02 ·` section numbering (Rule U2).
+   - Zero redundant stacked uppercase eyebrows over every heading and card (Rule U1).
+   - Zero botsplaining or reading instructions ("Hover or click any cell...", Rule U4/U13).
+   - Zero fake pulsing "LIVE" dots (Rule U10) or heavy `2px` black top bars on every card (Rule U15).

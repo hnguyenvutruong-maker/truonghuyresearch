@@ -1,6 +1,5 @@
 ---
-// CoverageTable: interactive method-group filter + sortable coverage matrix showing company,
-// reference price used, each method's VND output with implied move, and low/high move spread.
+// CoverageTable: method-group filter + sortable coverage matrix (unslop-ui clean header)
 import Ticker from './Ticker.astro';
 import { formatOutput, impliedMovePct, valuationModels, type OutputMethod } from '../../data/valuation-models';
 import { formatVndK, signedPct } from '../../lib/format';
@@ -12,10 +11,10 @@ interface Props {
 const { sortable = false, filterable = true } = Astro.props;
 
 const columns: Array<{ method: OutputMethod; label: string }> = [
-  { method: 'DCF', label: 'Intrinsic DCF' },
+  { method: 'DCF', label: 'DCF' },
   { method: 'Comparable', label: 'Comparables' },
   { method: 'Precedent', label: 'Precedent' },
-  { method: 'LBO', label: 'Sponsor LBO' },
+  { method: 'LBO', label: 'LBO' },
 ];
 
 const rows = [...valuationModels]
@@ -48,12 +47,11 @@ const lboCount = rows.filter((r) => r.groups.includes('transaction-lbo')).length
   {filterable && (
     <div class="filter-bar">
       <div class="filter" role="group" aria-label="Filter companies by valuation method">
-        <button type="button" data-cov-filter="all" aria-pressed="true">All Coverage ({rows.length})</button>
-        <button type="button" data-cov-filter="dcf" aria-pressed="false">Intrinsic DCF ({dcfCount})</button>
-        <button type="button" data-cov-filter="comparable" aria-pressed="false">Comparable Analysis ({compCount})</button>
+        <button type="button" data-cov-filter="all" aria-pressed="true">All ({rows.length})</button>
+        <button type="button" data-cov-filter="dcf" aria-pressed="false">DCF ({dcfCount})</button>
+        <button type="button" data-cov-filter="comparable" aria-pressed="false">Comparables ({compCount})</button>
         <button type="button" data-cov-filter="transaction-lbo" aria-pressed="false">Precedent &amp; LBO ({lboCount})</button>
       </div>
-      <span class="mono t-label muted">Click any column header to sort · Figures in VND per share</span>
     </div>
   )}
 

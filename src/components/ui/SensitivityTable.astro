@@ -1,7 +1,5 @@
 ---
-// Two-way DCF Sensitivity Matrix with Interactive Scenario Inspector:
-// Hovering, clicking, or focusing any cell highlights the WACC × Exit EV/EBITDA crosshairs
-// and displays implied share price, move vs reference price, and delta vs DCF base case.
+// Two-way DCF Sensitivity Matrix with Live Scenario Readout (unslop-ui clean header)
 import type { ReferencePrice, SensitivityGrid } from '../../data/valuation-models';
 import { formatDate, formatVndK, signedPct } from '../../lib/format';
 
@@ -24,41 +22,38 @@ const shade = (k: number) => {
 };
 ---
 
-<figure class="sheet sheet--accent" data-sens-root>
+<figure class="sheet" data-sens-root>
   <div class="sheet__head">
-    <div>
-      <span class="eyebrow">Interactive DCF Scenario Matrix · Hover or Click Any Cell</span>
-      <h3 class="t-h3">{grid.title} ({grid.rowLabel} × {grid.colLabel})</h3>
-    </div>
+    <h3 class="t-h3">{grid.title} ({grid.rowLabel} × {grid.colLabel})</h3>
     <button type="button" class="btn btn--ghost btn--sm" data-sens-reset>
-      Reset to Base Case ({axis(grid.rows[grid.baseRow], grid.rowFormat)} / {axis(grid.cols[grid.baseCol], grid.colFormat)})
+      Reset to Base ({axis(grid.rows[grid.baseRow], grid.rowFormat)} / {axis(grid.cols[grid.baseCol], grid.colFormat)})
     </button>
   </div>
 
   <div class="sens-inspector" aria-live="polite">
     <div class="sens-inspector__metric">
-      <span>Selected Scenario Inputs</span>
+      <span>Scenario</span>
       <strong data-out-inputs>
         {grid.rowLabel} {axis(grid.rows[grid.baseRow], grid.rowFormat)} · {grid.colLabel} {axis(grid.cols[grid.baseCol], grid.colFormat)}
       </strong>
     </div>
     <div class="sens-inspector__metric">
-      <span>Implied Share Price</span>
+      <span>Implied value</span>
       <strong data-out-price>VND {baseK.toFixed(1)}k</strong>
     </div>
     <div class="sens-inspector__metric">
-      <span>vs. Price Used ({formatVndK(reference.value)})</span>
+      <span>vs. {formatVndK(reference.value)} price used</span>
       <strong data-out-spot class:list={[baseMovePct >= 0 ? 'up' : 'down']}>
         {signedPct(baseMovePct, 1)}
       </strong>
     </div>
     <div class="sens-inspector__metric">
-      <span>vs. DCF Base Case ({baseK.toFixed(1)}k)</span>
+      <span>vs. {baseK.toFixed(1)}k base case</span>
       <strong data-out-base>0.0% (Base)</strong>
     </div>
   </div>
 
-  <div class="table-scroll" tabindex="0" role="region" aria-label={`${grid.title}, interactive sensitivity matrix`}>
+  <div class="table-scroll" tabindex="0" role="region" aria-label={`${grid.title}, sensitivity matrix`}>
     <table class="data sens" role="grid">
       <thead>
         <tr>
@@ -111,7 +106,7 @@ const shade = (k: number) => {
   </div>
 
   <figcaption class="t-small muted field__note">
-    VND thousands per share. Outlined cell: the model's base case ({baseK.toFixed(1)}k). Green cells sit above and red cells below the {formatVndK(reference.value)} price used on {formatDate(reference.asOf)}; darker shading beyond ±10%. {grid.note}
+    VND thousands per share against the {formatVndK(reference.value)} price used on {formatDate(reference.asOf)}. {grid.note}
   </figcaption>
 </figure>
 

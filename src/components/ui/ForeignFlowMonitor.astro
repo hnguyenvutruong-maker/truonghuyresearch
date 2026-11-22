@@ -1,6 +1,6 @@
 ---
 // HOSE Foreign Flow Monitor: visualizes real daily foreign investor buy/sell/net flows
-// from src/content/market-views/_foreign_flow_cache.json (collected daily via GitHub Actions).
+// from src/content/market-views/_foreign_flow_cache.json with smooth cross-blur window switching.
 import rawFlow from '../../content/market-views/_foreign_flow_cache.json';
 import { formatDate, formatNumber, signedNumber } from '../../lib/format';
 
@@ -89,20 +89,17 @@ const buildWindow = (id: string, label: string, count: number) => {
 };
 
 const windows = compact
-  ? [buildWindow('w30', 'Last 30 Sessions', 30)]
+  ? [buildWindow('w30', '30 Sessions', 30)]
   : [
-      buildWindow('w20', 'Last 20 Sessions (~1M)', 20),
-      buildWindow('w60', 'Last 60 Sessions (~3M)', 60),
+      buildWindow('w20', '20 Sessions', 20),
+      buildWindow('w60', '60 Sessions', 60),
       buildWindow('all', `All ${entries.length} Sessions`, 0),
     ];
 ---
 
-<div class="sheet sheet--accent" data-flow-monitor>
+<div class="sheet" data-flow-monitor>
   <div class="sheet__head">
-    <div>
-      <span class="eyebrow">HOSE Institutional Flow Telemetry · Real-Time Cache</span>
-      <h3 class="t-h3">Foreign Investor Daily Net Flow & Cumulative Trajectory</h3>
-    </div>
+    <h3 class="t-h3">HOSE foreign daily net flow</h3>
     {!compact && (
       <div class="filter" role="tablist" aria-label="Foreign flow timeframe">
         {windows.map((w, idx) => (
@@ -119,74 +116,80 @@ const windows = compact
     )}
   </div>
 
-  {windows.map((w, idx) => (
-    <div data-flow-panel={w.id} hidden={idx > 0}>
-      <dl class="flow-kpi-grid">
-        <div class="flow-kpi">
-          <dt>Cumulative Net ({w.sessions.length}d)</dt>
-          <dd class:list={[w.totalNet >= 0 ? 'up' : 'down']}>{signedNumber(w.totalNet, 1)} bn VND</dd>
-        </div>
-        <div class="flow-kpi">
-          <dt>Gross Foreign Buy</dt>
-          <dd>{formatNumber(w.totalBuy, 0)} bn VND</dd>
-        </div>
-        <div class="flow-kpi">
-          <dt>Gross Foreign Sell</dt>
-          <dd>{formatNumber(w.totalSell, 0)} bn VND</dd>
-        </div>
-        <div class="flow-kpi">
-          <dt>Session Breadth (Buy / Sell)</dt>
-          <dd>
-            <span class="up">{w.netBuyDays}d in</span> · <span class="down">{w.netSellDays}d out</span>
-          </dd>
-        </div>
-      </dl>
+  <div class="panel-stack">
+    {windows.map((w, idx) => (
+      <div
+        data-flow-panel={w.id}
+        class:list={['panel-item', idx === 0 && 'is-active']}
+        aria-hidden={idx === 0 ? 'false' : 'true'}
+      >
+        <dl class="flow-kpi-grid">
+          <div class="flow-kpi">
+            <dt>Net flow ({w.sessions.length}d)</dt>
+            <dd class:list={[w.totalNet >= 0 ? 'up' : 'down']}>{signedNumber(w.totalNet, 1)} bn VND</dd>
+          </div>
+          <div class="flow-kpi">
+            <dt>Foreign buy</dt>
+            <dd>{formatNumber(w.totalBuy, 0)} bn VND</dd>
+          </div>
+          <div class="flow-kpi">
+            <dt>Foreign sell</dt>
+            <dd>{formatNumber(w.totalSell, 0)} bn VND</dd>
+          </div>
+          <div class="flow-kpi">
+            <dt>Inflow / outflow days</dt>
+            <dd>
+              <span class="up">{w.netBuyDays}d</span> / <span class="down">{w.netSellDays}d</span>
+            </dd>
+          </div>
+        </dl>
 
-      {w.latest && (
-        <div class="flow-inspector" data-flow-readout>
-          <span>Session: <strong data-flow-date>{w.latest.dateLabel}</strong></span>
-          <span>Buy: <strong data-flow-buy>{w.latest.buyLabel}</strong></span>
-          <span>Sell: <strong data-flow-sell>{w.latest.sellLabel}</strong></span>
-          <span>Daily Net: <strong data-flow-net class:list={[w.latest.net >= 0 ? 'up' : 'down']}>{w.latest.netLabel}</strong></span>
-          <span>Window Cum. Net: <strong data-flow-cum class:list={[w.latest.cumNet >= 0 ? 'up' : 'down']}>{w.latest.cumLabel}</strong></span>
+        {w.latest && (
+          <div class="flow-inspector" data-flow-readout>
+            <span><strong data-flow-date>{w.latest.dateLabel}</strong></span>
+            <span>Buy <strong data-flow-buy>{w.latest.buyLabel}</strong></span>
+            <span>Sell <strong data-flow-sell>{w.latest.sellLabel}</strong></span>
+            <span>Net <strong data-flow-net class:list={[w.latest.net >= 0 ? 'up' : 'down']}>{w.latest.netLabel}</strong></span>
+            <span>Cumulative <strong data-flow-cum class:list={[w.latest.cumNet >= 0 ? 'up' : 'down']}>{w.latest.cumLabel}</strong></span>
+          </div>
+        )}
+
+        <svg viewBox="0 0 1000 215" preserveAspectRatio="none" class="flow-svg" role="img" aria-label={`HOSE daily foreign net flow from ${w.first?.dateLabel} to ${w.latest?.dateLabel}`}>
+          <line x1="0" x2="1000" y1="24" y2="24" class="grid-line" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
+          <line x1="0" x2="1000" y1={w.yZero} y2={w.yZero} class="price-line" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+          <line x1="0" x2="1000" y1="196" y2="196" class="grid-line" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
+
+          {w.sessions.map((b) => (
+            <rect
+              x={b.x}
+              y={b.y}
+              width={b.w}
+              height={b.h}
+              rx="1.5"
+              class={b.net >= 0 ? 'flow-bar--up' : 'flow-bar--down'}
+              data-flow-bar
+              data-date={b.dateLabel}
+              data-buy={b.buyLabel}
+              data-sell={b.sellLabel}
+              data-net={b.netLabel}
+              data-cum={b.cumLabel}
+              data-net-pos={b.net >= 0 ? '1' : '0'}
+              data-cum-pos={b.cumNet >= 0 ? '1' : '0'}
+              tabindex="0"
+              aria-label={`${b.dateLabel}: Net ${b.netLabel}`}
+            />
+          ))}
+
+          <polyline points={w.polyline} class="flow-cum-line" vector-effect="non-scaling-stroke" />
+        </svg>
+
+        <div class="sheet__head t-label muted">
+          <span class="mono">{w.first?.dateLabel} – {w.latest?.dateLabel}</span>
+          <span class="mono">Bars: daily net (bn VND) · Line: cumulative net</span>
         </div>
-      )}
-
-      <svg viewBox="0 0 1000 215" preserveAspectRatio="none" class="flow-svg" role="img" aria-label={`HOSE daily foreign net flow from ${w.first?.dateLabel} to ${w.latest?.dateLabel}`}>
-        <line x1="0" x2="1000" y1="24" y2="24" class="grid-line" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
-        <line x1="0" x2="1000" y1={w.yZero} y2={w.yZero} class="price-line" stroke-width="1.5" vector-effect="non-scaling-stroke" />
-        <line x1="0" x2="1000" y1="196" y2="196" class="grid-line" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
-
-        {w.sessions.map((b) => (
-          <rect
-            x={b.x}
-            y={b.y}
-            width={b.w}
-            height={b.h}
-            rx="1"
-            class={b.net >= 0 ? 'flow-bar--up' : 'flow-bar--down'}
-            data-flow-bar
-            data-date={b.dateLabel}
-            data-buy={b.buyLabel}
-            data-sell={b.sellLabel}
-            data-net={b.netLabel}
-            data-cum={b.cumLabel}
-            data-net-pos={b.net >= 0 ? '1' : '0'}
-            data-cum-pos={b.cumNet >= 0 ? '1' : '0'}
-            tabindex="0"
-            aria-label={`${b.dateLabel}: Net ${b.netLabel}`}
-          />
-        ))}
-
-        <polyline points={w.polyline} class="flow-cum-line" vector-effect="non-scaling-stroke" />
-      </svg>
-
-      <div class="sheet__head t-label muted">
-        <span class="mono">{w.first?.dateLabel} → {w.latest?.dateLabel}</span>
-        <span class="mono">Bars: Daily Net Flow (bn VND) · Navy Line: Running Cumulative Net</span>
       </div>
-    </div>
-  ))}
+    ))}
+  </div>
 </div>
 
 <script>
@@ -199,7 +202,9 @@ const windows = compact
         const targetId = tab.dataset.flowTab;
         tabs.forEach((t) => t.setAttribute('aria-selected', String(t === tab)));
         panels.forEach((p) => {
-          p.hidden = p.dataset.flowPanel !== targetId;
+          const active = p.dataset.flowPanel === targetId;
+          p.classList.toggle('is-active', active);
+          p.setAttribute('aria-hidden', String(!active));
         });
       });
     });
