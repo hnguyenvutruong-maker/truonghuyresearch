@@ -24,18 +24,19 @@ const pdfSize = publicFileSize(pdfHref);
   title={`${model.company} (${model.ticker}) tear sheet | Truong Huy Research`}
   description={`One-page summary of the ${model.company} (${model.ticker}) valuation: methods, outputs against the price used, key assumptions and risks.`}
   image={`/og/research/${model.slug}.png`}
+  cta={false}
 >
   <div class="tear">
     <div class="no-print tear__bar">
-      <a class="back" href={`/research/${model.slug}`}>← Back to Full {model.ticker} Report</a>
+      <a class="btn btn--ghost btn--sm" href={`/research/${model.slug}`}>← Full {model.ticker} report</a>
       <div class="btn-row">
         {pdfSize && (
           <a class="btn btn--primary btn--sm" href={pdfHref} download>
-            Download Pre-built PDF ({pdfSize})
+            Download PDF ({pdfSize})
           </a>
         )}
         <button type="button" class="btn btn--secondary btn--sm" data-print>
-          Print / Save A4 PDF
+          Print / save as PDF
         </button>
       </div>
     </div>
@@ -43,7 +44,7 @@ const pdfSize = publicFileSize(pdfHref);
     <article class="ts">
       <header class="ts__top">
         <span class="ts__brand">Truong Huy <span class="muted">Research</span></span>
-        <span class="mono t-label muted">Equity Research Tear Sheet · Model of {formatDate(modelDate)}</span>
+        <span class="mono xsmall muted">Equity Research Tear Sheet · Model of {formatDate(modelDate)}</span>
       </header>
 
       <div class="ts__title">
@@ -51,7 +52,7 @@ const pdfSize = publicFileSize(pdfHref);
         <div>
           <p class="eyebrow">{model.sector} · {model.methods.join(' · ')}</p>
           <h1>{model.company}</h1>
-          <p class="t-small secondary">{model.report.headline}</p>
+          <p class="small text-2">{model.report.headline}</p>
         </div>
       </div>
 
@@ -97,7 +98,7 @@ const pdfSize = publicFileSize(pdfHref);
 
       <section>
         <h2 class="ts__h">Conclusion</h2>
-        <p class="t-small">{model.conclusion}</p>
+        <p class="small">{model.conclusion}</p>
       </section>
 
       <section>

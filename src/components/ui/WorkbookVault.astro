@@ -1,5 +1,6 @@
 ---
 // Open Workbook & Tear Sheet Vault (unslop-ui clean header)
+import Icon from './Icon.astro';
 import Ticker from './Ticker.astro';
 import { valuationModels } from '../../data/valuation-models';
 import { publicFileSize } from '../../lib/files';
@@ -54,45 +55,47 @@ const workbookCount = rows.filter((r) => r.kind === 'workbook').length;
 const tearCount = rows.filter((r) => r.kind === 'tearsheet').length;
 ---
 
-<div class="sheet stack-4" data-vault-root>
-  <div class="sheet__head">
-    <h3 class="t-h3">{workbookCount} Excel models &amp; {tearCount} PDF tear sheets</h3>
-    <div class="filter" role="group" aria-label="Filter repository files">
-      <button type="button" data-vault-filter="all" aria-pressed="true">All ({rows.length})</button>
-      <button type="button" data-vault-filter="workbook" aria-pressed="false">Excel / ZIP ({workbookCount})</button>
-      <button type="button" data-vault-filter="tearsheet" aria-pressed="false">PDF Tear Sheets ({tearCount})</button>
-    </div>
+<div class="window" data-vault-root>
+  <div class="window__bar">
+    <span class="window__title"><Icon name="file" size={14} /> {workbookCount} Excel models · {tearCount} PDF tear sheets</span>
+    <span class="window__actions">
+      <span class="seg" role="group" aria-label="Filter files">
+        <button type="button" data-vault-filter="all" aria-pressed="true">All <span class="count">{rows.length}</span></button>
+        <button type="button" data-vault-filter="workbook" aria-pressed="false">Excel / ZIP <span class="count">{workbookCount}</span></button>
+        <button type="button" data-vault-filter="tearsheet" aria-pressed="false">PDF <span class="count">{tearCount}</span></button>
+      </span>
+    </span>
   </div>
-
-  <div class="table-scroll" tabindex="0" role="region" aria-label="Model workbooks and tear sheets repository">
-    <table class="data">
+  <div class="table-scroll" tabindex="0" role="region" aria-label="Model workbooks and tear sheets, scrolls horizontally">
+    <table class="dtable">
       <thead>
         <tr>
           <th scope="col">Company</th>
-          <th scope="col">Model / File</th>
-          <th scope="col">Worksheets &amp; Contents</th>
-          <th scope="col">Format &amp; Size</th>
-          <th scope="col">Download</th>
+          <th scope="col">File</th>
+          <th scope="col">Worksheets &amp; contents</th>
+          <th scope="col">Format</th>
+          <th scope="col" class="r">Size</th>
+          <th scope="col"><span class="sr-only">Download</span></th>
         </tr>
       </thead>
       <tbody>
         {rows.map((r) => (
           <tr data-vault-row={r.kind}>
             <th scope="row">
-              <a href={`/research/${r.slug}`}>
-                <Ticker label={r.ticker} />
-                <span class="data__name">{r.company}</span>
-              </a>
+              <a class="cell-co" href={`/research/${r.slug}`}><Ticker label={r.ticker} />{r.ticker}</a>
             </th>
-            <td class="text-left">{r.title}</td>
-            <td class="t-small muted text-left">{r.sheets}</td>
-            <td class="num">
-              <span class="badge">{r.format}</span>
-              <span class="muted t-label"> {r.size}</span>
-            </td>
             <td>
-              <a class="btn btn--secondary btn--sm" href={r.href} download>
-                Download {r.format.split(' ')[0]}
+              <span class="cell-co">
+                <span class:list={['file-ico', r.kind === 'tearsheet' ? 'file-ico--pdf' : r.format === 'ZIP' ? 'file-ico--zip' : '']}>{r.format.split(' ')[0]}</span>
+                {r.title}
+              </span>
+            </td>
+            <td class="wrap muted">{r.sheets}</td>
+            <td><span class="tag">{r.format}</span></td>
+            <td class="r num muted">{r.size}</td>
+            <td>
+              <a class="btn btn--secondary btn--sm" href={r.href} download aria-label={`Download ${r.title} (${r.format})`}>
+                <Icon name="download" size={14} /> Download
               </a>
             </td>
           </tr>

@@ -1,39 +1,30 @@
 ---
+// Sub-navigation across the five covered companies, with each one's implied-move band.
+import Ticker from './Ticker.astro';
 import { impliedMovePct, valuationModels } from '../../data/valuation-models';
 import { signedPct } from '../../lib/format';
 
 interface Props {
   current?: string;
-  activeSlug?: string;
 }
+const { current } = Astro.props;
 
-const { current, activeSlug } = Astro.props;
-const active = current ?? activeSlug;
-
-const items = valuationModels.map((model) => {
-  const moves = model.outputs.map((o) => impliedMovePct(o, model.referencePrice));
-  const low = Math.min(...moves);
-  const high = Math.max(...moves);
-  return {
-    slug: model.slug,
-    ticker: model.ticker,
-    company: model.company,
-    moveText: `${signedPct(low, 0)} / ${signedPct(high, 0)}`,
-  };
+const items = valuationModels.map((m) => {
+  const moves = m.outputs.map((o) => impliedMovePct(o, m.referencePrice));
+  return { slug: m.slug, ticker: m.ticker, band: `${signedPct(Math.min(...moves), 0)} / ${signedPct(Math.max(...moves), 0)}` };
 });
 ---
 
-<nav class="coverage-subbar no-print" aria-label="Covered companies">
-  <div class="coverage-subbar-inner">
-    {items.map((item) => (
-      <a
-        href={`/research/${item.slug}`}
-        class:list={['coverage-pill', active === item.slug && 'is-active']}
-        aria-current={active === item.slug ? 'page' : undefined}
-      >
-        <span class="coverage-pill-ticker">{item.ticker}</span>
-        <span class="coverage-pill-name">{item.company}</span>
-        <span class="coverage-pill-move">{item.moveText}</span>
+<nav class="subnav no-print" aria-label="Covered companies">
+  <div class="container subnav__inner">
+    <a href="/research" aria-current={current ? undefined : 'page'}>
+      <span class="tick tick--idx" aria-hidden="true">∑</span> All coverage
+    </a>
+    {items.map((i) => (
+      <a href={`/research/${i.slug}`} aria-current={current === i.slug ? 'page' : undefined}>
+        <Ticker label={i.ticker} />
+        <strong>{i.ticker}</strong>
+        <span class="num">{i.band}</span>
       </a>
     ))}
   </div>

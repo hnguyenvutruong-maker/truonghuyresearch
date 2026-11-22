@@ -1,5 +1,10 @@
 ---
+// Weekly / monthly note page: header with figures, daily chart, cross-asset row, prose with a
+// scroll-spied contents rail, reading progress and newer/earlier navigation.
 import type { MarkdownHeading } from 'astro';
+import Disclaimer from './Disclaimer.astro';
+import Icon from './Icon.astro';
+import PageHeader from './PageHeader.astro';
 import VnIndexChart from './VnIndexChart.astro';
 import { formatDate, formatIndex, formatNumber, signedNumber, signedPct } from '../../lib/format';
 import type { NoteSummary } from '../../lib/notes';
@@ -13,131 +18,164 @@ interface Props {
 }
 
 const { note, headings, prev, next, listHref } = Astro.props;
-const tocHeadings = headings.filter((h) => h.depth === 2);
+const toc = headings.filter((h) => h.depth === 2);
+const unit = note.kind === 'Weekly' ? 'week' : 'month';
+const toneTag = note.tone === 'positive' ? 'tag--up' : note.tone === 'negative' ? 'tag--down' : 'tag--amber';
 ---
 
-<div class="note-progress-track no-print" aria-hidden="true">
-  <progress class="note-progress-bar" data-reading-progress value="0" max="100"></progress>
-</div>
+<progress class="progress no-print" data-reading-progress value="0" max="100" aria-hidden="true"></progress>
 
-<!-- Once UI Blog Post Layout (magic-portfolio/src/app/blog/[slug]/page.tsx) -->
-<div class="once-article-layout">
-  <header class="once-article-header" data-reveal>
-    <a class="once-smart-link" href={listHref}>
-      <span class="label-strong-m on-brand-weak">← {note.kind} Market Notes</span>
-    </a>
-    <span class="body-default-xs on-neutral-weak">
-      {formatDate(note.date)} · {note.period}
-    </span>
-    <h1 class="display-strong-m">{note.headline}</h1>
+<PageHeader
+  crumbs={[{ href: '/market-views', label: 'Market notes' }, ...(note.kind === 'Monthly' ? [{ href: listHref, label: 'Monthly' }] : []), { label: note.period }]}
+  title={note.headline}
+>
+  <div slot="before" class="row">
+    <span class:list={['tag', note.kind === 'Monthly' ? 'tag--violet' : 'tag--blue']}>{note.kind} market view</span>
+    <span class="tag tag--mono">{note.period}</span>
+    <span class:list={['tag', toneTag]}>Tone: {note.tone}</span>
+  </div>
+  <div class="row xsmall muted">
+    <span class="avatar avatar--sm" aria-hidden="true">TH</span>
+    Nguyen Vu Truong Huy · Published {formatDate(note.date)}
+  </div>
+  <dl slot="aside" class="facts">
+    <div><dt>VN-Index close</dt><dd>{formatIndex(note.close)}</dd></div>
+    <div><dt>{note.kind === 'Weekly' ? 'Week' : 'Month'} change</dt><dd class={note.change >= 0 ? 'up' : 'down'}>{signedPct(note.change)}</dd></div>
+    <div><dt>Avg daily liquidity</dt><dd>{formatNumber(note.liquidity, 0)} bn</dd></div>
+    <div><dt>Foreign net</dt><dd class={note.foreignNet != null && note.foreignNet < 0 ? 'down' : 'up'}>{note.foreignNet != null ? `${signedNumber(note.foreignNet)} bn` : '—'}</dd></div>
+  </dl>
+</PageHeader>
 
-    <div class="once-post-author-row">
-      <div class="once-post-author">
-        <span class="once-avatar once-avatar-s" aria-hidden="true">TH</span>
-        <span class="label-default-s on-brand-weak">Nguyen Vu Truong Huy · CFA Level II Passed</span>
+<div class="section--tight">
+  <div class="container stack-6">
+    <div class="stats">
+      <div class="stat">
+        <div class="stat__label">Open → close</div>
+        <div class="stat__value">{formatIndex(note.close)}</div>
+        <div class="stat__sub">from {formatIndex(note.open)}</div>
       </div>
+      <div class="stat">
+        <div class="stat__label">{unit === 'week' ? 'Weekly' : 'Monthly'} range</div>
+        <div class="stat__value">{formatIndex(note.low)}–{formatIndex(note.high)}</div>
+        <div class="stat__sub">low – high</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Foreign buy / sell</div>
+        <div class="stat__value">{note.foreignBuy != null && note.foreignSell != null ? `${formatNumber(note.foreignBuy, 0)} / ${formatNumber(note.foreignSell, 0)}` : '—'}</div>
+        <div class="stat__sub">bn VND over the {unit}</div>
+      </div>
+      {note.extras.length > 0 ? (
+        note.extras.slice(0, 1).map((e) => (
+          <div class="stat">
+            <div class="stat__label">{e.label}</div>
+            <div class="stat__value">{e.value}</div>
+            <div class="stat__sub">HOSE sessions</div>
+          </div>
+        ))
+      ) : (
+        <div class="stat">
+          <div class="stat__label">Session tone</div>
+          <div class="stat__value">{note.tone}</div>
+          <div class="stat__sub">as classified in the note</div>
+        </div>
+      )}
     </div>
-  </header>
 
-  <!-- Telemetry & Cross-Asset Scorecard Surface -->
-  <section class="once-surface-card" data-reveal>
-    <div class="once-Slide-header">
-      <span class="once-slide-kicker">{note.kind} Session Telemetry · {note.period}</span>
-      <span class="once-slide-meta">VN-Index Close: {formatIndex(note.close)} ({signedPct(note.change)})</span>
-    </div>
-
-    <div class="once-kpi-grid">
-      <div class="once-kpi-box">
-        <span class="once-kpi-label">VN-Index Close</span>
-        <span class="once-kpi-value">{formatIndex(note.close)}</span>
-        <span class="once-kpi-sub">{signedPct(note.change)} · Open {formatIndex(note.open)}</span>
-      </div>
-      <div class="once-kpi-box">
-        <span class="once-kpi-label">High / Low Range</span>
-        <span class="once-kpi-value">{formatIndex(note.high)} / {formatIndex(note.low)}</span>
-        <span class="once-kpi-sub">Intoperiod trading range</span>
-      </div>
-      <div class="once-kpi-box">
-        <span class="once-kpi-label">Avg Daily Liquidity</span>
-        <span class="once-kpi-value">{formatNumber(note.liquidity, 0)} bn VND</span>
-        <span class="once-kpi-sub">HOSE matched value</span>
-      </div>
-      <div class="once-kpi-box">
-        <span class="once-kpi-label">Foreign Net Flow</span>
-        <span class="once-kpi-value">
-          {note.foreignNet != null ? `${signedNumber(note.foreignNet)} bn VND` : '—'}
-        </span>
-        <span class="once-kpi-sub">
-          {note.foreignBuy != null && note.foreignSell != null
-            ? `Buy ${formatNumber(note.foreignBuy, 0)} / Sell ${formatNumber(note.foreignSell, 0)} bn`
-            : 'HOSE foreign institutional flow'}
-        </span>
-      </div>
-    </div>
+    {note.extras.length > 1 && (
+      <dl class="kv">
+        {note.extras.slice(1).map((e) => (
+          <div>
+            <dt class="kv__label">{e.label}</dt>
+            <dd class="kv__value">{e.value}</dd>
+          </div>
+        ))}
+      </dl>
+    )}
 
     {note.daily.length > 0 && (
-      <div>
-        <VnIndexChart
-          candleData={note.daily}
-          label={`${note.period} daily OHLC candlesticks`}
-        />
+      <div class="window">
+        <div class="window__bar">
+          <span class="window__title"><Icon name="chart" size={14} /> VN-Index daily OHLC · {note.period}</span>
+          <span class="window__actions"><span class="tag tag--mono">{note.daily.length} sessions</span></span>
+        </div>
+        <div class="window__pad">
+          <VnIndexChart candleData={note.daily} label={`VN-Index daily candles, ${note.period}`} height="md" />
+        </div>
       </div>
     )}
-  </section>
 
-  <!-- Main Article Prose + Sticky HeadingNav (blog/[slug]/page.tsx lines 145-171) -->
-  <div class="once-article-grid">
-    <article class="once-article-prose" data-note-article>
-      <slot />
-    </article>
-
-    {tocHeadings.length > 0 && (
-      <aside class="once-article-toc" aria-label="On this page">
-        <span class="label-strong-s on-neutral-strong">On this page</span>
-        {tocHeadings.map((h) => (
-          <a class="once-toc-link" href={`#${h.slug}`} data-toc-link={h.slug}>
-            <span>{h.text}</span>
-          </a>
+    <div>
+      <p class="eyebrow">Cross-asset · change over the {unit}</p>
+      <div class="assets">
+        {note.macro.map((m) => (
+          <div class="asset">
+            <div class="asset__l">{m.label}</div>
+            <div class="asset__v">{formatNumber(m.value, m.decimals)}</div>
+            <div class:list={['asset__c', m.change == null ? 'muted' : m.change >= 0 ? 'up' : 'down']}>{signedPct(m.change)}</div>
+          </div>
         ))}
-      </aside>
-    )}
-  </div>
-
-  <!-- Adjacent Posts (blog/[slug]/page.tsx lines 151-157) -->
-  <section class="once-blog-section" data-reveal>
-    <div class="once-line-h"></div>
-    <h2 class="heading-strong-xl">Recent posts</h2>
-    <div class="once-posts-grid">
-      {next && (
-        <a class="once-post-card is-surface" href={next.href}>
-          <span class="label-strong-s on-brand-weak">← Newer · {formatDate(next.date)}</span>
-          <h3 class="heading-strong-l">{next.headline}</h3>
-          <span class="body-default-xs on-neutral-weak">VN-Index {formatIndex(next.close)} ({signedPct(next.change)})</span>
-        </a>
-      )}
-      {prev && (
-        <a class="once-post-card is-surface" href={prev.href}>
-          <span class="label-strong-s on-neutral-weak">Earlier · {formatDate(prev.date)} →</span>
-          <h3 class="heading-strong-l">{prev.headline}</h3>
-          <span class="body-default-xs on-neutral-weak">VN-Index {formatIndex(prev.close)} ({signedPct(prev.change)})</span>
-        </a>
-      )}
+      </div>
     </div>
-  </section>
+  </div>
+</div>
+
+<div class="section--tight">
+  <div class="container">
+    <div class="article">
+      {toc.length > 0 && (
+        <nav class="side-nav" aria-label="In this note" data-spy>
+          <p class="side-nav__label eyebrow">In this note</p>
+          {toc.map((h) => <a href={`#${h.slug}`}>{h.text}</a>)}
+        </nav>
+      )}
+      <article class="prose" data-note-article>
+        <slot />
+      </article>
+    </div>
+
+    <div class="stack-6">
+      <nav class="pager" aria-label="Adjacent notes">
+        {prev ? (
+          <a href={prev.href}>
+            <span class="pager__dir">← Earlier · {prev.period}</span>
+            <span class="pager__title">{prev.headline}</span>
+          </a>
+        ) : <span></span>}
+        {next && (
+          <a class="is-next" href={next.href}>
+            <span class="pager__dir">Newer · {next.period} →</span>
+            <span class="pager__title">{next.headline}</span>
+          </a>
+        )}
+      </nav>
+      <Disclaimer text="Market notes are drafted from measured data with language-model assistance and are not investment advice. Figures shown as — were unavailable from primary sources at publication." />
+    </div>
+  </div>
 </div>
 
 <script>
   const progress = document.querySelector<HTMLProgressElement>('[data-reading-progress]');
   const article = document.querySelector<HTMLElement>('[data-note-article]');
-
   if (progress && article) {
-    const updateProgress = () => {
+    const update = () => {
       const rect = article.getBoundingClientRect();
       const total = Math.max(1, article.offsetHeight - window.innerHeight * 0.5);
-      const scrolled = Math.min(total, Math.max(0, -rect.top));
-      progress.value = Math.round((scrolled / total) * 100);
+      progress.value = Math.round((Math.min(total, Math.max(0, -rect.top + window.innerHeight * 0.2)) / total) * 100);
     };
-    window.addEventListener('scroll', updateProgress, { passive: true });
-    updateProgress();
+    window.addEventListener('scroll', update, { passive: true });
+    update();
   }
+
+  // ←/→ jump to the adjacent note when not typing.
+  document.addEventListener('keydown', (e) => {
+    const t = e.target as HTMLElement | null;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if (t?.closest?.('.table-scroll, [role="tablist"], [role="grid"], svg, .prose table')) return;
+    if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
+    const links = document.querySelectorAll<HTMLAnchorElement>('.pager a');
+    const prev = Array.from(links).find((a) => !a.classList.contains('is-next'));
+    const next = Array.from(links).find((a) => a.classList.contains('is-next'));
+    if (e.key === 'ArrowLeft' && prev) window.location.href = prev.href;
+    if (e.key === 'ArrowRight' && next) window.location.href = next.href;
+  });
 </script>

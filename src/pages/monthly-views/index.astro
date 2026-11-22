@@ -1,66 +1,40 @@
 ---
-// Monthly Market Notes Index (/monthly-views)
+import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Disclaimer from '../../components/ui/Disclaimer.astro';
-import DocHead from '../../components/ui/DocHead.astro';
 import NoteList from '../../components/ui/NoteList.astro';
-import { getCollection } from 'astro:content';
+import PageHeader from '../../components/ui/PageHeader.astro';
 import { formatIndex, signedNumber, signedPct } from '../../lib/format';
 import { monthlySummary } from '../../lib/notes';
 
-const notes = (await getCollection('monthly-views'))
-  .map(monthlySummary)
-  .sort((a, b) => b.date.valueOf() - a.date.valueOf());
+const notes = (await getCollection('monthly-views')).map(monthlySummary).sort((a, b) => b.date.valueOf() - a.date.valueOf());
 const latest = notes[0];
 ---
 
 <BaseLayout
   title="Monthly market notes on the VN-Index | Truong Huy Research"
-  description="Long-form monthly Vietnam market notes: VN-Index monthly range, liquidity, foreign flow, best and worst sectors, and cross-asset synthesis."
+  description="Monthly Vietnam market notes: VN-Index monthly range, liquidity, foreign flow, best and worst sectors, and cross-asset synthesis."
 >
-  <div class="doc">
-    <DocHead
-      label={`Monthly Market Intelligence · ${notes.length} Long-Form Reviews`}
-      title="Monthly Market Notes"
-      lead="Each month in one comprehensive institutional read: where the VN-Index travelled across the monthly candle, how domestic liquidity absorbed foreign supply, which sectors led and lagged, and how global macro channels transmitted into Vietnam equities."
-      back={{ href: '/market-views', label: 'All Market Notes' }}
-    >
-      {latest && (
-        <dl slot="aside" class="facts">
-          <div>
-            <dt>Latest Month</dt>
-            <dd class="mono">{latest.period}</dd>
-          </div>
-          <div>
-            <dt>VN-Index Close</dt>
-            <dd class="num">
-              {formatIndex(latest.close)}{' '}
-              <span class:list={['badge', latest.change >= 0 ? 'badge--up' : 'badge--down']}>
-                {signedPct(latest.change)}
-              </span>
-            </dd>
-          </div>
-          <div>
-            <dt>Monthly Range</dt>
-            <dd class="num">{formatIndex(latest.low)} – {formatIndex(latest.high)}</dd>
-          </div>
-          <div>
-            <dt>Foreign Net</dt>
-            <dd class:list={['num', latest.foreignNet != null && latest.foreignNet < 0 ? 'down' : 'up']}>
-              {latest.foreignNet != null ? `${signedNumber(latest.foreignNet)} bn VND` : '—'}
-            </dd>
-          </div>
-        </dl>
-      )}
-    </DocHead>
+  <PageHeader
+    crumbs={[{ href: '/market-views', label: 'Market notes' }, { label: 'Monthly' }]}
+    eyebrow={`${notes.length} monthly reviews`}
+    title="Monthly views"
+    lead="Each month in one read: the VN-Index's monthly range, how domestic liquidity absorbed foreign supply, which sectors led and lagged, and what moved across macro markets."
+  >
+    {latest && (
+      <dl slot="aside" class="facts">
+        <div><dt>Latest month</dt><dd>{latest.period}</dd></div>
+        <div><dt>VN-Index close</dt><dd>{formatIndex(latest.close)} <span class={latest.change >= 0 ? 'up' : 'down'}>{signedPct(latest.change)}</span></dd></div>
+        <div><dt>Monthly range</dt><dd>{formatIndex(latest.low)}–{formatIndex(latest.high)}</dd></div>
+        <div><dt>Foreign net</dt><dd class={latest.foreignNet != null && latest.foreignNet < 0 ? 'down' : 'up'}>{latest.foreignNet != null ? `${signedNumber(latest.foreignNet)} bn` : '—'}</dd></div>
+      </dl>
+    )}
+  </PageHeader>
 
-    <section class="ground-surface" aria-label="Monthly notes archive">
-      <div class="wrap stack-5">
-        <div class="sheet sheet--accent">
-          <NoteList notes={notes} />
-        </div>
-        <Disclaimer />
-      </div>
-    </section>
-  </div>
+  <section class="section--tight">
+    <div class="container container--narrow stack-6">
+      <NoteList notes={notes} />
+      <Disclaimer />
+    </div>
+  </section>
 </BaseLayout>

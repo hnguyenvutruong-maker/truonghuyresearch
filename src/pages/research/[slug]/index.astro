@@ -1,11 +1,16 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import CoverageStrip from '../../../components/ui/CoverageStrip.astro';
+import DatedNote from '../../../components/ui/DatedNote.astro';
+import Disclaimer from '../../../components/ui/Disclaimer.astro';
 import FootballField from '../../../components/ui/FootballField.astro';
+import Icon from '../../../components/ui/Icon.astro';
+import PageHeader from '../../../components/ui/PageHeader.astro';
 import SensitivityTable from '../../../components/ui/SensitivityTable.astro';
-import { formatOutput, impliedMovePct, outputMethodLabel, valuationModels } from '../../../data/valuation-models';
+import Ticker from '../../../components/ui/Ticker.astro';
+import { impliedMovePct, outputMethodLabel, STALE_AFTER_DAYS, valuationModels } from '../../../data/valuation-models';
 import { publicFileSize } from '../../../lib/files';
-import { formatDate, formatVndK, signedPct } from '../../../lib/format';
+import { daysBetween, formatDate, formatVndK, signedPct } from '../../../lib/format';
 
 export function getStaticPaths() {
   return valuationModels.map((model, i) => ({
@@ -14,17 +19,28 @@ export function getStaticPaths() {
   }));
 }
 
-const { model } = Astro.props;
+const { model, prev, next } = Astro.props;
 const reference = model.referencePrice;
 const modelDate = model.lastUpdated ?? reference.asOf;
+const age = daysBetween(modelDate, new Date());
+const stale = age > STALE_AFTER_DAYS;
 const tearHref = `/research/tear-sheets/${model.slug}.pdf`;
 const tearSize = publicFileSize(tearHref);
-const assumptions = model.keyAssumptions ?? model.report.assumptions;
 const upgrades = model.futureUpgrade ?? model.modelImprovementNotes ?? [];
 const moves = model.outputs.map((o) => impliedMovePct(o, reference));
 const low = Math.min(...moves);
 const high = Math.max(...moves);
-const relatedModels = valuationModels.filter((m) => m.slug !== model.slug).slice(0, 2);
+
+const sections = [
+  { id: 'range', label: 'Valuation range' },
+  { id: 'thesis', label: 'Thesis' },
+  { id: 'assumptions', label: 'Assumptions' },
+  ...(model.sensitivity ? [{ id: 'sensitivity', label: 'DCF sensitivity' }] : []),
+  { id: 'interpretation', label: 'Interpretation' },
+  { id: 'method-notes', label: 'Method notes' },
+  { id: 'risks', label: 'Risks' },
+  { id: 'files', label: 'Model files' },
+];
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -44,175 +60,244 @@ const jsonLd = {
 >
   <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />
 
-  <div class="once-col-m">
-    <CoverageStrip current={model.slug} />
-
-    <!-- Once UI Case Study Header (magic-portfolio/src/app/work/[slug]/page.tsx) -->
-    <section class="once-hero" data-reveal>
-      <a class="once-smart-link" href="/research">
-        <span class="label-strong-m on-brand-weak">← Projects</span>
-      </a>
-      <p class="body-default-xs on-neutral-weak">
-        Model of {formatDate(modelDate)} · Price used: VND {formatVndK(reference.value)} ({formatDate(reference.asOf)})
-      </p>
-      <div class="once-hero-title-wrap">
-        <h1 class="display-strong-m">{model.company} ({model.ticker})</h1>
-      </div>
-      <p class="heading-default-xl on-neutral-weak">{model.report.headline}</p>
-
-      <div class="once-post-author-row">
-        <div class="once-post-author">
-          <span class="once-avatar once-avatar-s" aria-hidden="true">TH</span>
-          <span class="label-default-s on-brand-weak">Nguyen Vu Truong Huy · CFA Level II Passed</span>
-        </div>
-      </div>
-
-      <div class="once-hero-actions">
-        <a class="once-btn once-btn-primary" href={tearHref}>
-          <span>Download Tear Sheet (PDF, {tearSize})</span>
+  <PageHeader crumbs={[{ href: '/research', label: 'Research' }, { label: model.ticker }]} title={`${model.company} (${model.ticker})`} lead={model.report.headline}>
+    <div slot="before" class="row">
+      <Ticker label={model.ticker} size="lg" />
+      <span class="tag tag--blue">{model.sector}</span>
+      {model.methods.map((x) => <span class="tag">{x}</span>)}
+      {model.status && <span class="tag tag--up">{model.status}</span>}
+    </div>
+    <div class="btn-row">
+      {tearSize && (
+        <a class="btn btn--primary" href={tearHref} download>
+          <Icon name="download" size={14} /> Tear sheet PDF <span class="mono xsmall">{tearSize}</span>
         </a>
-        <a class="once-btn once-btn-secondary" href={`/research/${model.slug}/tear-sheet`}>
-          <span>Printable A4 View</span>
-        </a>
-        {model.downloads.map((d) => (
-          <a class="once-btn once-btn-secondary" href={d.href} download>
-            <span>{d.label} ({d.format})</span>
-          </a>
-        ))}
-      </div>
-    </section>
+      )}
+      <a class="btn btn--secondary" href={`/research/${model.slug}/tear-sheet`}><Icon name="printer" size={14} /> A4 view</a>
+      <a class="btn btn--secondary" href="#files"><Icon name="file" size={14} /> Excel models ({model.downloads.length})</a>
+    </div>
+    <dl slot="aside" class="facts">
+      <div><dt>Price used</dt><dd>VND {formatVndK(reference.value)}</dd></div>
+      <div><dt>Price date</dt><dd>{formatDate(reference.asOf)}</dd></div>
+      <div><dt>Implied move</dt><dd><span class={low >= 0 ? 'up' : 'down'}>{signedPct(low, 0)}</span> / <span class={high >= 0 ? 'up' : 'down'}>{signedPct(high, 0)}</span></dd></div>
+      <div><dt>Model date</dt><dd>{formatDate(modelDate)}</dd></div>
+    </dl>
+  </PageHeader>
+  <CoverageStrip current={model.slug} />
 
-    <!-- Primary Valuation Preview Surface -->
-    <section class="once-surface-card" id="range" data-reveal>
-      <div class="once-Slide-header">
-        <span class="once-slide-kicker">{model.ticker} · Valuation Spread vs. VND {formatVndK(reference.value)}</span>
-        <span class="once-slide-meta">Implied Move: {signedPct(low, 0)} to {signedPct(high, 0)}</span>
-      </div>
+  <div class="section--tight">
+    <div class="container report">
+      <nav class="side-nav" aria-label="Report contents" data-spy>
+        <p class="side-nav__label eyebrow">Contents</p>
+        {sections.map((s) => <a href={`#${s.id}`}>{s.label}</a>)}
+      </nav>
 
-      <FootballField models={[model]} />
-
-      <div class="once-kpi-grid">
-        <div class="once-kpi-box">
-          <span class="once-kpi-label">Price Used</span>
-          <span class="once-kpi-value">VND {formatVndK(reference.value)}</span>
-          <span class="once-kpi-sub">As of {formatDate(reference.asOf)}</span>
-        </div>
-        {model.outputs.map((o) => {
-          const move = impliedMovePct(o, reference);
-          return (
-            <div class="once-kpi-box">
-              <span class="once-kpi-label">{outputMethodLabel[o.method]}</span>
-              <span class="once-kpi-value">{formatOutput(o)}</span>
-              <span class="once-kpi-sub">{signedPct(move, 1)} · {o.basis}</span>
-            </div>
-          );
-        })}
-      </div>
-    </section>
-
-    <!-- Core Analytical Question & Executive View -->
-    <section class="once-col-s" id="thesis" data-reveal>
-      <div class="once-surface-card">
-        <span class="once-slide-kicker">Core Valuation Question</span>
-        <h2 class="heading-strong-xl">{model.investmentQuestion ?? model.report.headline}</h2>
-        <p class="body-default-m on-neutral-medium">{model.conclusion}</p>
-        <div class="once-kpi-grid">
-          {model.report.thesis.map((point, idx) => (
-            <div class="once-kpi-box">
-              <span class="once-kpi-label">Thesis Point 0{idx + 1}</span>
-              <span class="body-default-s on-neutral-medium">{point}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-
-    <!-- Key Numbers & Assumptions -->
-    <section class="once-surface-card" id="assumptions" data-reveal>
-      <div class="once-Slide-header">
-        <h2 class="heading-strong-xl">Key Model Assumptions &amp; Drivers</h2>
-        <span class="once-slide-meta">Auditable in Excel ({model.downloads.length} files)</span>
-      </div>
-      <div class="once-kpi-grid">
-        {assumptions.map((kn) => (
-          <div class="once-kpi-box">
-            <span class="once-kpi-label">{kn.label}</span>
-            <span class="once-kpi-value">{kn.value}</span>
-            <span class="once-kpi-sub">{kn.detail}</span>
+      <div class="report__main">
+        <section id="range" aria-labelledby="h-range" class="stack-6">
+          <div class="sec-head">
+            <h2 id="h-range">Valuation range</h2>
+            <span class="small muted">VND per share vs. {formatVndK(reference.value)} price used</span>
           </div>
-        ))}
-      </div>
-    </section>
+          {stale && (
+            <DatedNote>
+              This model is {age} days old. Its price used (VND {formatVndK(reference.value)}, {formatDate(reference.asOf)}) is not a live quote, so the
+              implied moves describe the model date, not today.
+            </DatedNote>
+          )}
+          <p class="quote">{model.report.stance}</p>
+          <div class="window">
+            <div class="window__bar">
+              <span class="window__title">{model.ticker} football field</span>
+              <span class="window__actions"><span class="tag tag--mono">{signedPct(low, 1)} to {signedPct(high, 1)}</span></span>
+            </div>
+            <div class="window__pad">
+              <FootballField outputs={model.outputs} reference={reference} ticker={model.ticker} />
+            </div>
+            <div class="table-scroll" tabindex="0" role="region" aria-label="Valuation outputs, scrolls horizontally">
+              <table class="dtable">
+                <thead>
+                  <tr>
+                    <th scope="col">Method</th>
+                    <th scope="col" class="r">Low</th>
+                    <th scope="col" class="r">Base</th>
+                    <th scope="col" class="r">High</th>
+                    <th scope="col" class="r">Implied move</th>
+                    <th scope="col">What the range spans</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {model.outputs.map((o) => {
+                    const mv = impliedMovePct(o, reference);
+                    return (
+                      <tr>
+                        <th scope="row"><span class="ff-detail-row__label"><i class:list={['legend-dot', `l-${o.method.toLowerCase()}`]}></i>{outputMethodLabel[o.method]}</span></th>
+                        <td class="r num">{formatVndK(o.low)}</td>
+                        <td class="r num">{o.base !== undefined ? formatVndK(o.base) : <span class="muted">—</span>}</td>
+                        <td class="r num">{formatVndK(o.high)}</td>
+                        <td class="r"><span class:list={['tag', 'tag--mono', mv >= 0 ? 'tag--up' : 'tag--down']}>{signedPct(mv, 1)}</span></td>
+                        <td class="wrap muted">{o.basis}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <dl class="kv kv--3">
+            {model.report.valuationResult.map((p) => (
+              <div>
+                <dt class="kv__label">{p.label}</dt>
+                <dd class="kv__value">{p.value}</dd>
+                <dd class="kv__detail">{p.detail}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
 
-    <!-- Interactive 5x5 DCF Sensitivity Matrix (if present) -->
-    {model.sensitivity && (
-      <section class="container" id="sensitivity" data-reveal>
-        <SensitivityTable
-          grid={model.sensitivity}
-          reference={reference}
-        />
-      </section>
-    )}
+        <section id="thesis" aria-labelledby="h-thesis" class="stack-6">
+          <div class="sec-head">
+            <h2 id="h-thesis">Thesis</h2>
+          </div>
+          {model.investmentQuestion && <p class="quote">{model.investmentQuestion}</p>}
+          <ol class="prose-list">
+            {model.report.thesis.map((t) => <li>{t}</li>)}
+          </ol>
+        </section>
 
-    <!-- Risks & Model Upgrades -->
-    <section class="once-posts-grid" id="risks" data-reveal>
-      <div class="once-surface-card">
-        <span class="once-slide-kicker">Downside &amp; Execution Risks</span>
-        <h2 class="heading-strong-l">Key Risks to the Thesis</h2>
-        <ul class="body-default-s on-neutral-medium">
-          {model.report.risks.map((risk) => (
-            <li>{risk}</li>
-          ))}
-        </ul>
-      </div>
+        <section id="assumptions" aria-labelledby="h-assumptions" class="stack-6">
+          <div class="sec-head">
+            <h2 id="h-assumptions">Assumptions</h2>
+            <span class="small muted">Auditable in the workbooks</span>
+          </div>
+          {model.keyAssumptions && (
+            <dl class="kv kv--3">
+              {model.keyAssumptions.map((a) => (
+                <div>
+                  <dt class="kv__label">{a.label}</dt>
+                  <dd class="kv__value">{a.value}</dd>
+                  <dd class="kv__detail">{a.detail}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          <dl class="kv">
+            {model.report.assumptions.map((a) => (
+              <div>
+                <dt class="kv__label">{a.label}</dt>
+                <dd class="kv__value">{a.value}</dd>
+                <dd class="kv__detail">{a.detail}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
 
-      <div class="once-surface-card">
-        <span class="once-slide-kicker">Model Checkpoints</span>
-        <h2 class="heading-strong-l">Next Model Upgrades &amp; Checks</h2>
-        <ul class="body-default-s on-neutral-medium">
-          {upgrades.map((item) => (
-            <li>{item}</li>
-          ))}
-        </ul>
-      </div>
-    </section>
+        {model.sensitivity && (
+          <section id="sensitivity" aria-labelledby="h-sens" class="stack-6">
+            <div class="sec-head">
+              <h2 id="h-sens">DCF sensitivity</h2>
+              <span class="small muted">Hover or tab through the grid</span>
+            </div>
+            <SensitivityTable grid={model.sensitivity} reference={reference} />
+          </section>
+        )}
 
-    <!-- Downloadable Model Files -->
-    <section class="once-surface-card" id="files" data-reveal>
-      <div class="once-Slide-header">
-        <h2 class="heading-strong-xl">Open Excel Workbooks &amp; Tear Sheet</h2>
-        <span class="once-slide-meta">{model.downloads.length} Unprotected Excel Files</span>
-      </div>
-      <div class="once-posts-grid">
-        {model.downloads.map((d) => (
-          <div class="once-kpi-box">
-            <span class="once-kpi-label">{d.modelType ?? d.label} · {d.format}</span>
-            <span class="heading-strong-l">{d.sourceTemplate}</span>
-            <span class="body-default-xs on-neutral-weak">Sheets: {d.sheets.join(' · ')}</span>
-            <div class="once-project-links">
-              <a class="once-smart-link" href={d.href} download>
-                <span>Download {d.sourceTemplate}</span>
-                <span class="once-arrow-icon" aria-hidden="true">↓</span>
+        <section id="interpretation" aria-labelledby="h-int" class="stack-6">
+          <div class="sec-head">
+            <h2 id="h-int">Interpretation</h2>
+          </div>
+          <ol class="prose-list">
+            {model.report.interpretation.map((t) => <li>{t}</li>)}
+          </ol>
+          <div class="card stack-2">
+            <p class="eyebrow">Conclusion</p>
+            <p class="text-2">{model.conclusion}</p>
+            {model.limitation && <p class="small muted">{model.limitation}</p>}
+          </div>
+        </section>
+
+        <section id="method-notes" aria-labelledby="h-notes" class="stack-6">
+          <div class="sec-head">
+            <h2 id="h-notes">Method notes</h2>
+          </div>
+          <div class="grid-2">
+            {model.valuationNotes.map((n) => (
+              <article class="card stack-3">
+                <div class="row row--between">
+                  <h3 class="h4">{n.method}</h3>
+                  <span class="tag tag--mono">{n.price}</span>
+                </div>
+                <p class="small text-2">{n.assumptions}</p>
+                <p class="small muted">{n.result}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section id="risks" aria-labelledby="h-risks" class="stack-6">
+          <div class="sec-head">
+            <h2 id="h-risks">Risks</h2>
+          </div>
+          <div class="grid-2">
+            <div class="card stack-4">
+              <p class="eyebrow">What would change the range</p>
+              <ul class="prose-list small">{model.report.risks.map((r) => <li>{r}</li>)}</ul>
+            </div>
+            {upgrades.length > 0 && (
+              <div class="card stack-4">
+                <p class="eyebrow">Next model upgrades</p>
+                <ul class="prose-list prose-list--dash small">{upgrades.map((u) => <li>{u}</li>)}</ul>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section id="files" aria-labelledby="h-files" class="stack-6">
+          <div class="sec-head">
+            <h2 id="h-files">Model files</h2>
+            <span class="small muted">{model.downloads.length + (tearSize ? 1 : 0)} files</span>
+          </div>
+          <div class="files">
+            {model.downloads.map((d) => {
+              const size = publicFileSize(d.href);
+              return (
+                <div class="file">
+                  <span class:list={['file-ico', d.format === 'ZIP' && 'file-ico--zip']}>{d.format}</span>
+                  <div>
+                    <p class="file__name">{model.ticker} · {d.modelType ?? d.label}</p>
+                    <p class="file__meta">{d.description ?? d.sourceTemplate} · Sheets: {d.sheets.join(', ')}{size ? ` · ${size}` : ''}</p>
+                  </div>
+                  <a class="btn btn--secondary btn--sm" href={d.href} download><Icon name="download" size={14} /> Download</a>
+                </div>
+              );
+            })}
+            {tearSize && (
+              <div class="file">
+                <span class="file-ico file-ico--pdf">PDF</span>
+                <div>
+                  <p class="file__name">{model.ticker} · One-page tear sheet</p>
+                  <p class="file__meta">A4 summary: football field, outputs, assumptions, conclusion and risks · {tearSize}</p>
+                </div>
+                <a class="btn btn--secondary btn--sm" href={tearHref} download><Icon name="download" size={14} /> Download</a>
+              </div>
+            )}
+          </div>
+          <nav class="pager" aria-label="Other reports">
+            {prev ? (
+              <a href={`/research/${prev.slug}`}>
+                <span class="pager__dir">← Previous report</span>
+                <span class="pager__title">{prev.ticker} · {prev.company}</span>
               </a>
-            </div>
-          </div>
-        ))}
+            ) : <span></span>}
+            {next && (
+              <a class="is-next" href={`/research/${next.slug}`}>
+                <span class="pager__dir">Next report →</span>
+                <span class="pager__title">{next.ticker} · {next.company}</span>
+              </a>
+            )}
+          </nav>
+          <Disclaimer text={model.report.disclaimer} />
+        </section>
       </div>
-    </section>
-
-    <!-- Related Projects (magic-portfolio/src/app/work/[slug]/page.tsx lines 137-143) -->
-    <section class="once-blog-section" data-reveal>
-      <div class="once-line-h"></div>
-      <h2 class="heading-strong-xl">Related projects</h2>
-      <div class="once-posts-grid">
-        {relatedModels.map((rel) => (
-          <a class="once-post-card is-surface" href={`/research/${rel.slug}`}>
-            <span class="label-strong-s on-brand-weak">{rel.ticker} · {rel.methods.join(' + ')}</span>
-            <h3 class="heading-strong-l">{rel.company}</h3>
-            <p class="body-default-s on-neutral-weak">{rel.report.headline}</p>
-          </a>
-        ))}
-      </div>
-    </section>
+    </div>
   </div>
 </BaseLayout>

@@ -2,6 +2,7 @@
 // Global Command Palette (Ctrl+K / Cmd+K / /): searches all 5 company valuation reports,
 // 3 valuation methodology hubs, 5 printable A4 tear sheets, and all weekly/monthly market notes.
 import { getCollection } from 'astro:content';
+import Icon from './Icon.astro';
 import { impliedMovePct, methodPages, valuationGroups, valuationModels } from '../../data/valuation-models';
 import { formatIndex, signedPct } from '../../lib/format';
 import { monthlySummary, weeklySummary } from '../../lib/notes';
@@ -15,6 +16,8 @@ type CmdItem = {
   tone: 'up' | 'down' | 'neutral';
   href: string;
   keywords: string;
+  slug: string;
+  mark: string;
 };
 
 const weekly = (await getCollection('market-views')).map(weeklySummary);
@@ -33,6 +36,8 @@ const companyItems: CmdItem[] = valuationModels.map((m) => {
     badge: `${signedPct(low, 0)} to ${signedPct(high, 0)}`,
     tone: high >= 0 ? 'up' : 'down',
     href: `/research/${m.slug}`,
+    slug: m.slug,
+    mark: m.ticker.slice(0, 1),
     keywords: `${m.ticker} ${m.company} ${m.sector} ${m.methods.join(' ')} ${m.report.headline}`.toLowerCase(),
   };
 });
@@ -51,6 +56,8 @@ const methodItems: CmdItem[] = [
       badge: tickers.join(', '),
       tone: 'neutral' as const,
       href: p.href,
+      slug: p.id,
+      mark: 'M',
       keywords: `method ${g.title} ${g.eyebrow} ${tickers.join(' ')}`.toLowerCase(),
     };
   }),
@@ -62,6 +69,8 @@ const methodItems: CmdItem[] = [
     badge: 'A4 / PDF',
     tone: 'neutral' as const,
     href: `/research/${m.slug}/tear-sheet`,
+    slug: m.slug,
+    mark: 'A4',
     keywords: `tear sheet pdf a4 ${m.ticker} ${m.company}`.toLowerCase(),
   })),
 ];
@@ -74,42 +83,42 @@ const noteItems: CmdItem[] = notes.map((n) => ({
   badge: signedPct(n.change),
   tone: n.change >= 0 ? 'up' : 'down',
   href: n.href,
+  slug: n.slug,
+  mark: n.kind === 'Weekly' ? 'W' : 'M',
   keywords: `${n.kind} ${n.period} ${n.headline} ${n.slug} vn-index market note`.toLowerCase(),
 }));
 
 const allItems: CmdItem[] = [...companyItems, ...methodItems, ...noteItems];
 ---
 
-<dialog class="cmd-dialog no-print" id="cmd-palette" aria-label="Search research coverage, valuation methods, and market notes">
-  <div class="cmd-head">
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-      <circle cx="7" cy="7" r="4.8" />
-      <path d="M10.6 10.6 14 14" stroke-linecap="round" />
-    </svg>
+<dialog class="cmd no-print" id="cmd-palette" aria-label="Search research coverage, valuation methods and market notes">
+  <div class="cmd__head">
+    <Icon name="search" size={16} />
     <input
       type="search"
-      class="cmd-input"
+      class="cmd__input"
       id="cmd-search-input"
-      placeholder="Search tickers (HPG, FPT, BID...), methods (DCF, LBO), or market notes..."
+      placeholder="Search tickers, methods or market notes…"
       autocomplete="off"
       spellcheck="false"
       aria-label="Search query"
     />
-    <button type="button" class="cmd-cat" data-cmd-close aria-label="Close search dialog">Esc</button>
+    <button type="button" class="kbd" data-cmd-close aria-label="Close search">Esc</button>
   </div>
 
-  <div class="cmd-cats" role="group" aria-label="Filter search category">
-    <button type="button" class="cmd-cat" data-cmd-cat="all" aria-pressed="true">All ({allItems.length})</button>
-    <button type="button" class="cmd-cat" data-cmd-cat="companies" aria-pressed="false">Companies ({companyItems.length})</button>
-    <button type="button" class="cmd-cat" data-cmd-cat="methods" aria-pressed="false">Methods & Tear Sheets ({methodItems.length})</button>
-    <button type="button" class="cmd-cat" data-cmd-cat="notes" aria-pressed="false">Market Notes ({noteItems.length})</button>
+  <div class="cmd__cats" role="group" aria-label="Filter search category">
+    <button type="button" class="chip" data-cmd-cat="all" aria-pressed="true">All <span class="count">{allItems.length}</span></button>
+    <button type="button" class="chip" data-cmd-cat="companies" aria-pressed="false">Companies <span class="count">{companyItems.length}</span></button>
+    <button type="button" class="chip" data-cmd-cat="methods" aria-pressed="false">Methods &amp; tear sheets <span class="count">{methodItems.length}</span></button>
+    <button type="button" class="chip" data-cmd-cat="notes" aria-pressed="false">Market notes <span class="count">{noteItems.length}</span></button>
   </div>
 
-  <ul class="cmd-list" id="cmd-results-list" role="listbox" aria-label="Search results">
+  <ul class="cmd__list" id="cmd-results-list" role="listbox" aria-label="Search results">
     {allItems.map((item, idx) => (
       <li
-        class="cmd-item"
+        class="cmd__item"
         role="option"
+        aria-selected={idx === 0 ? 'true' : 'false'}
         data-cmd-item
         data-category={item.category}
         data-keywords={item.keywords}
@@ -117,11 +126,16 @@ const allItems: CmdItem[] = [...companyItems, ...methodItems, ...noteItems];
         data-active={idx === 0 ? 'true' : 'false'}
       >
         <a href={item.href}>
-          <div>
-            <span class="cmd-item__title">{item.title}</span>
-            <span class="cmd-item__sub">{item.categoryLabel} · {item.subtitle}</span>
-          </div>
-          <span class:list={['badge', item.tone === 'up' ? 'badge--up' : item.tone === 'down' ? 'badge--down' : 'badge--navy']}>
+          {item.category === 'companies' ? (
+            <span class:list={['tick', `tick--${item.slug}`]} aria-hidden="true">{item.mark}</span>
+          ) : (
+            <span class="tick" aria-hidden="true">{item.mark}</span>
+          )}
+          <span class="cmd__item-main">
+            <span class="cmd__item-title">{item.title}</span>
+            <span class="cmd__item-sub">{item.categoryLabel} · {item.subtitle}</span>
+          </span>
+          <span class:list={['tag', 'tag--mono', item.tone === 'up' ? 'tag--up' : item.tone === 'down' ? 'tag--down' : '']}>
             {item.badge}
           </span>
         </a>
@@ -129,8 +143,8 @@ const allItems: CmdItem[] = [...companyItems, ...methodItems, ...noteItems];
     ))}
   </ul>
 
-  <div class="cmd-foot">
-    <span>↑↓ Navigate · Enter Open · Esc Close</span>
+  <div class="cmd__foot">
+    <span>↑↓ to navigate · Enter to open · Esc to close</span>
     <span data-cmd-count>{allItems.length} results</span>
   </div>
 </dialog>
@@ -152,7 +166,10 @@ const allItems: CmdItem[] = [...companyItems, ...methodItems, ...noteItems];
 
   const setActive = (index: number) => {
     const vis = visibleItems();
-    items.forEach((el) => el.setAttribute('data-active', 'false'));
+    items.forEach((el) => {
+      el.setAttribute('data-active', 'false');
+      el.setAttribute('aria-selected', 'false');
+    });
     if (vis.length === 0) {
       activeIdx = 0;
       return;
@@ -160,6 +177,7 @@ const allItems: CmdItem[] = [...companyItems, ...methodItems, ...noteItems];
     activeIdx = ((index % vis.length) + vis.length) % vis.length;
     const target = vis[activeIdx];
     target.setAttribute('data-active', 'true');
+    target.setAttribute('aria-selected', 'true');
     target.scrollIntoView({ block: 'nearest' });
   };
 
@@ -229,6 +247,12 @@ const allItems: CmdItem[] = [...companyItems, ...methodItems, ...noteItems];
     }
 
     if (!dialog?.open) return;
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      dialog.close();
+      return;
+    }
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();

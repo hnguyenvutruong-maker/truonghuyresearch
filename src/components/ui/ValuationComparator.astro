@@ -31,41 +31,31 @@ const items = valuationModels.map((m) => {
 });
 ---
 
-<div class="grid">
+<div class="grid-2">
   {items.map(({ model, outputs, spreadPts, whyDiffer }) => (
-    <article class="card card--rule span-6">
-      <div class="sheet__head">
-        <a href={`/research/${model.slug}`} class="desk-selector__title">
-          <Ticker label={model.ticker} />
-          <div>
-            <span class="data__name">{model.company}</span>
-            <span class="data__sub">{model.sector} · Ref {formatVndK(model.referencePrice.value)}</span>
-          </div>
+    <article class="card stack-4">
+      <div class="row row--between">
+        <a href={`/research/${model.slug}`} class="cell-co">
+          <Ticker label={model.ticker} size="lg" />
+          <span>
+            {model.ticker} · {model.company}
+            <span class="cell-co__sub">{model.sector} · price used {formatVndK(model.referencePrice.value)}</span>
+          </span>
         </a>
-        <span class="badge badge--navy">
-          {outputs.length > 1 ? `Method spread: ${spreadPts.toFixed(1)} pts` : 'Single-method band'}
-        </span>
+        <span class="tag tag--mono">{outputs.length > 1 ? `Spread ${spreadPts.toFixed(1)} pts` : 'Single method'}</span>
       </div>
-
-      <p class="t-small"><strong>Core question:</strong> {model.investmentQuestion ?? model.report.headline}</p>
-
-      <ul class="rows">
-        {outputs.map((o) => (
-          <li>
-            <div>
-              <span class="rows__name">{o.label}</span>
-              <span class="data__sub">{o.basis}</span>
-            </div>
-            <div class="rows__value">
-              <span class="num">{o.formatted}</span>
-              <span class:list={['badge', o.move >= 0 ? 'badge--up' : 'badge--down']}>{signedPct(o.move, 1)}</span>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      <p class="t-small muted">{whyDiffer}</p>
-
+      <p class="small text-2">{model.investmentQuestion ?? model.report.headline}</p>
+      <table class="dtable dtable--compact">
+        <tbody>
+          {outputs.map((o) => (
+            <tr>
+              <th scope="row"><span class="ff-detail-row__label"><i class:list={['legend-dot', `l-${o.method.toLowerCase()}`]}></i>{o.label}</span><span class="cell-co__sub">{o.basis}</span></th>
+              <td class="r"><span class="cell-stack"><span class="num">{o.formatted}</span><span class:list={['num', 'xsmall', o.move >= 0 ? 'up' : 'down']}>{signedPct(o.move, 1)}</span></span></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p class="small muted">{whyDiffer}</p>
       <div class="btn-row">
         <a class="btn btn--secondary btn--sm" href={`/research/${model.slug}`}>Read {model.ticker} report</a>
         <a class="btn btn--ghost btn--sm" href={`/research/${model.slug}/tear-sheet`}>A4 tear sheet</a>

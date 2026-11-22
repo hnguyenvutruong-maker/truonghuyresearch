@@ -1,6 +1,13 @@
 ---
 import { portfolioDisclaimer } from '../../data/valuation-models';
-interface Props { label?: string; text?: string }
+interface Props {
+  label?: string;
+  text?: string;
+}
 const { label = 'Academic research, not investment advice', text = portfolioDisclaimer } = Astro.props;
 ---
-<aside class="disclosure" aria-label="Disclosure"><p class="t-label">{label}</p><p>{text}</p></aside>
+
+<aside class="disclosure" aria-label="Disclosure">
+  <p class="eyebrow">{label}</p>
+  <p>{text}</p>
+</aside>
