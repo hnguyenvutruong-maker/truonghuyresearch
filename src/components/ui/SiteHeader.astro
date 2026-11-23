@@ -1,80 +1,93 @@
 ---
-// Floating pill navigation: brand, primary research sections, ⌘K search, light/dark switch, CTA, mobile drawer.
+// Global command bar (48px, fixed) + quote tape of the coverage and the latest measured market data.
+import { getCollection } from 'astro:content';
 import BrandMark from './BrandMark.astro';
 import Icon from './Icon.astro';
+import flowCache from '../../content/market-views/_foreign_flow_cache.json';
+import { impliedMovePct, valuationModels } from '../../data/valuation-models';
+import { formatDate, formatIndex, formatVndK, signedNumber, signedPct } from '../../lib/format';
 
 const path = Astro.url.pathname.replace(/\/$/, '') || '/';
-const isMethod = ['/research/dcf', '/research/comparable-analysis', '/research/precedent-transactions-lbo'].some((p) =>
-  path.startsWith(p)
-);
-
+const isMethod = ['/research/dcf', '/research/comparable-analysis', '/research/precedent-transactions-lbo'].some((p) => path.startsWith(p));
 const links = [
-  { href: '/research', label: 'Research', hint: '5 companies', active: path.startsWith('/research') && !isMethod },
+  { href: '/', label: 'Desk', hint: 'Overview', active: path === '/' },
+  { href: '/research', label: 'Coverage', hint: '5 companies', active: path.startsWith('/research') && !isMethod },
   { href: '/research/dcf', label: 'Methods', hint: 'DCF · Comps · LBO', active: isMethod },
-  {
-    href: '/market-views',
-    label: 'Market notes',
-    hint: 'Weekly & monthly',
-    active: path.startsWith('/market-views') || path.startsWith('/monthly-views'),
-  },
-  { href: '/contact', label: 'About', hint: 'Profile & contact', active: path.startsWith('/contact') },
+  { href: '/market-views', label: 'Market notes', hint: 'Weekly & monthly', active: path.startsWith('/market-views') || path.startsWith('/monthly-views') },
+  { href: '/contact', label: 'Analyst', hint: 'Profile & contact', active: path.startsWith('/contact') },
 ];
+
+const weekly = (await getCollection('market-views')).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())[0]?.data;
+const flow = Object.entries(flowCache as Record<string, { net: number }>)
+  .filter(([, v]) => typeof v?.net === 'number')
+  .sort(([a], [b]) => a.localeCompare(b));
+const lastFlow = flow[flow.length - 1];
+const priceDate = formatDate(valuationModels[0].referencePrice.asOf);
+const current = path.match(/^\/research\/([a-z]+)/)?.[1];
 ---
 
-<div class="site-nav no-print" data-site-nav>
-  <header class="nav-bar">
+<header class="cmdbar no-print" data-site-nav>
+  <div class="container cmdbar__inner">
     <a class="brand" href="/" aria-label="Truong Huy Research home">
       <BrandMark />
-      <span>Truong Huy <span class="brand__sub">Research</span></span>
+      <span class="brand__name">Truong Huy <span>Research</span></span>
     </a>
-
-    <nav aria-label="Primary">
-      <ul class="nav-links">
-        {links.map((l) => (
-          <li>
-            <a href={l.href} aria-current={l.active ? 'page' : undefined}>{l.label}</a>
-          </li>
-        ))}
-      </ul>
+    <nav class="navtabs" aria-label="Primary">
+      {links.map((l) => <a href={l.href} aria-current={l.active ? 'page' : undefined}>{l.label}</a>)}
     </nav>
-
-    <div class="nav-actions">
-      <button type="button" class="nav-search" data-cmd-open aria-label="Search research, tickers and notes">
-        <Icon name="search" size={14} />
-        <span>Search research…</span>
+    <div class="cmdbar__right">
+      <div class="status" aria-label="Data status">
+        <span><i class="pip pip--amber" aria-hidden="true"></i>Models · {priceDate}</span>
+        {lastFlow && <span><i class="pip pip--up" aria-hidden="true"></i>Flow · {formatDate(lastFlow[0])}</span>}
+      </div>
+      <button type="button" class="cmd-trigger" data-cmd-open aria-label="Search tickers, methods and notes">
+        <Icon name="search" size={13} />
+        <span class="cmd-trigger__text">Ticker, method, note…</span>
         <kbd>⌘K</kbd>
       </button>
-      <button type="button" class="nav-search__icon" data-cmd-open aria-label="Search research, tickers and notes">
-        <Icon name="search" />
-      </button>
-      <div class="theme-switch" role="group" aria-label="Colour theme">
-        <button type="button" data-theme-set="light" aria-pressed="false" aria-label="Light theme">
-          <Icon name="sun" size={14} />
-        </button>
-        <button type="button" data-theme-set="dark" aria-pressed="true" aria-label="Dark theme">
-          <Icon name="moon" size={14} />
-        </button>
-      </div>
-      <a class="btn btn--primary btn--sm nav-cta" href="/research">View coverage</a>
-      <button type="button" class="nav-menu-btn" data-nav-toggle aria-expanded="false" aria-controls="nav-drawer" aria-label="Open menu">
-        <Icon name="menu" size={18} class="icon-open" />
-        <Icon name="close" size={18} class="icon-close" />
+      <button type="button" class="menu-btn" data-nav-toggle aria-expanded="false" aria-controls="nav-drawer" aria-label="Open menu">
+        <Icon name="menu" size={16} class="icon-open" />
+        <Icon name="close" size={16} class="icon-close" />
       </button>
     </div>
-  </header>
-
-  <nav class="nav-drawer" id="nav-drawer" aria-label="Mobile">
+  </div>
+  <nav class="drawer" id="nav-drawer" aria-label="Mobile">
     {links.map((l) => (
-      <a href={l.href} aria-current={l.active ? 'page' : undefined}>
-        {l.label}
-        <span>{l.hint}</span>
-      </a>
+      <a href={l.href} aria-current={l.active ? 'page' : undefined}>{l.label}<span>{l.hint}</span></a>
     ))}
-    <div class="nav-drawer__foot">
-      <button type="button" class="btn btn--secondary btn--sm" data-cmd-open>
-        <Icon name="search" size={14} /> Search
-      </button>
-      <a class="btn btn--primary btn--sm" href="/cv.pdf" target="_blank" rel="noopener">Download CV</a>
+    <div class="drawer__foot">
+      <a class="btn btn--primary btn--sm" href="/research">Open coverage</a>
+      <a class="btn btn--ghost btn--sm" href="/cv.pdf" target="_blank" rel="noopener">Download CV</a>
     </div>
   </nav>
+</header>
+
+<div class="tape no-print" aria-label="Market tape">
+  <div class="container tape__inner">
+    {weekly && (
+      <a class="tape__item" href="/market-views" title={`Weekly close, week ending ${formatDate(weekly.date)}`}>
+        <strong>VNINDEX</strong> {formatIndex(weekly.vn_index_close)}
+        <span class={weekly.vn_index_weekly_change_pct >= 0 ? 'up' : 'down'}>{signedPct(weekly.vn_index_weekly_change_pct)}</span>
+        <span class="dim">{formatDate(weekly.date)}</span>
+      </a>
+    )}
+    {valuationModels.map((m) => {
+      const moves = m.outputs.map((o) => impliedMovePct(o, m.referencePrice));
+      const lo = Math.min(...moves);
+      const hi = Math.max(...moves);
+      return (
+        <a class="tape__item" href={`/research/${m.slug}`} aria-current={current === m.slug ? 'page' : undefined} title={`Implied move range vs. price used ${priceDate}`}>
+          <strong>{m.ticker}</strong> {formatVndK(m.referencePrice.value)}
+          <span class={lo >= 0 ? 'up' : 'down'}>{signedPct(lo, 0)}</span>/<span class={hi >= 0 ? 'up' : 'down'}>{signedPct(hi, 0)}</span>
+        </a>
+      );
+    })}
+    {lastFlow && (
+      <a class="tape__item" href="/market-views#foreign-flow">
+        <strong>HOSE FOREIGN</strong>
+        <span class={lastFlow[1].net >= 0 ? 'up' : 'down'}>{signedNumber(lastFlow[1].net, 1)} bn</span>
+        <span class="dim">{formatDate(lastFlow[0])}</span>
+      </a>
+    )}
+  </div>
 </div>

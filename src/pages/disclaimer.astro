@@ -14,7 +14,7 @@ const terms = [
   },
   {
     title: 'Automated data and language-model assistance',
-    text: 'Weekly and monthly notes are drafted with automated Python data collection and a language model; frontmatter figures are enforced against measured market data. A dash (—) means the figure was unavailable from primary sources at publication.',
+    text: 'Weekly and monthly notes are drafted with automated Python data collection and a language model; frontmatter figures are enforced against measured market data. Cross-asset values in notes up to 5 June 2026 may not be measured closes. A dash (—) means the figure was unavailable from primary sources at publication.',
   },
   {
     title: 'No investment advice',
@@ -25,17 +25,17 @@ const terms = [
 
 <BaseLayout title="Disclaimer | Truong Huy Research" description="Academic portfolio disclaimer for the valuation models and market notes on truonghuyresearch.xyz.">
   <PageHeader crumbs={[{ label: 'Disclaimer' }]} eyebrow="Important disclosures" title="Disclaimer" lead={portfolioDisclaimer} />
-  <section class="section--tight">
-    <div class="container container--narrow">
+  <div class="container ws">
+    <section class="panel col-24" aria-label="Terms">
       {terms.map((t, i) => (
         <div class="cv-item">
           <span class="cv-item__when">0{i + 1}</span>
           <div>
-            <h2 class="h3">{t.title}</h2>
-            <p class="text-2">{t.text}</p>
+            <h2 class="h-sm">{t.title}</h2>
+            <p class="small muted">{t.text}</p>
           </div>
         </div>
       ))}
-    </div>
-  </section>
+    </section>
+  </div>
 </BaseLayout>

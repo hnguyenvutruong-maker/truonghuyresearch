@@ -30,15 +30,14 @@ const toneTag = note.tone === 'positive' ? 'tag--up' : note.tone === 'negative' 
   title={note.headline}
 >
   <div slot="before" class="row">
-    <span class:list={['tag', note.kind === 'Monthly' ? 'tag--violet' : 'tag--blue']}>{note.kind} market view</span>
-    <span class="tag tag--mono">{note.period}</span>
+    <span class="tag tag--blue">{note.kind} market view</span>
+    <span class="tag">{note.period}</span>
     <span class:list={['tag', toneTag]}>Tone: {note.tone}</span>
   </div>
-  <div class="row xsmall muted">
-    <span class="avatar avatar--sm" aria-hidden="true">TH</span>
-    Nguyen Vu Truong Huy · Published {formatDate(note.date)}
+  <div class="lockup">
+    <strong>Nguyen Vu Truong Huy</strong><i></i>Published {formatDate(note.date)}<i></i>{note.kind} view · {note.period}
   </div>
-  <dl slot="aside" class="facts">
+  <dl slot="aside" class="facts facts--focus">
     <div><dt>VN-Index close</dt><dd>{formatIndex(note.close)}</dd></div>
     <div><dt>{note.kind === 'Weekly' ? 'Week' : 'Month'} change</dt><dd class={note.change >= 0 ? 'up' : 'down'}>{signedPct(note.change)}</dd></div>
     <div><dt>Avg daily liquidity</dt><dd>{formatNumber(note.liquidity, 0)} bn</dd></div>
@@ -46,13 +45,20 @@ const toneTag = note.tone === 'positive' ? 'tag--up' : note.tone === 'negative' 
   </dl>
 </PageHeader>
 
-<div class="section--tight">
-  <div class="container stack-6">
-    <div class="stats">
+<div class="container report report--two">
+  {toc.length > 0 ? (
+    <nav class="side-nav report__nav" aria-label="In this note" data-spy>
+      <p class="side-nav__label eyebrow">In this note</p>
+      {toc.map((h) => <a href={`#${h.slug}`}>{h.text}</a>)}
+    </nav>
+  ) : <span class="report__nav"></span>}
+
+  <div class="report__main">
+    <div class="stats stats--4">
       <div class="stat">
         <div class="stat__label">Open → close</div>
         <div class="stat__value">{formatIndex(note.close)}</div>
-        <div class="stat__sub">from {formatIndex(note.open)}</div>
+        <div class="stat__sub">from {formatIndex(note.open)} · <span class={note.change >= 0 ? 'up' : 'down'}>{signedPct(note.change)}</span></div>
       </div>
       <div class="stat">
         <div class="stat__label">{unit === 'week' ? 'Weekly' : 'Monthly'} range</div>
@@ -65,18 +71,16 @@ const toneTag = note.tone === 'positive' ? 'tag--up' : note.tone === 'negative' 
         <div class="stat__sub">bn VND over the {unit}</div>
       </div>
       {note.extras.length > 0 ? (
-        note.extras.slice(0, 1).map((e) => (
-          <div class="stat">
-            <div class="stat__label">{e.label}</div>
-            <div class="stat__value">{e.value}</div>
-            <div class="stat__sub">HOSE sessions</div>
-          </div>
-        ))
+        <div class="stat">
+          <div class="stat__label">{note.extras[0].label}</div>
+          <div class="stat__value">{note.extras[0].value}</div>
+          <div class="stat__sub">HOSE sessions</div>
+        </div>
       ) : (
         <div class="stat">
-          <div class="stat__label">Session tone</div>
-          <div class="stat__value">{note.tone}</div>
-          <div class="stat__sub">as classified in the note</div>
+          <div class="stat__label">Avg daily liquidity</div>
+          <div class="stat__value">{formatNumber(note.liquidity, 0)}</div>
+          <div class="stat__sub">bn VND</div>
         </div>
       )}
     </div>
@@ -84,72 +88,54 @@ const toneTag = note.tone === 'positive' ? 'tag--up' : note.tone === 'negative' 
     {note.extras.length > 1 && (
       <dl class="kv">
         {note.extras.slice(1).map((e) => (
-          <div>
-            <dt class="kv__label">{e.label}</dt>
-            <dd class="kv__value">{e.value}</dd>
-          </div>
+          <div><dt class="kv__label">{e.label}</dt><dd class="kv__value">{e.value}</dd></div>
         ))}
       </dl>
     )}
 
-    {note.daily.length > 0 && (
-      <div class="window">
-        <div class="window__bar">
-          <span class="window__title"><Icon name="chart" size={14} /> VN-Index daily OHLC · {note.period}</span>
-          <span class="window__actions"><span class="tag tag--mono">{note.daily.length} sessions</span></span>
+    <div class="assets" aria-label={`Cross-asset change over the ${unit}`}>
+      {note.macro.map((m) => (
+        <div class="asset">
+          <div class="asset__l">{m.label}</div>
+          <div class="asset__v">{formatNumber(m.value, m.decimals)}</div>
+          <div class:list={['asset__c', m.change == null ? 'dim' : m.change >= 0 ? 'up' : 'down']}>{signedPct(m.change)}</div>
         </div>
-        <div class="window__pad">
+      ))}
+    </div>
+
+    {note.daily.length > 0 && (
+      <section class="panel">
+        <div class="panel__head">
+          <span class="panel__title"><Icon name="chart" size={13} /> VN-Index daily OHLC</span>
+          <span class="panel__meta">{note.daily.length} sessions</span>
+        </div>
+        <div class="panel__body">
           <VnIndexChart candleData={note.daily} label={`VN-Index daily candles, ${note.period}`} height="md" />
         </div>
-      </div>
+      </section>
     )}
 
-    <div>
-      <p class="eyebrow">Cross-asset · change over the {unit}</p>
-      <div class="assets">
-        {note.macro.map((m) => (
-          <div class="asset">
-            <div class="asset__l">{m.label}</div>
-            <div class="asset__v">{formatNumber(m.value, m.decimals)}</div>
-            <div class:list={['asset__c', m.change == null ? 'muted' : m.change >= 0 ? 'up' : 'down']}>{signedPct(m.change)}</div>
-          </div>
-        ))}
+    <article class="panel">
+      <div class="panel__head">
+        <span class="panel__title"><Icon name="book" size={13} /> {note.kind} market view</span>
+        <span class="panel__meta">{note.period}</span>
       </div>
-    </div>
-  </div>
-</div>
+      <div class="panel__body">
+        <div class="prose" data-note-article>
+          <slot />
+        </div>
+      </div>
+    </article>
 
-<div class="section--tight">
-  <div class="container">
-    <div class="article">
-      {toc.length > 0 && (
-        <nav class="side-nav" aria-label="In this note" data-spy>
-          <p class="side-nav__label eyebrow">In this note</p>
-          {toc.map((h) => <a href={`#${h.slug}`}>{h.text}</a>)}
-        </nav>
+    <nav class="pager" aria-label="Adjacent notes">
+      {prev ? (
+        <a href={prev.href}><span class="pager__dir">← Earlier · {prev.period}</span><span class="pager__title">{prev.headline}</span></a>
+      ) : <span></span>}
+      {next && (
+        <a class="is-next" href={next.href}><span class="pager__dir">Newer · {next.period} →</span><span class="pager__title">{next.headline}</span></a>
       )}
-      <article class="prose" data-note-article>
-        <slot />
-      </article>
-    </div>
-
-    <div class="stack-6">
-      <nav class="pager" aria-label="Adjacent notes">
-        {prev ? (
-          <a href={prev.href}>
-            <span class="pager__dir">← Earlier · {prev.period}</span>
-            <span class="pager__title">{prev.headline}</span>
-          </a>
-        ) : <span></span>}
-        {next && (
-          <a class="is-next" href={next.href}>
-            <span class="pager__dir">Newer · {next.period} →</span>
-            <span class="pager__title">{next.headline}</span>
-          </a>
-        )}
-      </nav>
-      <Disclaimer text="Market notes are drafted from measured data with language-model assistance and are not investment advice. Figures shown as — were unavailable from primary sources at publication." />
-    </div>
+    </nav>
+    <Disclaimer text="Market notes are drafted with language-model assistance and are not investment advice. VN-Index figures are measured; cross-asset values in notes up to 5 Jun 2026 may not be measured closes. Figures shown as — were unavailable at publication." />
   </div>
 </div>
 

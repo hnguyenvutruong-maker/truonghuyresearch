@@ -32,10 +32,10 @@ const x = (v: number) => Math.round(((v - (lo - pad)) / (hi - lo + pad * 2)) * 1
 const anchor = levels.find((l) => l.kind === 'anchor');
 ---
 
-<div class="window" data-macro-tracker>
-  <div class="window__bar">
-    <span class="window__title"><Icon name="chart" size={14} /> VN-Index levels &amp; regime</span>
-    <span class="window__actions">
+<div class="panel" data-macro-tracker>
+  <div class="panel__head">
+    <span class="panel__title"><Icon name="chart" size={14} /> VN-Index levels &amp; regime</span>
+    <span class="panel__actions">
       <span class="seg" role="tablist" aria-label="Regime notes">
         <button type="button" role="tab" data-macro-tab="quarterly" aria-selected="true">{quarterlyData.quarter}</button>
         <button type="button" role="tab" data-macro-tab="monthly" aria-selected="false">{monthlyData.last_updated}</button>
@@ -44,7 +44,7 @@ const anchor = levels.find((l) => l.kind === 'anchor');
     </span>
   </div>
 
-  <div class="window__pad stack-6">
+  <div class="panel__body stack-6">
     {levels.length > 0 && anchor && (
       <div>
         <svg class="ruler-svg" viewBox="0 0 1000 64" preserveAspectRatio="none" role="img" aria-label={`Measured VN-Index levels from ${formatIndex(lo)} to ${formatIndex(hi)}`}>

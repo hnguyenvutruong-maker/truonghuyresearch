@@ -17,7 +17,7 @@ const columns: Array<{ method: OutputMethod; label: string }> = [
   { method: 'Precedent', label: 'Precedent' },
   { method: 'LBO', label: 'LBO' },
 ];
-const sectorTag = ['tag--blue', 'tag--teal', 'tag--violet', 'tag--amber', 'tag--up'];
+const sectorTag = ['tag--blue', 'tag--blue', 'tag--blue', 'tag--amber', 'tag--up'];
 
 const rows = [...valuationModels]
   .sort((a, b) => a.ticker.localeCompare(b.ticker))
@@ -57,7 +57,7 @@ const heads = [
   </div>
 
   <div class="table-scroll" tabindex="0" role="region" aria-label="Coverage table, scrolls horizontally">
-    <table class="dtable" data-sortable>
+    <table class="dtable dtable--pin" data-sortable>
       <caption class="sr-only">Valuation coverage in VND per share, with implied moves against the price each model used</caption>
       <thead>
         <tr>

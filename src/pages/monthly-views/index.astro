@@ -22,7 +22,7 @@ const latest = notes[0];
     lead="Each month in one read: the VN-Index's monthly range, how domestic liquidity absorbed foreign supply, which sectors led and lagged, and what moved across macro markets."
   >
     {latest && (
-      <dl slot="aside" class="facts">
+      <dl slot="aside" class="facts facts--focus">
         <div><dt>Latest month</dt><dd>{latest.period}</dd></div>
         <div><dt>VN-Index close</dt><dd>{formatIndex(latest.close)} <span class={latest.change >= 0 ? 'up' : 'down'}>{signedPct(latest.change)}</span></dd></div>
         <div><dt>Monthly range</dt><dd>{formatIndex(latest.low)}–{formatIndex(latest.high)}</dd></div>
@@ -31,10 +31,10 @@ const latest = notes[0];
     )}
   </PageHeader>
 
-  <section class="section--tight">
-    <div class="container container--narrow stack-6">
+  <div class="container ws">
+    <section class="panel col-24" aria-label="Monthly notes">
       <NoteList notes={notes} />
-      <Disclaimer />
-    </div>
-  </section>
+    </section>
+    <div class="col-24"><Disclaimer /></div>
+  </div>
 </BaseLayout>

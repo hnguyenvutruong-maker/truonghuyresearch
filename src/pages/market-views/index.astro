@@ -32,11 +32,11 @@ const featured = all.slice(0, 3);
   >
     <div class="btn-row">
       {latest && <a class="btn btn--primary" href={latest.href}>Latest note <Icon name="arrow_right" size={14} /></a>}
-      <a class="btn btn--secondary" href="/monthly-views">Monthly views</a>
+      <a class="btn btn--ghost" href="/monthly-views">Monthly views</a>
       <a class="btn btn--ghost" href="/rss.xml"><Icon name="rss" size={14} /> RSS</a>
     </div>
     {latestWeekly && (
-      <dl slot="aside" class="facts">
+      <dl slot="aside" class="facts facts--focus">
         <div><dt>Latest week</dt><dd>{latestWeekly.period}</dd></div>
         <div><dt>VN-Index close</dt><dd>{formatIndex(latestWeekly.close)} <span class={latestWeekly.change >= 0 ? 'up' : 'down'}>{signedPct(latestWeekly.change)}</span></dd></div>
         <div><dt>Avg daily liquidity</dt><dd>{formatNumber(latestWeekly.liquidity, 0)} bn</dd></div>
@@ -45,67 +45,50 @@ const featured = all.slice(0, 3);
     )}
   </PageHeader>
 
-  <section class="section--tight" aria-labelledby="latest-title">
-    <div class="container stack-6">
-      <div class="sec-head">
-        <h2 id="latest-title">Latest</h2>
-        <span class="small muted">Most recent note {latest ? formatDate(latest.date) : ''}</span>
+  <div class="container ws">
+    <section class="panel col-16" aria-labelledby="vni-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="vni-title"><Icon name="chart" size={13} /> VN-Index · weekly close</h2>
+        <span class="panel__meta">{trend.length} weekly notes</span>
       </div>
-      <div class="grid-3">
+      <div class="panel__body">
+        <VnIndexChart trendData={trend} label={`VN-Index weekly close across ${trend.length} weekly notes`} />
+      </div>
+    </section>
+
+    <section class="panel col-8" aria-labelledby="latest-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="latest-title"><Icon name="book" size={13} /> Latest</h2>
+        <span class="panel__meta">{latest ? formatDate(latest.date) : ''}</span>
+      </div>
+      <ol class="notelist notelist--compact">
         {featured.map((n) => (
-          <a class="note-card" href={n.href}>
-            <div class="note-card__by">
-              <span class="avatar avatar--sm" aria-hidden="true">TH</span>
-              <span class="note-card__who">{n.kind} market view<span>{n.period}</span></span>
-            </div>
-            <p class="note-card__title">{n.headline}</p>
-            <div class="note-card__meta">
-              <span class="tag tag--mono">{formatIndex(n.close)}</span>
-              <span class:list={['tag', 'tag--mono', n.change >= 0 ? 'tag--up' : 'tag--down']}>{signedPct(n.change)}</span>
-              {n.foreignNet != null && <span class="tag tag--mono">Foreign {signedNumber(n.foreignNet, 0)} bn</span>}
-            </div>
-          </a>
+          <li>
+            <a href={n.href}>
+              <span class="notelist__when"><span class="tag tag--blue">{n.kind}</span>{n.period}</span>
+              <span class="notelist__title">{n.headline}</span>
+              <span class="notelist__fig">{formatIndex(n.close)} <span class:list={['tag', n.change >= 0 ? 'tag--up' : 'tag--down']}>{signedPct(n.change)}</span></span>
+            </a>
+          </li>
         ))}
-      </div>
-      <div class="window">
-        <div class="window__bar">
-          <span class="window__title"><Icon name="chart" size={14} /> VN-Index weekly close</span>
-          <span class="window__actions"><span class="tag tag--mono">{trend.length} weeks</span></span>
-        </div>
-        <div class="window__pad">
-          <VnIndexChart trendData={trend} label={`VN-Index weekly close across ${trend.length} weekly notes`} />
-        </div>
-      </div>
-    </div>
-  </section>
+      </ol>
+    </section>
 
-  <section class="section--tight" id="foreign-flow" aria-labelledby="flow-title">
-    <div class="container stack-6">
-      <div class="sec-head">
-        <h2 id="flow-title">Foreign flow</h2>
-        <span class="small muted">Hover or tab through the bars</span>
-      </div>
+    <section class="col-24" id="foreign-flow" aria-label="Foreign flow">
       <ForeignFlowMonitor />
-    </div>
-  </section>
+    </section>
 
-  <section class="section--tight" id="levels" aria-labelledby="levels-title">
-    <div class="container stack-6">
-      <div class="sec-head">
-        <h2 id="levels-title">Levels &amp; regime</h2>
-      </div>
+    <section class="col-24" id="levels" aria-label="Levels and regime">
       <MacroThesisTracker />
-    </div>
-  </section>
+    </section>
 
-  <section class="section--tight" id="archive" aria-labelledby="archive-title">
-    <div class="container container--narrow stack-6">
-      <div class="sec-head">
-        <h2 id="archive-title">Archive</h2>
-        <span class="small muted">{all.length} notes</span>
+    <section class="panel col-24" id="archive" aria-labelledby="archive-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="archive-title"><Icon name="calendar" size={13} /> Archive</h2>
+        <span class="panel__meta">{all.length} notes</span>
       </div>
       <NoteList notes={all} filter />
-      <Disclaimer />
-    </div>
-  </section>
+    </section>
+    <div class="col-24"><Disclaimer /></div>
+  </div>
 </BaseLayout>

@@ -1,47 +1,58 @@
-# Truong Huy Research — "Folio" research design system (2026-11)
+# Truong Huy Research — "Research Terminal" (2026-11)
 
-Replaces the Institutional Editorial / Once UI systems. Modelled on the layout language of the
-Folio (Ruixen UI) landing template the owner supplied — dark workspace, floating pill nav,
-app-window product surfaces, bento cards, tabbed showcase, FAQ with side nav, closing horizon
-band and a rounded footer card — rebuilt from scratch for a research site. No template code,
-fonts or photos were copied: Tiempos Headline (commercial) is replaced by Source Serif 4, and
-the landscape photos by a CSS/SVG dusk sky whose horizon is the VN-Index weekly-close series.
+The source specification is [DESIGN.md](DESIGN.md), supplied by the owner. This file records how it
+is implemented in `src/styles/site.css` and where the build deliberately differs.
 
-## Tokens (`src/styles/site.css`, `:root` + `:root[data-theme='light']`)
-- Dark first (`data-theme="dark"` default, persisted in `localStorage.theme`, set before paint by
-  the one hashed inline script in `BaseLayout`). Light theme mirrors every token.
-- Surfaces: `--bg #0b0b0c`, `--bg-raised`, `--surface`, `--surface-2/3`; hairlines `--border`,
-  `--border-soft`, `--border-strong`; text `--fg`, `--fg-2`, `--fg-3`.
-- Primary button = inverted (`--primary-bg` near-white on dark, near-black on light).
-- Semantic: `--up`, `--down`, `--amber` (price used / reference), `--blue`, `--violet`, `--teal`,
-  each with `-bg` and `-line` tints for pills. Method lanes: `--m-dcf` blue, `--m-comp` teal,
-  `--m-prec` violet, `--m-lbo` amber.
-- Type: Source Serif 4 Variable 700 (`.display-*` headings), Geist Sans 400/500/600 (UI, prose),
-  Geist Mono 400/500/600 (all figures, `.num`, `.mono`, `.eyebrow`).
+## Implementation
+- **Dark only.** The theme switch, light tokens and the inline theme script were removed.
+  `vercel.json` is back to `script-src 'self'` with no hashes.
+- **Surfaces** follow the prose palette in DESIGN.md: canvas `#0A0C10`, Level 1 `#12151D` (docks,
+  sidebars, table headers), Level 2 `#1A1F2C` (active modules, table rows), hover `#22293A`,
+  hairlines `#262E3D`. Ink is `#F8FAFC` / `#C2C6D6` / `#94A3B8` / `#64748B`.
+  The front-matter Material tokens (`#051424`…) are not used, because they conflict with the prose
+  values.
+- **Semantic colours:** emerald `#10B981`, crimson `#EF4444` and amber `#F59E0B` (base case and
+  price focus), each with 0.12 fills and 0.3 borders on pills. Cobalt `#3B82F6` marks controls,
+  active tabs and the command palette.
+- **Type:** Newsreader (titles: `.display` 36/44, `.h-lg`, `.h-md`, `.h-sm`), Inter (prose 15/13/11)
+  and JetBrains Mono (every figure, label, table cell and button). All self-hosted through
+  `@fontsource-variable`.
+- **Shape:** 4px radii everywhere, no consumer shadows. The only overlay shadow is
+  `0 8px 24px rgba(0,0,0,.65)` on the command palette and mobile drawer.
+- **Shell:**
+  - A fixed 48px command bar: brand, nav tabs with a cobalt underline, status pips for the model
+    date and the last foreign-flow session, and the ⌘K trigger.
+  - A 30px quote tape: VN-Index weekly close, each ticker's price used and implied-move band, and
+    the latest HOSE foreign net.
+  - A compact footer.
+- **Grid:** `.ws` is 1 column below 1024px, 12 columns at 1024–1439px and 24 columns at ≥1440px,
+  using `.col-24/16/14/12/10/8/7/6`. Gutter is 12px, margin 16px.
+- **Panels:** `.panel` (Level 1 dock) with `.panel__head` (mono uppercase title, meta, actions),
+  `.panel__body` and `.panel__foot`.
+- **Tables:** `.dtable` has a 28px uppercase mono header and 30px Level 2 rows, with numbers
+  right-aligned. `.dtable--pin` makes the first column sticky below 1024px, and `tr.subtotal`
+  draws a double rule.
+- **Range bar** (`FootballField.astro`):
+  - Track, spread and markers: a 4px track, a cobalt 25% spread with 2px edges, a white pip at the
+    price used and an amber diamond at the base case.
+  - The outer SVG has no viewBox, so x positions are percentages and heights stay in px.
+- **Sensitivity:** the base cell has a 1px amber halo and an amber tint. The other cells shade
+  from crimson to emerald against the price used.
+- **Report page:**
+  - Three panes at ≥1440px: a sticky contents rail, the main column, and a sticky right rail with
+    the valuation box and model files.
+  - Two panes at 1024–1439px. On mobile the panes stack as nav chips, then the rail, then the main
+    column.
+- **Tear sheet:**
+  - Print inversion to white, `#0F172A` ink and `#CBD5E1` rules.
+  - The header carries the credential lockup (Nguyen Vu Truong Huy · UEH Finance & Banking ·
+    Passed Level II of the CFA Program), the ticker and model date, and a valuation box in place
+    of the spec's "target price box".
 
-## Components (classes)
-- Nav: `.site-nav > .nav-bar` floating pill, `.nav-links`, `.nav-search` (⌘K), `.theme-switch`
-  (sun/moon segmented), `.nav-cta`, `.nav-drawer` (mobile).
-- Buttons: `.btn` + `--primary | --secondary | --ghost`, sizes `--sm | --lg`; `.chip`, `.seg`
-  (segmented control for in-window tabs/filters), `.tag` (+ colour modifiers), `.signal`, `.kbd`,
-  `.announce` (hero pill).
-- App window: `.window`, `.window__bar`, `.window__side` (+ `.side-link`), `.window__head`,
-  `.toolbar`, `.window__pad`, `.window__foot`; tables `.dtable` inside `.table-scroll`.
-- Landing: `.hero` + `Sky.astro`, `.marquee`, `.feature-row`, `.bento` (`.b-2/.b-3/.b-4/.b-6`),
-  `.pipe`, `.qlist`, `.timeline`, `.tabs`/`.tab`, `.masonry` + `.note-card`, `.faq` +
-  `.faq-item` (`<details>`), `.cta`, `.footer-card`.
-- Inner pages: `PageHeader.astro` (`.page-head`, `.crumbs`, `.facts`), `.subnav` (coverage),
-  `.report` (sticky `.side-nav[data-spy]` + `.report__main` sections), `.kv`, `.stats`,
-  `.quote`, `.prose-list`, `.files`/`.file`, `.pager`, `.dated`, `.disclosure`, `.prose`.
-- Charts: football field (`.ff*`), VN-Index (`.vni-svg`, `.c-*` classes), flow (`.flow-*`),
-  levels ruler (`.r-*`, `.level`), sensitivity grid (`.sens`, `.s-up2…s-dn2`). All colours come
-  from CSS classes so both themes work; no inline `style=""` (CSP `style-src 'self'`).
-- Tear sheet `.ts` is always light and prints on one A4 page.
-
-## Rules
-- Mobile first; no horizontal page scroll at 375px (wide tables scroll inside `.table-scroll`;
-  single-column grids use `minmax(0, 1fr)`).
-- Motion: `[data-reveal]` fade-up (only when `html.js`), marquee, tab panels; all disabled under
-  `prefers-reduced-motion`.
-- Generic behaviours live in `BaseLayout`: theme switch, nav drawer, reveal, `[data-tabs]` tablists
-  (arrow keys), `[data-spy]` scroll-spy.
+## Deliberate deviations from DESIGN.md (factual accuracy)
+- **No BUY/HOLD/SELL ratings, target prices or 52-week ranges.** The research publishes valuation
+  ranges against a dated price used, not ratings. The rating-pill styles are reused for implied
+  moves and range signals ("All methods above / Straddles price / All methods below").
+- **Sensitivity axes are WACC × exit EV/EBITDA, not WACC × terminal growth.** That is what the HPG
+  and FPT workbooks compute.
+- **The analyst lockup reads "UEH Finance & Banking"**, matching the owner record in CLAUDE.md.

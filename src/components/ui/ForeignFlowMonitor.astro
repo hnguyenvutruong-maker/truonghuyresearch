@@ -98,11 +98,11 @@ const windows = compact
     ];
 ---
 
-<div class="window" data-flow-monitor>
-  <div class="window__bar">
-    <span class="window__title"><Icon name="flow" size={14} /> HOSE foreign net flow, daily</span>
+<div class="panel" data-flow-monitor>
+  <div class="panel__head">
+    <span class="panel__title"><Icon name="flow" size={14} /> HOSE foreign net flow, daily</span>
     {!compact && (
-      <span class="window__actions">
+      <span class="panel__actions">
         <span class="seg" role="tablist" aria-label="Foreign flow window">
           {windows.map((w, idx) => (
             <button type="button" role="tab" data-flow-tab={w.id} aria-selected={idx === 0 ? 'true' : 'false'}>
@@ -114,7 +114,7 @@ const windows = compact
     )}
   </div>
 
-  <div class="window__pad">
+  <div class="panel__body">
     {windows.map((w, idx) => (
       <div data-flow-panel={w.id} hidden={idx !== 0}>
         <dl class="flow-kpis">

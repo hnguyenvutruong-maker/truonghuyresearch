@@ -55,10 +55,10 @@ const workbookCount = rows.filter((r) => r.kind === 'workbook').length;
 const tearCount = rows.filter((r) => r.kind === 'tearsheet').length;
 ---
 
-<div class="window" data-vault-root>
-  <div class="window__bar">
-    <span class="window__title"><Icon name="file" size={14} /> {workbookCount} Excel models · {tearCount} PDF tear sheets</span>
-    <span class="window__actions">
+<div class="panel" data-vault-root>
+  <div class="panel__head">
+    <span class="panel__title"><Icon name="file" size={14} /> {workbookCount} Excel models · {tearCount} PDF tear sheets</span>
+    <span class="panel__actions">
       <span class="seg" role="group" aria-label="Filter files">
         <button type="button" data-vault-filter="all" aria-pressed="true">All <span class="count">{rows.length}</span></button>
         <button type="button" data-vault-filter="workbook" aria-pressed="false">Excel / ZIP <span class="count">{workbookCount}</span></button>
@@ -94,7 +94,7 @@ const tearCount = rows.filter((r) => r.kind === 'tearsheet').length;
             <td><span class="tag">{r.format}</span></td>
             <td class="r num muted">{r.size}</td>
             <td>
-              <a class="btn btn--secondary btn--sm" href={r.href} download aria-label={`Download ${r.title} (${r.format})`}>
+              <a class="btn btn--ghost btn--sm" href={r.href} download aria-label={`Download ${r.title} (${r.format})`}>
                 <Icon name="download" size={14} /> Download
               </a>
             </td>

@@ -1,11 +1,7 @@
 ---
-import '@fontsource/geist-sans/400.css';
-import '@fontsource/geist-sans/500.css';
-import '@fontsource/geist-sans/600.css';
-import '@fontsource/geist-mono/400.css';
-import '@fontsource/geist-mono/500.css';
-import '@fontsource/geist-mono/600.css';
-import '@fontsource-variable/source-serif-4/opsz.css';
+import '@fontsource-variable/newsreader/opsz.css';
+import '@fontsource-variable/inter/index.css';
+import '@fontsource-variable/jetbrains-mono/index.css';
 import '../styles/site.css';
 import Analytics from '@vercel/analytics/astro';
 import SiteHeader from '../components/ui/SiteHeader.astro';
@@ -17,8 +13,6 @@ interface Props {
   description?: string;
   image?: string;
   type?: string;
-  /** Show the closing call-to-action band above the footer. */
-  cta?: boolean;
 }
 
 const {
@@ -26,7 +20,6 @@ const {
   description = 'Equity research on Vietnam-listed companies: valuation models, open Excel workbooks and market notes by Nguyen Vu Truong Huy.',
   image = '/og-image.png',
   type = 'website',
-  cta = true,
 } = Astro.props;
 
 const canonicalURL = Astro.url.href;
@@ -34,16 +27,14 @@ const ogImageURL = new URL(image, Astro.site ?? 'https://truonghuyresearch.xyz')
 ---
 
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{title}</title>
-    <!-- Theme before first paint; its sha256 is allowed in vercel.json (checked by scripts/check-csp.mjs). -->
-    <script is:inline>(function(){var d=document.documentElement;d.classList.add('js');try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')d.setAttribute('data-theme',t)}catch(e){}})();</script>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#0b0b0c" />
-    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#12151d" />
+    <meta name="color-scheme" content="dark" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="alternate icon" href="/favicon.ico" />
     <link rel="canonical" href={canonicalURL} />
@@ -62,42 +53,17 @@ const ogImageURL = new URL(image, Astro.site ?? 'https://truonghuyresearch.xyz')
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
     <SiteHeader />
-    <main id="main">
+    <main id="main" class="page">
       <slot />
     </main>
-    <SiteFooter cta={cta} />
+    <SiteFooter />
     <CommandPalette />
 
     <script>
-      const root = document.documentElement;
 
-      // Theme switch (light / dark), persisted in localStorage.
-      const themeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-theme-set]'));
-      const syncTheme = () => {
-        const current = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-        themeButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeSet === current)));
-        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', current === 'light' ? '#fafafa' : '#0b0b0c');
-      };
-      themeButtons.forEach((btn) =>
-        btn.addEventListener('click', () => {
-          const next = btn.dataset.themeSet === 'light' ? 'light' : 'dark';
-          root.setAttribute('data-theme', next);
-          try {
-            localStorage.setItem('theme', next);
-          } catch {
-            /* storage unavailable */
-          }
-          syncTheme();
-        })
-      );
-      syncTheme();
-
-      // Floating nav: shadow once scrolled, mobile drawer toggle.
+      // Mobile drawer toggle.
       const nav = document.querySelector<HTMLElement>('[data-site-nav]');
       const toggle = document.querySelector<HTMLButtonElement>('[data-nav-toggle]');
-      const onScroll = () => nav?.classList.toggle('is-scrolled', window.scrollY > 8);
-      window.addEventListener('scroll', onScroll, { passive: true });
-      onScroll();
       const setOpen = (open: boolean) => {
         nav?.classList.toggle('nav-open', open);
         toggle?.setAttribute('aria-expanded', String(open));
@@ -108,24 +74,6 @@ const ogImageURL = new URL(image, Astro.site ?? 'https://truonghuyresearch.xyz')
         if (e.key === 'Escape') setOpen(false);
       });
       nav?.querySelectorAll('.nav-drawer a, .nav-drawer button').forEach((el) => el.addEventListener('click', () => setOpen(false)));
-
-      // Reveal on scroll.
-      const revealEls = document.querySelectorAll<HTMLElement>('[data-reveal]');
-      if ('IntersectionObserver' in window) {
-        const io = new IntersectionObserver(
-          (entries) =>
-            entries.forEach((entry) => {
-              if (entry.isIntersecting) {
-                entry.target.classList.add('is-in');
-                io.unobserve(entry.target);
-              }
-            }),
-          { rootMargin: '0px 0px -40px 0px', threshold: 0.04 }
-        );
-        revealEls.forEach((el) => io.observe(el));
-      } else {
-        revealEls.forEach((el) => el.classList.add('is-in'));
-      }
 
       // Generic tab sets: [data-tabs] > [role=tab][aria-controls] ↔ [role=tabpanel].
       document.querySelectorAll<HTMLElement>('[data-tabs]').forEach((set) => {

@@ -22,17 +22,17 @@ const shade = (k: number) => {
 };
 ---
 
-<figure class="window" data-sens-root>
-  <div class="window__bar">
-    <span class="window__title">{grid.title} · {grid.rowLabel} × {grid.colLabel}</span>
-    <span class="window__actions">
+<figure class="panel" data-sens-root>
+  <div class="panel__head">
+    <span class="panel__title">{grid.title} · {grid.rowLabel} × {grid.colLabel}</span>
+    <span class="panel__actions">
       <button type="button" class="btn btn--ghost btn--sm" data-sens-reset>
         Reset to base ({axis(grid.rows[grid.baseRow], grid.rowFormat)} / {axis(grid.cols[grid.baseCol], grid.colFormat)})
       </button>
     </span>
   </div>
 
-  <div class="window__pad">
+  <div class="panel__body">
     <div class="sens-out" aria-live="polite">
       <div>
         <span>Scenario</span>

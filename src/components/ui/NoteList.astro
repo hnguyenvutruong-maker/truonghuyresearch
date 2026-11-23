@@ -20,7 +20,7 @@ const filters = [
 
 <div data-note-list>
   {filter && (
-    <div class="row row--between">
+    <div class="toolbar row--between">
       <div class="seg" role="group" aria-label="Filter notes by frequency">
         {filters.map((f, i) => (
           <button type="button" data-filter={f.key} aria-pressed={i === 0 ? 'true' : 'false'}>
@@ -45,7 +45,7 @@ const filters = [
             <li data-kind={n.kind.toLowerCase()} data-search={`${n.kind} ${n.period} ${n.headline} ${n.slug}`.toLowerCase()}>
               <a href={n.href}>
                 <span class="notelist__when">
-                  <span class:list={['tag', n.kind === 'Monthly' ? 'tag--violet' : 'tag--blue']}>{n.kind}</span>
+                  <span class:list={['tag', n.kind === 'Monthly' ? 'tag--blue' : 'tag--blue']}>{n.kind}</span>
                   <span class="mono">{n.period}</span>
                 </span>
                 <span class="notelist__title">{n.headline}</span>

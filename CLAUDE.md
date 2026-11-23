@@ -41,7 +41,7 @@ deliberately not committed to this public repo.
 ```
 ./
 ├── astro.config.mjs              # static output, site=truonghuyresearch.xyz, sitemap, no inlined assets
-├── design-system/                # the design system record (MASTER.md)
+├── design-system/                # DESIGN.md (owner spec) + MASTER.md (implementation notes)
 ├── tsconfig.json                 # extends astro/tsconfigs/strict
 ├── package.json                  # Node >=22.12, Astro 5
 ├── requirements.txt              # Python deps for the bots
@@ -66,10 +66,10 @@ deliberately not committed to this public repo.
     ├── lib/format.ts             # shared number/date formatters (UTC dates, signed %, VND k)
     ├── lib/notes.ts              # normalises weekly + monthly entries into one NoteSummary
     ├── lib/files.ts              # build-time sizes of public/ downloads
-    ├── layouts/BaseLayout.astro  # shell: head/meta, theme script, fonts, nav, main, CTA+footer, CommandPalette
-    ├── styles/site.css           # ★ Folio research design system + A4 print stylesheet
+    ├── layouts/BaseLayout.astro  # shell: head/meta, fonts, command bar + tape, main, footer, CommandPalette
+    ├── styles/site.css           # ★ Research Terminal design system + A4 print stylesheet
     ├── components/               # ValuationMethodPage (see §7)
-    │   └── ui/                   # header/footer, DocHead, CommandPalette, charts, tables, monitors
+    │   └── ui/                   # header/footer, PageHeader, CommandPalette, charts, tables, monitors
     └── pages/                    # routes (see §7)
 ```
 
@@ -96,33 +96,35 @@ deliberately not committed to this public repo.
 
 ---
 
-## 4. Design system: "Folio" research workspace (2026-11)
+## 4. Design system: "Research Terminal" (2026-11)
 
-`src/styles/site.css` holds a bespoke dark-first system modelled on the Folio (Ruixen UI) landing
-layout the owner supplied, rebuilt for research (no template code, fonts or photos copied). Full
-record: [design-system/truong-huy-research/MASTER.md](design-system/truong-huy-research/MASTER.md).
+Spec: [design-system/truong-huy-research/DESIGN.md](design-system/truong-huy-research/DESIGN.md)
+(supplied by the owner). Implementation notes and deliberate deviations:
+[MASTER.md](design-system/truong-huy-research/MASTER.md). All styles are in `src/styles/site.css`.
 
-- **Themes:** dark default + light, tokens on `:root` / `:root[data-theme='light']`; choice persisted
-  in `localStorage.theme` and applied before paint by the single hashed inline script in
-  `BaseLayout` (its sha256 is in `vercel.json`; `scripts/check-csp.mjs` fails the build if it drifts).
-- **Type:** Source Serif 4 Variable 700 (display), Geist Sans (UI/prose), Geist Mono (all figures),
-  self-hosted via `@fontsource`.
-- **Layout language:** floating pill nav with ⌘K search + sun/moon switch, hero over a CSS/SVG dusk
-  sky whose horizon is the VN-Index weekly-close series (`ui/Sky.astro`), app-window surfaces
-  (`.window`) for every tool, bento/feature cards, tabbed showcase, FAQ with side nav, closing
-  horizon band and a rounded footer card.
-- **Components (`components/ui/`):** `SiteHeader`, `SiteFooter` (CTA band + footer card),
-  `CommandPalette`, `PageHeader` (crumbs, serif h1, lead, `facts` aside), `CoverageStrip` (company
-  sub-nav), `ResearchTerminal` (app window with sidebar + `CoverageTable`), `CoverageTable` (method
-  filter chips + sortable columns), `FootballField` (company rows or per-method detail),
-  `SensitivityTable`, `VnIndexChart`, `ForeignFlowMonitor`, `MacroThesisTracker` (ruler of measured
-  week/month levels + quarterly/monthly narrative), `ValuationComparator`, `WorkbookVault`,
-  `MarketNote`, `NoteList`, `Ticker`, `BrandMark`, `Icon`, `DatedNote`, `Disclaimer`.
+- **Dark only, high density:** canvas `#0A0C10`, Level 1 docks `#12151D`, Level 2 modules
+  `#1A1F2C`, 1px `#262E3D` hairlines, 4px radii, no consumer shadows. Emerald `#10B981` is positive,
+  crimson `#EF4444` negative, amber `#F59E0B` the base case and price focus, cobalt `#3B82F6` the
+  controls.
+- **Type:** Newsreader for titles, Inter for prose, JetBrains Mono for every figure, label and table
+  cell (`@fontsource-variable`).
+- **Shell:** fixed 48px command bar (nav tabs, status pips, ⌘K) + 30px quote tape (VN-Index,
+  ticker bands, HOSE foreign net) in `SiteHeader`; compact `SiteFooter`.
+- **Grid:** `.ws` is 1 column below 1024px, 12 columns at 1024–1439px and 24 columns at ≥1440px
+  (`.col-*`). Panels are `.panel` with `__head`, `__body` and `__foot`.
+- **No ratings or target prices.** Pills show implied moves and range signals; the range bar marks
+  the price used (white pip) and the base case (amber diamond).
+- **Components (`components/ui/`):** `SiteHeader`, `SiteFooter`, `CommandPalette`, `PageHeader`
+  (crumbs, Newsreader h1, lead, fact box), `CoverageTable` (method filter chips + sortable,
+  sticky first column on mobile), `FootballField` (range bars: company rows or per-method),
+  `SensitivityTable`, `VnIndexChart`, `ForeignFlowMonitor`, `MacroThesisTracker`,
+  `ValuationComparator` (dense method-spread table), `WorkbookVault`, `MarketNote`, `NoteList`,
+  `Ticker`, `BrandMark`, `Icon`, `DatedNote`, `Disclaimer`.
 
 ### Global rules
-- **CSP** (`vercel.json`) allows only same-origin scripts, styles, fonts and connections (`style-src 'self'`). Astro never inlines scripts or CSS. `npm run build` runs `scripts/check-csp.mjs`, which fails if any unapproved inline executable `<script>` is emitted. JSON-LD blocks are fine.
+- **CSP** (`vercel.json`) allows only same-origin scripts, styles, fonts and connections (`script-src 'self'`, `style-src 'self'`, no inline-script hashes at present). Astro never inlines scripts or CSS. `npm run build` runs `scripts/check-csp.mjs`, which fails if any unapproved inline executable `<script>` is emitted (add its sha256 to `vercel.json` if one is ever needed). JSON-LD blocks are fine.
 - No inline `style=""` (blocked by `style-src 'self'`); drive dynamic visuals through SVG attributes, `<progress value max>`, `hidden`, `aria-*`, `data-*`, and CSS classes.
-- **Print:** `site.css` sets A4 portrait and hides the nav, footer, command palette and progress bar (`.no-print` hides anything else); the `.ts` tear sheet is always light.
+- **Print:** `site.css` sets A4 portrait and hides the command bar, tape, footer, command palette and progress bar (`.no-print` hides anything else); the `.ts` tear sheet is a white print inversion.
 - Mobile-first, must work at 375px with no horizontal page scroll. No `any`; props typed.
 - Zero lorem ipsum / no visible placeholders; finance-accurate English copy.
 - `npm run build` and `npx astro check` must pass with 0 errors before a task is done.
@@ -196,16 +198,16 @@ model is refreshed, update `lastUpdated`, `referencePrice`, `outputs` and (for a
 
 | Route | File | Notes |
 | :-- | :-- | :-- |
-| `/` | `index.astro` | Hero (announce pill → latest note, serif h1, CTAs) over the VN-Index dusk sky with the `ResearchTerminal` app window; coverage + notes marquees; "how it works" feature row; bento (pipeline, methods, flow sparkline, search, timeline); tabbed tools (football field, DCF sensitivity, VN-Index, foreign flow); notes masonry; FAQ with side nav. |
-| `/research` | `research.astro` | Page header + facts, `CoverageStrip`, `ResearchTerminal` (sortable/filterable matrix), report cards, `ValuationComparator`, method cards, `WorkbookVault` (`#files`). |
-| `/research/[slug]` | `research/[slug]/index.astro` | Company report: header (tags, actions, facts), coverage sub-nav, sticky contents rail + sections: valuation range (dated note, stance, football field, outputs table, result cards), thesis, assumptions, DCF sensitivity, interpretation, method notes, risks, model files, prev/next, Report JSON-LD. |
+| `/` | `index.astro` | "Desk" dashboard: doc head (Newsreader h1, credential lockup, fact box), then panels: coverage monitor (col-24), valuation ranges · VN-Index weekly · foreign flow (col-8 each), latest notes · methods · model files, "How to read the numbers". |
+| `/research` | `research.astro` | Doc head + fact box, coverage monitor, range bars, report panels, method-spread table (`#spread`), frameworks (`#methods`), `WorkbookVault` (`#files`). |
+| `/research/[slug]` | `research/[slug]/index.astro` | Company report, 3-pane at ≥1440: contents rail · main (valuation range, thesis, assumptions table + rationale, DCF sensitivity, interpretation, method notes, risks, prev/next) · right rail (valuation box with outputs table, model files `#files`). Report JSON-LD. |
 | `/research/dcf`, `/research/comparable-analysis`, `/research/precedent-transactions-lbo` | thin wrappers | render `<ValuationMethodPage groupId=…/>`. |
-| `/market-views` | `market-views/index.astro` | Latest three notes, weekly-close chart, `ForeignFlowMonitor` (`#foreign-flow`), `MacroThesisTracker` (`#levels`), archive `NoteList` with All/Weekly/Monthly filter (`?kind=`) and search (`#archive`). |
-| `/market-views/[slug]`, `/monthly-views/[slug]` | `*/[slug].astro` | Both render `ui/MarketNote` from `lib/notes.ts` summaries: header + facts, stats band, daily candles (if `vn_index_daily`), cross-asset row, prose with scroll-spied "In this note" rail, reading progress, ←/→ prev/next. |
+| `/market-views` | `market-views/index.astro` | VN-Index weekly chart + latest notes, `ForeignFlowMonitor` (`#foreign-flow`), `MacroThesisTracker` (`#levels`), archive `NoteList` with All/Weekly/Monthly filter (`?kind=`) and search (`#archive`). |
+| `/market-views/[slug]`, `/monthly-views/[slug]` | `*/[slug].astro` | Both render `ui/MarketNote`: doc head + fact box, contents rail (scroll-spy), stats strip, cross-asset row, daily candles (if `vn_index_daily`), prose panel, reading progress, ←/→ prev/next. |
 | `/monthly-views` | `monthly-views/index.astro` | Monthly notes only. |
 | `/contact`, `/disclaimer`, `/404` | static | |
 | `/research/[slug]/tear-sheet` | `research/[slug]/tear-sheet.astro` | One-page A4 summary; exported to `public/research/tear-sheets/<slug>.pdf` by `npm run tear-sheets` (builds, then prints with `playwright-core` + installed Chrome; `CHROME_PATH` overrides). **Re-run it whenever a model changes** and commit the PDFs; report pages link the PDF only if it exists. |
-| `/og/<path>.png` | `og/[...path].png.ts` | Build-time 1200×630 OG cards (satori + sharp; Source Serif 4 and Libre Franklin `.woff` from `@fontsource`) for every report and note. |
+| `/og/<path>.png` | `og/[...path].png.ts` | Build-time 1200×630 OG cards (satori + sharp; Source Serif 4 and Libre Franklin `.woff` from `@fontsource`, not yet restyled to the terminal look) for every report and note. |
 | `/rss.xml` | `rss.xml.ts` | Weekly + monthly feed with full note HTML (`markdown-it` + `sanitize-html`). |
 
 `ValuationMethodPage` sits in `components/`; everything else lives under `components/ui/` (§4).

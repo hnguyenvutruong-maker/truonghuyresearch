@@ -40,7 +40,7 @@ const reports = valuationModels
   description={`${group.title}: ${group.description} Reports and open Excel workbooks for ${reports.map(({ model }) => model.ticker).join(', ')}.`}
 >
   <PageHeader
-    crumbs={[{ href: '/research', label: 'Research' }, { label: 'Methods' }, { label: group.title }]}
+    crumbs={[{ href: '/research', label: 'Coverage' }, { label: 'Methods' }, { label: group.title }]}
     eyebrow={group.eyebrow}
     title={group.title}
     lead={group.description}
@@ -52,52 +52,48 @@ const reports = valuationModels
         </a>
       ))}
     </nav>
-    <dl slot="aside" class="facts">
+    <dl slot="aside" class="facts facts--focus">
+      <div><dt>Prices used as of</dt><dd>{formatDate(valuationModels[0].referencePrice.asOf)}</dd></div>
       <div><dt>Companies</dt><dd>{reports.length}</dd></div>
       <div><dt>Workbooks</dt><dd>{reports.reduce((t, r) => t + r.downloads.length, 0)}</dd></div>
       <div><dt>Tickers</dt><dd>{reports.map((r) => r.model.ticker).join(' · ')}</dd></div>
-      <div><dt>Prices as of</dt><dd>{formatDate(valuationModels[0].referencePrice.asOf)}</dd></div>
     </dl>
   </PageHeader>
 
-  <section class="section--tight">
-    <div class="container stack-6">
-      {reports.map(({ model, notes, downloads }) => (
-        <article class="window" data-reveal>
-          <div class="window__bar">
-            <span class="window__title"><Ticker label={model.ticker} /> {model.ticker} · {model.company}</span>
-            <span class="window__actions">
-              <span class="tag tag--mono">Price used {formatVndK(model.referencePrice.value)}</span>
-            </span>
+  <div class="container ws">
+    {reports.map(({ model, notes, downloads }) => (
+      <article class="panel col-12">
+        <div class="panel__head">
+          <span class="panel__title"><Ticker label={model.ticker} /> {model.company}</span>
+          <span class="panel__actions"><span class="tag">Price used {formatVndK(model.referencePrice.value)}</span></span>
+        </div>
+        <div class="panel__body stack-3">
+          <FootballField outputs={model.outputs} reference={model.referencePrice} ticker={model.ticker} legend={false} />
+          <dl class="kv">
+            {notes.map((n) => (
+              <div>
+                <dt class="kv__label">{n.method}</dt>
+                <dd class="kv__value">{n.price}</dd>
+                <dd class="kv__detail">{n.assumptions}</dd>
+                <dd class="kv__detail">{n.result}</dd>
+              </div>
+            ))}
+          </dl>
+          <div class="btn-row">
+            <a class="btn btn--primary btn--sm" href={`/research/${model.slug}`}>{model.ticker} report <Icon name="arrow_right" size={12} /></a>
+            <a class="btn btn--ghost btn--sm" href={`/research/${model.slug}/tear-sheet`}><Icon name="printer" size={12} /> A4</a>
+            {downloads.map((d) => {
+              const size = publicFileSize(d.href);
+              return (
+                <a class="btn btn--ghost btn--sm" href={d.href} download>
+                  <Icon name="download" size={12} /> {d.label} {d.format}{size ? ` · ${size}` : ''}
+                </a>
+              );
+            })}
           </div>
-          <div class="window__pad stack-6">
-            <FootballField outputs={model.outputs} reference={model.referencePrice} ticker={model.ticker} />
-            <dl class="kv">
-              {notes.map((n) => (
-                <div>
-                  <dt class="kv__label">{n.method}</dt>
-                  <dd class="kv__value">{n.price}</dd>
-                  <dd class="kv__detail">{n.assumptions}</dd>
-                  <dd class="kv__detail">{n.result}</dd>
-                </div>
-              ))}
-            </dl>
-            <div class="btn-row">
-              <a class="btn btn--primary btn--sm" href={`/research/${model.slug}`}>Read {model.ticker} report <Icon name="arrow_right" size={13} /></a>
-              <a class="btn btn--secondary btn--sm" href={`/research/${model.slug}/tear-sheet`}><Icon name="printer" size={13} /> A4 tear sheet</a>
-              {downloads.map((d) => {
-                const size = publicFileSize(d.href);
-                return (
-                  <a class="btn btn--ghost btn--sm" href={d.href} download>
-                    <Icon name="download" size={13} /> {d.label} {d.format}{size ? ` · ${size}` : ''}
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-        </article>
-      ))}
-      <Disclaimer />
-    </div>
-  </section>
+        </div>
+      </article>
+    ))}
+    <div class="col-24"><Disclaimer /></div>
+  </div>
 </BaseLayout>

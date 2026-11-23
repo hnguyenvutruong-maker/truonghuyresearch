@@ -1,16 +1,11 @@
 ---
-// Coloured ticker square (Folio-style logo chip): first letter at row size, full ticker when large.
+// Ticker chip: monospaced symbol in a hairline cobalt frame.
 interface Props {
   label: string;
-  size?: 'md' | 'lg' | 'xl';
+  size?: 'md' | 'lg';
   class?: string;
 }
 const { label, size = 'md', class: className } = Astro.props;
-const known = ['hpg', 'bid', 'fpt', 'bmp', 'pnj'];
-const key = label.toLowerCase();
 ---
 
-<span
-  class:list={['tick', known.includes(key) ? `tick--${key}` : 'tick--idx', size !== 'md' && `tick--${size}`, className]}
-  aria-hidden="true">{size === 'md' ? label.slice(0, 1) : label}</span
->
+<span class:list={['tick', size === 'lg' && 'tick--lg', className]}>{label}</span>

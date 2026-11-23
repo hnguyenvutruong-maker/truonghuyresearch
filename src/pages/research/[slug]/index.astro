@@ -1,6 +1,5 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
-import CoverageStrip from '../../../components/ui/CoverageStrip.astro';
 import DatedNote from '../../../components/ui/DatedNote.astro';
 import Disclaimer from '../../../components/ui/Disclaimer.astro';
 import FootballField from '../../../components/ui/FootballField.astro';
@@ -30,6 +29,8 @@ const upgrades = model.futureUpgrade ?? model.modelImprovementNotes ?? [];
 const moves = model.outputs.map((o) => impliedMovePct(o, reference));
 const low = Math.min(...moves);
 const high = Math.max(...moves);
+const lowVnd = Math.min(...model.outputs.map((o) => Math.min(o.low, o.high)));
+const highVnd = Math.max(...model.outputs.map((o) => Math.max(o.low, o.high)));
 
 const sections = [
   { id: 'range', label: 'Valuation range' },
@@ -39,7 +40,6 @@ const sections = [
   { id: 'interpretation', label: 'Interpretation' },
   { id: 'method-notes', label: 'Method notes' },
   { id: 'risks', label: 'Risks' },
-  { id: 'files', label: 'Model files' },
 ];
 
 const jsonLd = {
@@ -60,244 +60,212 @@ const jsonLd = {
 >
   <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />
 
-  <PageHeader crumbs={[{ href: '/research', label: 'Research' }, { label: model.ticker }]} title={`${model.company} (${model.ticker})`} lead={model.report.headline}>
+  <PageHeader crumbs={[{ href: '/research', label: 'Coverage' }, { label: model.ticker }]} title={model.report.headline}>
     <div slot="before" class="row">
       <Ticker label={model.ticker} size="lg" />
-      <span class="tag tag--blue">{model.sector}</span>
-      {model.methods.map((x) => <span class="tag">{x}</span>)}
-      {model.status && <span class="tag tag--up">{model.status}</span>}
+      <span class="h-md">{model.company}</span>
+      <span class="tag">{model.sector}</span>
+      {model.methods.map((x) => <span class="tag tag--blue">{x}</span>)}
+    </div>
+    <div class="lockup">
+      <strong>Nguyen Vu Truong Huy</strong><i></i>Passed Level II of the CFA Program<i></i>Model of {formatDate(modelDate)}
     </div>
     <div class="btn-row">
-      {tearSize && (
-        <a class="btn btn--primary" href={tearHref} download>
-          <Icon name="download" size={14} /> Tear sheet PDF <span class="mono xsmall">{tearSize}</span>
-        </a>
-      )}
-      <a class="btn btn--secondary" href={`/research/${model.slug}/tear-sheet`}><Icon name="printer" size={14} /> A4 view</a>
-      <a class="btn btn--secondary" href="#files"><Icon name="file" size={14} /> Excel models ({model.downloads.length})</a>
+      {tearSize && <a class="btn btn--primary" href={tearHref} download><Icon name="download" size={12} /> Tear sheet PDF · {tearSize}</a>}
+      <a class="btn btn--ghost" href={`/research/${model.slug}/tear-sheet`}><Icon name="printer" size={12} /> A4 view</a>
+      <a class="btn btn--ghost" href="#files"><Icon name="file" size={12} /> Excel models · {model.downloads.length}</a>
     </div>
-    <dl slot="aside" class="facts">
-      <div><dt>Price used</dt><dd>VND {formatVndK(reference.value)}</dd></div>
-      <div><dt>Price date</dt><dd>{formatDate(reference.asOf)}</dd></div>
-      <div><dt>Implied move</dt><dd><span class={low >= 0 ? 'up' : 'down'}>{signedPct(low, 0)}</span> / <span class={high >= 0 ? 'up' : 'down'}>{signedPct(high, 0)}</span></dd></div>
-      <div><dt>Model date</dt><dd>{formatDate(modelDate)}</dd></div>
-    </dl>
   </PageHeader>
-  <CoverageStrip current={model.slug} />
 
-  <div class="section--tight">
-    <div class="container report">
-      <nav class="side-nav" aria-label="Report contents" data-spy>
-        <p class="side-nav__label eyebrow">Contents</p>
-        {sections.map((s) => <a href={`#${s.id}`}>{s.label}</a>)}
-      </nav>
+  <div class="container report">
+    <nav class="side-nav report__nav" aria-label="Report contents" data-spy>
+      <p class="side-nav__label eyebrow">Contents</p>
+      {sections.map((s) => <a href={`#${s.id}`}>{s.label}</a>)}
+      <a href="#files">Model files</a>
+    </nav>
 
-      <div class="report__main">
-        <section id="range" aria-labelledby="h-range" class="stack-6">
-          <div class="sec-head">
-            <h2 id="h-range">Valuation range</h2>
-            <span class="small muted">VND per share vs. {formatVndK(reference.value)} price used</span>
-          </div>
+    <aside class="report__rail" aria-label="Key figures">
+      <section class="panel">
+        <div class="panel__head"><h2 class="panel__title">Valuation box</h2><span class="panel__meta">VND/share</span></div>
+        <dl class="facts facts--focus">
+          <div><dt>Price used</dt><dd>{formatVndK(reference.value)}</dd></div>
+          <div><dt>Price date</dt><dd>{formatDate(reference.asOf)}</dd></div>
+          <div><dt>Range (all methods)</dt><dd>{formatVndK(lowVnd)}–{formatVndK(highVnd)}</dd></div>
+          <div><dt>Implied move</dt><dd><span class={low >= 0 ? 'up' : 'down'}>{signedPct(low, 0)}</span> / <span class={high >= 0 ? 'up' : 'down'}>{signedPct(high, 0)}</span></dd></div>
+        </dl>
+        <div class="table-scroll">
+          <table class="dtable dtable--compact">
+            <thead><tr><th scope="col">Method</th><th scope="col" class="r">Low</th><th scope="col" class="r">Base</th><th scope="col" class="r">High</th><th scope="col" class="r">Move</th></tr></thead>
+            <tbody>
+              {model.outputs.map((o) => {
+                const mv = impliedMovePct(o, reference);
+                return (
+                  <tr>
+                    <th scope="row">{outputMethodLabel[o.method]}</th>
+                    <td class="r">{formatVndK(o.low)}</td>
+                    <td class="r">{o.base !== undefined ? <span class="amber">{formatVndK(o.base)}</span> : '—'}</td>
+                    <td class="r">{formatVndK(o.high)}</td>
+                    <td class:list={['r', mv >= 0 ? 'up' : 'down']}>{signedPct(mv, 1)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" id="files">
+        <div class="panel__head"><h2 class="panel__title"><Icon name="file" size={13} /> Model files</h2></div>
+        <div class="files">
+          {model.downloads.map((d) => {
+            const size = publicFileSize(d.href);
+            return (
+              <div class="file">
+                <span class:list={['file-ico', d.format === 'ZIP' && 'file-ico--zip']}>{d.format}</span>
+                <div>
+                  <p class="file__name">{d.modelType ?? d.label}</p>
+                  <p class="file__meta">{d.sheets.join(', ')}{size ? ` · ${size}` : ''}</p>
+                </div>
+                <a class="btn btn--ghost btn--sm" href={d.href} download><Icon name="download" size={12} /> Download</a>
+              </div>
+            );
+          })}
+          {tearSize && (
+            <div class="file">
+              <span class="file-ico file-ico--pdf">PDF</span>
+              <div>
+                <p class="file__name">One-page tear sheet</p>
+                <p class="file__meta">A4 · {tearSize}</p>
+              </div>
+              <a class="btn btn--ghost btn--sm" href={tearHref} download><Icon name="download" size={12} /> Download</a>
+            </div>
+          )}
+        </div>
+      </section>
+    </aside>
+
+    <div class="report__main">
+      <section class="panel sec" id="range" aria-labelledby="h-range">
+        <div class="panel__head">
+          <h2 class="panel__title" id="h-range">Valuation range</h2>
+          <span class="panel__meta">vs. VND {formatVndK(reference.value)} price used, {formatDate(reference.asOf)}</span>
+        </div>
+        <div class="panel__body stack-3">
           {stale && (
             <DatedNote>
-              This model is {age} days old. Its price used (VND {formatVndK(reference.value)}, {formatDate(reference.asOf)}) is not a live quote, so the
-              implied moves describe the model date, not today.
+              The model is {age} days old. Its price used is not a live quote, so the implied moves describe the model date, not today.
             </DatedNote>
           )}
           <p class="quote">{model.report.stance}</p>
-          <div class="window">
-            <div class="window__bar">
-              <span class="window__title">{model.ticker} football field</span>
-              <span class="window__actions"><span class="tag tag--mono">{signedPct(low, 1)} to {signedPct(high, 1)}</span></span>
-            </div>
-            <div class="window__pad">
-              <FootballField outputs={model.outputs} reference={reference} ticker={model.ticker} />
-            </div>
-            <div class="table-scroll" tabindex="0" role="region" aria-label="Valuation outputs, scrolls horizontally">
-              <table class="dtable">
-                <thead>
-                  <tr>
-                    <th scope="col">Method</th>
-                    <th scope="col" class="r">Low</th>
-                    <th scope="col" class="r">Base</th>
-                    <th scope="col" class="r">High</th>
-                    <th scope="col" class="r">Implied move</th>
-                    <th scope="col">What the range spans</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {model.outputs.map((o) => {
-                    const mv = impliedMovePct(o, reference);
-                    return (
-                      <tr>
-                        <th scope="row"><span class="ff-detail-row__label"><i class:list={['legend-dot', `l-${o.method.toLowerCase()}`]}></i>{outputMethodLabel[o.method]}</span></th>
-                        <td class="r num">{formatVndK(o.low)}</td>
-                        <td class="r num">{o.base !== undefined ? formatVndK(o.base) : <span class="muted">—</span>}</td>
-                        <td class="r num">{formatVndK(o.high)}</td>
-                        <td class="r"><span class:list={['tag', 'tag--mono', mv >= 0 ? 'tag--up' : 'tag--down']}>{signedPct(mv, 1)}</span></td>
-                        <td class="wrap muted">{o.basis}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+          <FootballField outputs={model.outputs} reference={reference} ticker={model.ticker} />
+          <div class="table-scroll" tabindex="0" role="region" aria-label="What each method's range spans">
+            <table class="dtable">
+              <thead><tr><th scope="col">Method</th><th scope="col">What the range spans</th></tr></thead>
+              <tbody>
+                {model.outputs.map((o) => (
+                  <tr><th scope="row">{outputMethodLabel[o.method]}</th><td class="wrap">{o.basis}</td></tr>
+                ))}
+              </tbody>
+            </table>
           </div>
           <dl class="kv kv--3">
             {model.report.valuationResult.map((p) => (
-              <div>
-                <dt class="kv__label">{p.label}</dt>
-                <dd class="kv__value">{p.value}</dd>
-                <dd class="kv__detail">{p.detail}</dd>
-              </div>
+              <div><dt class="kv__label">{p.label}</dt><dd class="kv__value">{p.value}</dd><dd class="kv__detail">{p.detail}</dd></div>
             ))}
           </dl>
-        </section>
+        </div>
+      </section>
 
-        <section id="thesis" aria-labelledby="h-thesis" class="stack-6">
-          <div class="sec-head">
-            <h2 id="h-thesis">Thesis</h2>
-          </div>
-          {model.investmentQuestion && <p class="quote">{model.investmentQuestion}</p>}
-          <ol class="prose-list">
-            {model.report.thesis.map((t) => <li>{t}</li>)}
-          </ol>
-        </section>
+      <section class="panel sec" id="thesis" aria-labelledby="h-thesis">
+        <div class="panel__head"><h2 class="panel__title" id="h-thesis">Thesis</h2></div>
+        <div class="panel__body stack-3">
+          {model.investmentQuestion && <p class="h-md">{model.investmentQuestion}</p>}
+          <ol class="prose-list">{model.report.thesis.map((t) => <li>{t}</li>)}</ol>
+        </div>
+      </section>
 
-        <section id="assumptions" aria-labelledby="h-assumptions" class="stack-6">
-          <div class="sec-head">
-            <h2 id="h-assumptions">Assumptions</h2>
-            <span class="small muted">Auditable in the workbooks</span>
-          </div>
+      <section class="panel sec" id="assumptions" aria-labelledby="h-assumptions">
+        <div class="panel__head"><h2 class="panel__title" id="h-assumptions">Assumptions</h2><span class="panel__meta">Auditable in the workbooks</span></div>
+        <div class="panel__body stack-3">
           {model.keyAssumptions && (
-            <dl class="kv kv--3">
-              {model.keyAssumptions.map((a) => (
-                <div>
-                  <dt class="kv__label">{a.label}</dt>
-                  <dd class="kv__value">{a.value}</dd>
-                  <dd class="kv__detail">{a.detail}</dd>
-                </div>
-              ))}
-            </dl>
+            <div class="table-scroll" tabindex="0" role="region" aria-label="Key model inputs">
+              <table class="dtable">
+                <thead><tr><th scope="col">Input</th><th scope="col">Value</th><th scope="col">Note</th></tr></thead>
+                <tbody>
+                  {model.keyAssumptions.map((a) => (
+                    <tr><th scope="row">{a.label}</th><td class="ink">{a.value}</td><td class="wrap">{a.detail}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
           <dl class="kv">
             {model.report.assumptions.map((a) => (
-              <div>
-                <dt class="kv__label">{a.label}</dt>
-                <dd class="kv__value">{a.value}</dd>
-                <dd class="kv__detail">{a.detail}</dd>
-              </div>
+              <div><dt class="kv__label">{a.label}</dt><dd class="kv__value">{a.value}</dd><dd class="kv__detail">{a.detail}</dd></div>
             ))}
           </dl>
-        </section>
+        </div>
+      </section>
 
-        {model.sensitivity && (
-          <section id="sensitivity" aria-labelledby="h-sens" class="stack-6">
-            <div class="sec-head">
-              <h2 id="h-sens">DCF sensitivity</h2>
-              <span class="small muted">Hover or tab through the grid</span>
+      {model.sensitivity && (
+        <section class="sec" id="sensitivity" aria-label="DCF sensitivity">
+          <SensitivityTable grid={model.sensitivity} reference={reference} />
+        </section>
+      )}
+
+      <section class="panel sec" id="interpretation" aria-labelledby="h-int">
+        <div class="panel__head"><h2 class="panel__title" id="h-int">Interpretation</h2></div>
+        <div class="panel__body stack-3">
+          <ol class="prose-list">{model.report.interpretation.map((t) => <li>{t}</li>)}</ol>
+          <div class="kv">
+            <div>
+              <p class="kv__label">Conclusion</p>
+              <p class="kv__detail text-2">{model.conclusion}</p>
+              {model.limitation && <p class="kv__detail">{model.limitation}</p>}
             </div>
-            <SensitivityTable grid={model.sensitivity} reference={reference} />
-          </section>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel sec" id="method-notes" aria-labelledby="h-notes">
+        <div class="panel__head"><h2 class="panel__title" id="h-notes">Method notes</h2></div>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Method notes">
+          <table class="dtable">
+            <thead><tr><th scope="col">Method</th><th scope="col" class="r">Output</th><th scope="col">Assumptions</th><th scope="col">Result</th></tr></thead>
+            <tbody>
+              {model.valuationNotes.map((n) => (
+                <tr><th scope="row">{n.method}</th><td class="r ink">{n.price}</td><td class="wrap">{n.assumptions}</td><td class="wrap">{n.result}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel sec" id="risks" aria-labelledby="h-risks">
+        <div class="panel__head"><h2 class="panel__title" id="h-risks">Risks</h2></div>
+        <div class="panel__body grid-2">
+          <div class="stack-3">
+            <p class="eyebrow">What would move the range</p>
+            <ul class="prose-list small">{model.report.risks.map((r) => <li>{r}</li>)}</ul>
+          </div>
+          {upgrades.length > 0 && (
+            <div class="stack-3">
+              <p class="eyebrow">Next model upgrades</p>
+              <ul class="prose-list prose-list--dash small">{upgrades.map((u) => <li>{u}</li>)}</ul>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <nav class="pager" aria-label="Other reports">
+        {prev ? (
+          <a href={`/research/${prev.slug}`}><span class="pager__dir">← Previous report · {prev.ticker}</span><span class="pager__title">{prev.company}</span></a>
+        ) : <span></span>}
+        {next && (
+          <a class="is-next" href={`/research/${next.slug}`}><span class="pager__dir">Next report · {next.ticker} →</span><span class="pager__title">{next.company}</span></a>
         )}
-
-        <section id="interpretation" aria-labelledby="h-int" class="stack-6">
-          <div class="sec-head">
-            <h2 id="h-int">Interpretation</h2>
-          </div>
-          <ol class="prose-list">
-            {model.report.interpretation.map((t) => <li>{t}</li>)}
-          </ol>
-          <div class="card stack-2">
-            <p class="eyebrow">Conclusion</p>
-            <p class="text-2">{model.conclusion}</p>
-            {model.limitation && <p class="small muted">{model.limitation}</p>}
-          </div>
-        </section>
-
-        <section id="method-notes" aria-labelledby="h-notes" class="stack-6">
-          <div class="sec-head">
-            <h2 id="h-notes">Method notes</h2>
-          </div>
-          <div class="grid-2">
-            {model.valuationNotes.map((n) => (
-              <article class="card stack-3">
-                <div class="row row--between">
-                  <h3 class="h4">{n.method}</h3>
-                  <span class="tag tag--mono">{n.price}</span>
-                </div>
-                <p class="small text-2">{n.assumptions}</p>
-                <p class="small muted">{n.result}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section id="risks" aria-labelledby="h-risks" class="stack-6">
-          <div class="sec-head">
-            <h2 id="h-risks">Risks</h2>
-          </div>
-          <div class="grid-2">
-            <div class="card stack-4">
-              <p class="eyebrow">What would change the range</p>
-              <ul class="prose-list small">{model.report.risks.map((r) => <li>{r}</li>)}</ul>
-            </div>
-            {upgrades.length > 0 && (
-              <div class="card stack-4">
-                <p class="eyebrow">Next model upgrades</p>
-                <ul class="prose-list prose-list--dash small">{upgrades.map((u) => <li>{u}</li>)}</ul>
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section id="files" aria-labelledby="h-files" class="stack-6">
-          <div class="sec-head">
-            <h2 id="h-files">Model files</h2>
-            <span class="small muted">{model.downloads.length + (tearSize ? 1 : 0)} files</span>
-          </div>
-          <div class="files">
-            {model.downloads.map((d) => {
-              const size = publicFileSize(d.href);
-              return (
-                <div class="file">
-                  <span class:list={['file-ico', d.format === 'ZIP' && 'file-ico--zip']}>{d.format}</span>
-                  <div>
-                    <p class="file__name">{model.ticker} · {d.modelType ?? d.label}</p>
-                    <p class="file__meta">{d.description ?? d.sourceTemplate} · Sheets: {d.sheets.join(', ')}{size ? ` · ${size}` : ''}</p>
-                  </div>
-                  <a class="btn btn--secondary btn--sm" href={d.href} download><Icon name="download" size={14} /> Download</a>
-                </div>
-              );
-            })}
-            {tearSize && (
-              <div class="file">
-                <span class="file-ico file-ico--pdf">PDF</span>
-                <div>
-                  <p class="file__name">{model.ticker} · One-page tear sheet</p>
-                  <p class="file__meta">A4 summary: football field, outputs, assumptions, conclusion and risks · {tearSize}</p>
-                </div>
-                <a class="btn btn--secondary btn--sm" href={tearHref} download><Icon name="download" size={14} /> Download</a>
-              </div>
-            )}
-          </div>
-          <nav class="pager" aria-label="Other reports">
-            {prev ? (
-              <a href={`/research/${prev.slug}`}>
-                <span class="pager__dir">← Previous report</span>
-                <span class="pager__title">{prev.ticker} · {prev.company}</span>
-              </a>
-            ) : <span></span>}
-            {next && (
-              <a class="is-next" href={`/research/${next.slug}`}>
-                <span class="pager__dir">Next report →</span>
-                <span class="pager__title">{next.ticker} · {next.company}</span>
-              </a>
-            )}
-          </nav>
-          <Disclaimer text={model.report.disclaimer} />
-        </section>
-      </div>
+      </nav>
+      <Disclaimer text={model.report.disclaimer} />
     </div>
   </div>
 </BaseLayout>

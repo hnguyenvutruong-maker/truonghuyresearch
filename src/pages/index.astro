@@ -1,119 +1,36 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import CoverageTable from '../components/ui/CoverageTable.astro';
 import FootballField from '../components/ui/FootballField.astro';
 import ForeignFlowMonitor from '../components/ui/ForeignFlowMonitor.astro';
 import Icon from '../components/ui/Icon.astro';
-import ResearchTerminal from '../components/ui/ResearchTerminal.astro';
-import SensitivityTable from '../components/ui/SensitivityTable.astro';
-import Sky from '../components/ui/Sky.astro';
 import Ticker from '../components/ui/Ticker.astro';
 import VnIndexChart from '../components/ui/VnIndexChart.astro';
 import flowCache from '../content/market-views/_foreign_flow_cache.json';
-import {
-  impliedMovePct,
-  methodPages,
-  portfolioDisclaimer,
-  STALE_AFTER_DAYS,
-  valuationGroups,
-  valuationModels,
-} from '../data/valuation-models';
+import { methodPages, STALE_AFTER_DAYS, valuationGroups, valuationModels } from '../data/valuation-models';
 import { publicFileSize } from '../lib/files';
-import { formatDate, formatIndex, formatVndK, signedNumber, signedPct } from '../lib/format';
+import { formatDate, formatIndex, signedPct } from '../lib/format';
 import { monthlySummary, weeklySummary } from '../lib/notes';
 
 const weekly = (await getCollection('market-views')).map(weeklySummary).sort((a, b) => b.date.valueOf() - a.date.valueOf());
 const monthly = (await getCollection('monthly-views')).map(monthlySummary).sort((a, b) => b.date.valueOf() - a.date.valueOf());
 const notes = [...weekly, ...monthly].sort((a, b) => b.date.valueOf() - a.date.valueOf());
-const latest = notes[0];
 const latestWeekly = weekly[0];
 const trend = [...weekly].reverse().map((n) => ({ time: n.date.toISOString().slice(0, 10), value: n.close }));
 const files = valuationModels.flatMap((m) => m.downloads.map((d) => ({ m, d, size: publicFileSize(d.href) })));
 const priceDate = formatDate(valuationModels[0].referencePrice.asOf);
-
-const bands = valuationModels.map((m) => {
-  const moves = m.outputs.map((o) => impliedMovePct(o, m.referencePrice));
-  return { m, low: Math.min(...moves), high: Math.max(...moves) };
-});
+const flowSessions = Object.keys(flowCache).length;
 
 const methods = methodPages.map((p) => ({
   ...p,
   group: valuationGroups.find((g) => g.id === p.id)!,
   tickers: valuationModels.filter((m) => m.valuationNotes.some((n) => n.groups.includes(p.id))).map((m) => m.ticker),
 }));
-
-// Foreign-flow sparkline (last 40 sessions) for the bento card.
-const flow = Object.entries(flowCache as Record<string, { net: number }>)
-  .filter(([, v]) => typeof v?.net === 'number')
-  .sort(([a], [b]) => a.localeCompare(b));
-const spark = flow.slice(-40);
-const sparkMax = Math.max(...spark.map(([, v]) => Math.abs(v.net)), 1);
-const sparkBars = spark.map(([date, v], i) => {
-  const h = Math.max((Math.abs(v.net) / sparkMax) * 46, 1.5);
-  return { x: i * 10 + 1.5, y: v.net >= 0 ? 50 - h : 50, h, up: v.net >= 0, date };
-});
-const flowNet40 = spark.reduce((t, [, v]) => t + v.net, 0);
-
-const hpg = valuationModels.find((m) => m.slug === 'hpg') ?? valuationModels[0];
-const dcfSensitivity = valuationModels.find((m) => m.sensitivity);
-
-const faq = [
-  {
-    id: 'methodology',
-    title: 'Methodology',
-    items: [
-      {
-        q: 'Why a range instead of a single target price?',
-        a: `Each company is valued with two or three methods: DCF, trading comparables, precedent transactions or an LBO. Where they disagree, the spread is the finding, so every report shows each method's range against the same price. DCF bars span the corners of the WACC × exit-multiple sensitivity grid, with the model's base case marked.`,
-      },
-      {
-        q: 'What is the “price used”?',
-        a: `It is the share price each model pack used as its market input, read from the workbooks. All five are as of ${priceDate}. It is not a live quote: every implied move on the site is measured against it, and pages flag the figures once a model is more than ${STALE_AFTER_DAYS} days old.`,
-      },
-      {
-        q: 'How are the DCF sensitivities built?',
-        a: 'The HPG and FPT grids are recomputed from the DCF workbooks: the same unlevered free cash flows, mid-year discounting, net debt and share count, with only WACC and the exit EV/EBITDA multiple flexed. The centre cell equals the model output.',
-      },
-    ],
-  },
-  {
-    id: 'data',
-    title: 'Market data',
-    items: [
-      {
-        q: 'Where does the market data come from?',
-        a: 'VN-Index daily prices come from VNDirect’s chart API, with Yahoo Finance as a fallback; if neither answers, no note is published. Liquidity is volume × the CafeF HOSE average price. DXY, gold, WTI, Bitcoin and USD/VND come from Yahoo Finance. Anything unavailable is shown as “—”, never estimated.',
-      },
-      {
-        q: 'How is the commentary written?',
-        a: 'A Python pipeline measures the week, a language model drafts the commentary, and the measured values then overwrite every figure in the note’s frontmatter. The tables are the ground truth; prose is checked against them.',
-      },
-      {
-        q: 'How is foreign flow tracked?',
-        a: `HOSE foreign buy and sell values have no historical API, so a scheduled job records them every session. The cache runs from ${formatDate(flow[0]?.[0] ?? '2026-06-15')} to ${formatDate(flow[flow.length - 1]?.[0] ?? '2026-06-15')} (${flow.length} sessions).`,
-      },
-    ],
-  },
-  {
-    id: 'about',
-    title: 'About',
-    items: [
-      {
-        q: 'Who writes this research?',
-        a: 'Nguyen Vu Truong Huy, a finance graduate of the University of Economics Ho Chi Minh City (UEH) who has passed Level II of the CFA Program. The site is a personal research portfolio.',
-      },
-      {
-        q: 'Can I download and reuse the models?',
-        a: `Yes. The ${files.length} workbooks are unprotected .xlsx, .xls and .zip files, linked from every report and from the model-files table on the research page.`,
-      },
-      { q: 'Is any of this investment advice?', a: portfolioDisclaimer },
-    ],
-  },
-];
 ---
 
 <BaseLayout
-  title="Truong Huy Research — Vietnam equity research & valuation models"
+  title="Truong Huy Research — Vietnam equity research desk"
   description="Valuation ranges, open Excel workbooks and weekly VN-Index notes on Vietnam-listed companies by Nguyen Vu Truong Huy, who has passed Level II of the CFA Program."
 >
   <script type="application/ld+json" is:inline set:html={JSON.stringify({
@@ -128,356 +45,149 @@ const faq = [
     knowsAbout: ['Equity Research', 'DCF Valuation', 'Comparable Company Analysis', 'LBO Modeling', 'Vietnam Equities'],
   })} />
 
-  <!-- Hero -->
-  <section class="hero" aria-labelledby="hero-title">
-    <Sky />
-    <div class="container">
-      <div class="hero__inner">
-        {latest && (
-          <a class="announce" href={latest.href}>
-            <span class="announce__dot" aria-hidden="true"></span>
-            {latest.kind} market view
-            <span class="announce__sep" aria-hidden="true"></span>
-            <span class="announce__muted">{latest.period}</span>
-            <Icon name="chevron_right" size={14} />
-          </a>
-        )}
-        <h1 id="hero-title" class="display display-xl">Vietnam equity research, built in the open</h1>
+  <header class="doc-head">
+    <div class="container doc-head__grid doc-head__grid--aside">
+      <div>
+        <p class="eyebrow">Equity research desk · Vietnam · HOSE</p>
+        <h1 class="display">Vietnam equities, valued as ranges across methods</h1>
         <p class="lead">
-          Valuation ranges on five HOSE-listed companies, each shipped with the Excel workbook behind it, plus weekly and
-          monthly notes on the VN-Index, liquidity and foreign flow.
+          Five HOSE-listed companies valued with DCF, trading comparables, precedent transactions and LBO, each shipped with
+          its Excel workbook, plus weekly and monthly notes on the VN-Index, liquidity and foreign flow.
         </p>
+        <div class="lockup">
+          <strong>Nguyen Vu Truong Huy</strong><i></i>UEH Finance &amp; Banking<i></i>Passed Level II of the CFA Program<i></i>Ho Chi Minh City
+        </div>
         <div class="btn-row">
-          <a class="btn btn--primary btn--lg" href="/research">Explore coverage</a>
-          <a class="btn btn--secondary btn--lg" href={latest?.href ?? '/market-views'}>Read the latest note</a>
+          <a class="btn btn--primary" href="/research">Open coverage</a>
+          <a class="btn btn--ghost" href={notes[0]?.href ?? '/market-views'}>Latest note · {notes[0]?.period}</a>
+          <a class="btn btn--ghost" href="/cv.pdf" target="_blank" rel="noopener"><Icon name="download" size={12} /> CV</a>
         </div>
-        <p class="hero__credit">
-          By <a href="/contact">Nguyen Vu Truong Huy</a> · Passed Level II of the CFA Program · Ho Chi Minh City
-        </p>
       </div>
-      <div class="hero__stage" data-reveal>
-        <ResearchTerminal />
-      </div>
+      <dl class="facts facts--focus">
+        <div><dt>Prices used as of</dt><dd>{priceDate}</dd></div>
+        <div><dt>Companies</dt><dd>{valuationModels.length}</dd></div>
+        <div><dt>Excel workbooks</dt><dd>{files.length}</dd></div>
+        <div><dt>Market notes</dt><dd>{weekly.length} W · {monthly.length} M</dd></div>
+        <div><dt>Foreign-flow record</dt><dd>{flowSessions} sessions</dd></div>
+        <div><dt>Latest note</dt><dd>{notes[0] ? formatDate(notes[0].date) : '—'}</dd></div>
+      </dl>
     </div>
-  </section>
+  </header>
 
-  <!-- Coverage marquee -->
-  <section class="marquee-wrap" aria-label="Coverage at a glance">
-    <p class="eyebrow">Coverage universe · implied move vs. price used</p>
-    <div class="marquee">
-      <div class="marquee__track">
-        {[...bands, ...bands, ...bands, ...bands].map(({ m, low, high }, i) => (
-          <a class="mq-item" href={`/research/${m.slug}`} tabindex={i < bands.length ? 0 : -1} aria-hidden={i < bands.length ? undefined : 'true'}>
-            <Ticker label={m.ticker} />
-            <strong>{m.ticker}</strong> {m.company}
-            <span class:list={['num', low >= 0 ? 'up' : 'down']}>{signedPct(low, 0)}</span>
-            <span class="muted">/</span>
-            <span class:list={['num', high >= 0 ? 'up' : 'down']}>{signedPct(high, 0)}</span>
-          </a>
+  <div class="container ws">
+    <section class="panel col-24" aria-labelledby="mon-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="mon-title"><Icon name="table" size={13} /> Coverage monitor</h2>
+        <span class="panel__meta">VND/share · implied move vs. price used</span>
+        <span class="panel__actions"><a class="btn btn--ghost btn--sm" href="/research">Full coverage <Icon name="arrow_right" size={12} /></a></span>
+      </div>
+      <CoverageTable />
+      <div class="panel__foot">
+        <span>{valuationModels.length} companies · sort any column</span>
+        <span>Prices used {priceDate}; not live quotes</span>
+      </div>
+    </section>
+
+    <section class="panel col-8" aria-labelledby="rng-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="rng-title"><Icon name="chart" size={13} /> Valuation ranges</h2>
+        <span class="panel__meta">% vs. price used</span>
+      </div>
+      <div class="panel__body"><FootballField models={valuationModels} /></div>
+    </section>
+
+    <section class="panel col-8" aria-labelledby="vni-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="vni-title"><Icon name="flow" size={13} /> VN-Index · weekly close</h2>
+        {latestWeekly && (
+          <span class="panel__actions">
+            <span class:list={['tag', latestWeekly.change >= 0 ? 'tag--up' : 'tag--down']}>{formatIndex(latestWeekly.close)} {signedPct(latestWeekly.change)}</span>
+          </span>
+        )}
+      </div>
+      <div class="panel__body">
+        <VnIndexChart trendData={trend} label={`VN-Index weekly close across ${trend.length} weekly notes`} height="md" />
+      </div>
+    </section>
+
+    <div class="col-8">
+      <ForeignFlowMonitor compact />
+    </div>
+
+    <section class="panel col-10" aria-labelledby="notes-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="notes-title"><Icon name="book" size={13} /> Latest market notes</h2>
+        <span class="panel__actions"><a class="btn btn--ghost btn--sm" href="/market-views#archive">Archive · {notes.length}</a></span>
+      </div>
+      <ol class="notelist notelist--compact">
+        {notes.slice(0, 6).map((n) => (
+          <li>
+            <a href={n.href}>
+              <span class="notelist__when"><span class="tag tag--blue">{n.kind}</span>{n.period}</span>
+              <span class="notelist__title">{n.headline}</span>
+              <span class="notelist__fig">{formatIndex(n.close)} <span class:list={['tag', n.change >= 0 ? 'tag--up' : 'tag--down']}>{signedPct(n.change)}</span></span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="panel col-7" aria-labelledby="meth-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="meth-title"><Icon name="layers" size={13} /> Methods</h2>
+      </div>
+      <dl class="defs">
+        {methods.map((p) => (
+          <div>
+            <dt><a class="link" href={p.href}>{p.group.title}</a> <span class="dim">· {p.group.eyebrow}</span></dt>
+            <dd>{p.group.description}</dd>
+            <dd class="row">{p.tickers.map((t) => <Ticker label={t} />)}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+
+    <section class="panel col-7" aria-labelledby="files-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="files-title"><Icon name="file" size={13} /> Model files</h2>
+        <span class="panel__actions"><a class="btn btn--ghost btn--sm" href="/research#files">All {files.length}</a></span>
+      </div>
+      <div class="files">
+        {files.slice(0, 5).map(({ m, d, size }) => (
+          <div class="file">
+            <span class:list={['file-ico', d.format === 'ZIP' && 'file-ico--zip']}>{d.format}</span>
+            <div>
+              <p class="file__name">{m.ticker} · {d.modelType ?? d.label}</p>
+              <p class="file__meta">{d.sheets.slice(0, 4).join(', ')}{size ? ` · ${size}` : ''}</p>
+            </div>
+            <a class="btn btn--ghost btn--sm" href={d.href} download aria-label={`Download ${m.ticker} ${d.label} (${d.format})`}><Icon name="download" size={12} /></a>
+          </div>
         ))}
       </div>
-    </div>
-    <div class="marquee marquee--rev">
-      <div class="marquee__track">
-        {[...notes.slice(0, 8), ...notes.slice(0, 8)].map((n, i) => (
-          <a class="mq-item" href={n.href} tabindex={i < 8 ? 0 : -1} aria-hidden={i < 8 ? undefined : 'true'}>
-            <span class:list={['tag', n.kind === 'Monthly' ? 'tag--violet' : 'tag--blue']}>{n.kind}</span>
-            <span class="mono xsmall">{n.period}</span>
-            <strong class="num">{formatIndex(n.close)}</strong>
-            <span class:list={['num', n.change >= 0 ? 'up' : 'down']}>{signedPct(n.change)}</span>
-          </a>
-        ))}
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- How it works -->
-  <section class="section" aria-labelledby="how-title">
-    <div class="container">
-      <div class="section-head">
+    <section class="panel col-24" aria-labelledby="read-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="read-title"><Icon name="check" size={13} /> How to read the numbers</h2>
+      </div>
+      <dl class="defs grid-defs">
         <div>
-          <p class="eyebrow">How the research works</p>
-          <h2 id="how-title" class="display display-l">Everything behind a valuation, in one place</h2>
+          <dt>Price used</dt>
+          <dd>The share price each model pack used as its market input ({priceDate}). It is not a live quote; every implied move is measured against it, and figures are flagged once a model is more than {STALE_AFTER_DAYS} days old.</dd>
         </div>
-        <p class="section-head__aside">
-          The workbook, the assumptions, the range and the market context sit side by side, so a reader can follow a number
-          from the Excel cell to the conclusion.
-        </p>
-      </div>
-
-      <div class="feature-row" data-reveal>
-        <div class="feature">
-          <div class="feature__visual dots">
-            <div class="mini-list">
-              {files.slice(0, 4).map(({ m, d, size }) => (
-                <div class="mini-row">
-                  <span class:list={['file-ico', d.format === 'ZIP' && 'file-ico--zip']}>{d.format}</span>
-                  <span class="mini-row__text"><strong>{m.ticker}</strong> · {d.modelType ?? d.label}</span>
-                  <span class="mono">{size ?? '—'}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <h3 class="card__title">Open Excel workbooks</h3>
-          <p class="card__text">{files.length} unprotected models: DCF, comparables, precedent transactions and LBO, ready to audit cell by cell.</p>
-        </div>
-        <div class="feature">
-          <div class="feature__visual dots">
-            <div class="mini-list">
-              {notes.slice(0, 3).map((n) => (
-                <a class="mini-row" href={n.href}>
-                  <span class:list={['tag', n.kind === 'Monthly' ? 'tag--violet' : 'tag--blue']}>{n.kind.slice(0, 1)}</span>
-                  <span class="mini-row__text"><strong>{n.period}</strong> · {n.headline}</span>
-                  <span class:list={['num', n.change >= 0 ? 'up' : 'down']}>{signedPct(n.change, 1)}</span>
-                </a>
-              ))}
-            </div>
-          </div>
-          <h3 class="card__title">Weekly &amp; monthly notes</h3>
-          <p class="card__text">{weekly.length} weekly and {monthly.length} monthly notes on index levels, liquidity, sectors and cross-asset moves.</p>
-        </div>
-        <div class="feature">
-          <div class="feature__visual dots">
-            <div class="window__pad">
-              <FootballField models={valuationModels.slice(0, 4)} legend={false} />
-            </div>
-          </div>
-          <h3 class="card__title">Ranges, not one target</h3>
-          <p class="card__text">Each method's range is plotted against the same price, so disagreement between methods stays visible.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Bento -->
-  <section class="section" aria-labelledby="angles-title">
-    <div class="container">
-      <div class="section-head">
         <div>
-          <p class="eyebrow">Inside the workspace</p>
-          <h2 id="angles-title" class="display display-l">Every angle of a valuation, side by side</h2>
+          <dt>Range, not a target</dt>
+          <dd>Each method's output is a VND range. DCF bars span the corners of the WACC × exit EV/EBITDA grid; the amber diamond marks the base case. Where methods disagree, the spread is the finding.</dd>
         </div>
-        <p class="section-head__aside">
-          Three valuation frameworks, a measured market pipeline and a search that reaches every ticker, method and note.
-        </p>
-      </div>
-
-      <div class="bento">
-        <article class="card b-4" data-reveal>
-          <h3 class="card__title">A measured market pipeline</h3>
-          <p class="card__text">
-            Notes start from measured data. If the VN-Index feed fails, nothing is published, and the measured values
-            overwrite every figure the language model writes.
-          </p>
-          <div class="bento__visual dots">
-            <div class="pipe">
-              <div class="pipe__node"><span class="tag">Source</span><strong>VNDirect · Yahoo</strong>Daily OHLCV, macro closes</div>
-              <div class="pipe__node"><span class="tag">Measure</span><strong>Liquidity &amp; flow</strong>CafeF price, HOSE foreign cache</div>
-              <div class="pipe__node"><span class="tag tag--blue">Draft</span><strong>Commentary</strong>Language model writes the prose</div>
-              <div class="pipe__node pipe__node--hl"><span class="tag tag--up">Enforce</span><strong>Frontmatter</strong>Measured values win</div>
-            </div>
-          </div>
-        </article>
-
-        <article class="card b-2" data-reveal>
-          <h3 class="card__title">Three valuation frameworks</h3>
-          <p class="card__text">Intrinsic value, public multiples and control value, each with its own method page.</p>
-          <div class="bento__visual dots">
-            <div class="qlist">
-              {methods.map((p, i) => (
-                <a href={p.href} class:list={[i === 0 && 'is-focus']}>
-                  <span class:list={['qlist__dot', ['qlist__dot--dcf', 'qlist__dot--comp', 'qlist__dot--lbo'][i]]}>{p.group.title.slice(0, 1)}</span>
-                  {['DCF', 'Comparables', 'Precedent + LBO'][i] ?? p.group.title}
-                  <span class="muted mono xsmall">{p.tickers.length}</span>
-                </a>
-              ))}
-            </div>
-          </div>
-        </article>
-
-        <article class="card b-2" data-reveal>
-          <h3 class="card__title">Foreign flow, every session</h3>
-          <p class="card__text">HOSE foreign net buying and selling, recorded daily since {formatDate(flow[0]?.[0] ?? '2026-06-15')}.</p>
-          <div class="bento__visual dots">
-            <svg class="flow-svg" viewBox="0 0 400 100" preserveAspectRatio="none" role="img" aria-label={`Foreign net flow, last ${spark.length} sessions: ${signedNumber(flowNet40, 0)} bn VND`}>
-              <line x1="0" x2="400" y1="50" y2="50" class="flow-zero" vector-effect="non-scaling-stroke" />
-              {sparkBars.map((b) => <rect x={b.x} y={b.y} width="7" height={b.h} rx="1" class={b.up ? 'flow-bar--up' : 'flow-bar--down'} />)}
-            </svg>
-            <p class="chart-foot">
-              <span>Last {spark.length} sessions</span>
-              <span class:list={[flowNet40 >= 0 ? 'up' : 'down']}>{signedNumber(flowNet40, 0)} bn VND net</span>
-            </p>
-          </div>
-        </article>
-
-        <article class="card b-2" data-reveal>
-          <h3 class="card__title">Search everything</h3>
-          <p class="card__text">Press <kbd>⌘K</kbd> or <kbd>/</kbd> anywhere to jump to a ticker, method, tear sheet or note.</p>
-          <div class="bento__visual dots">
-            <div class="search-demo">
-              <button type="button" class="search-demo__q" data-cmd-open aria-label="Open search"><Icon name="search" size={14} /> fpt dcf <span class="kbd">⌘K</span></button>
-              <ul>
-                <li><Ticker label="FPT" /> FPT Corporation <span class="tag tag--blue">Report</span></li>
-                <li><span class="qlist__dot qlist__dot--dcf">D</span> DCF method <span class="tag">Method</span></li>
-                <li><span class="tick">A4</span> FPT tear sheet <span class="tag">PDF</span></li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <article class="card b-2" data-reveal>
-          <h3 class="card__title">Notes timeline</h3>
-          <p class="card__text">Every note keeps its date, period and measured index move.</p>
-          <div class="bento__visual dots">
-            <ul class="timeline">
-              {notes.slice(0, 4).map((n) => (
-                <li class={n.change >= 0 ? 'is-up' : 'is-down'}>
-                  <a href={n.href}>{n.kind} · {n.period}</a>
-                  <div class="xsmall">VN-Index {formatIndex(n.close)} <span class={n.change >= 0 ? 'up' : 'down'}>{signedPct(n.change)}</span></div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- Tabbed showcase -->
-  <section class="section" aria-labelledby="tools-title">
-    <div class="container">
-      <div class="section-head">
         <div>
-          <p class="eyebrow">Analytical tools</p>
-          <h2 id="tools-title" class="display display-l">Read the work, not just the verdict</h2>
+          <dt>Measured market data</dt>
+          <dd>VN-Index prices come from VNDirect (Yahoo Finance as fallback) and no note is published without them. Unavailable figures show as “—”. Cross-asset values in notes up to 5 Jun 2026 may not be measured closes.</dd>
         </div>
-        <p class="section-head__aside">
-          Interactive versions of what sits inside each report: hover the grid, inspect a session, compare methods.
-        </p>
-      </div>
-
-      <div data-tabs>
-        <div class="tabs" role="tablist" aria-label="Analytical tools">
-          <button type="button" class="tab" role="tab" id="t-ff" aria-controls="p-ff" aria-selected="true">
-            <span class="tab__title">Football field</span><span class="tab__sub">All methods vs. price used</span>
-          </button>
-          <button type="button" class="tab" role="tab" id="t-sens" aria-controls="p-sens" aria-selected="false" tabindex="-1">
-            <span class="tab__title">DCF sensitivity</span><span class="tab__sub">WACC × exit multiple</span>
-          </button>
-          <button type="button" class="tab" role="tab" id="t-vni" aria-controls="p-vni" aria-selected="false" tabindex="-1">
-            <span class="tab__title">VN-Index</span><span class="tab__sub">Weekly closes, {weekly.length} notes</span>
-          </button>
-          <button type="button" class="tab" role="tab" id="t-flow" aria-controls="p-flow" aria-selected="false" tabindex="-1">
-            <span class="tab__title">Foreign flow</span><span class="tab__sub">{flow.length} HOSE sessions</span>
-          </button>
-        </div>
-
-        <div class="tab-panels">
-          <div class="tab-panel" role="tabpanel" id="p-ff" aria-labelledby="t-ff">
-            <div class="window">
-              <div class="window__bar">
-                <span class="window__title">Valuation football field · {valuationModels.length} companies</span>
-                <span class="window__actions"><a class="btn btn--ghost btn--sm" href="/research">Open coverage <Icon name="arrow_right" size={13} /></a></span>
-              </div>
-              <div class="window__pad"><FootballField models={valuationModels} /></div>
-            </div>
-          </div>
-          <div class="tab-panel" role="tabpanel" id="p-sens" aria-labelledby="t-sens" hidden>
-            {dcfSensitivity?.sensitivity && <SensitivityTable grid={dcfSensitivity.sensitivity} reference={dcfSensitivity.referencePrice} />}
-            <p class="small muted">
-              {dcfSensitivity?.ticker ?? hpg.ticker} DCF, price used VND {formatVndK((dcfSensitivity ?? hpg).referencePrice.value)}.{' '}
-              <a class="link" href={`/research/${(dcfSensitivity ?? hpg).slug}#sensitivity`}>Open the full report</a>
-            </p>
-          </div>
-          <div class="tab-panel" role="tabpanel" id="p-vni" aria-labelledby="t-vni" hidden>
-            <div class="window">
-              <div class="window__bar">
-                <span class="window__title">VN-Index weekly close</span>
-                {latestWeekly && <span class="window__actions"><span class:list={['tag', 'tag--mono', latestWeekly.change >= 0 ? 'tag--up' : 'tag--down']}>{formatIndex(latestWeekly.close)} {signedPct(latestWeekly.change)}</span></span>}
-              </div>
-              <div class="window__pad">
-                <VnIndexChart trendData={trend} label={`VN-Index weekly close across ${trend.length} weekly notes`} />
-              </div>
-            </div>
-          </div>
-          <div class="tab-panel" role="tabpanel" id="p-flow" aria-labelledby="t-flow" hidden>
-            <ForeignFlowMonitor />
-          </div>
-        </div>
-      </div>
-
-      <ul class="checks">
-        <li><Icon name="check" /> Open Excel models</li>
-        <li><Icon name="check" /> Dated reference prices</li>
-        <li><Icon name="check" /> No synthetic market data</li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- Notes masonry -->
-  <section class="section" aria-labelledby="notes-title">
-    <div class="container">
-      <div class="section-head">
         <div>
-          <p class="eyebrow">Market notes</p>
-          <h2 id="notes-title" class="display display-l">The week in Vietnam equities</h2>
+          <dt>Not investment advice</dt>
+          <dd>Academic portfolio work. Verify every assumption in the workbooks before relying on it. <a class="link" href="/disclaimer">Disclaimer</a></dd>
         </div>
-        <div class="section-head__aside">
-          <p>Index levels, liquidity, foreign flow and the cross-asset backdrop, written up every week and every month.</p>
-          <a class="arrow-link" href="/market-views">All {notes.length} notes <Icon name="arrow_right" size={14} /></a>
-        </div>
-      </div>
-
-      <div class="masonry">
-        {notes.slice(0, 7).map((n) => (
-          <a class="note-card" href={n.href} data-reveal>
-            <div class="note-card__by">
-              <span class="avatar avatar--sm" aria-hidden="true">TH</span>
-              <span class="note-card__who">{n.kind} market view<span>{n.period}</span></span>
-            </div>
-            <p class="note-card__title">{n.headline}</p>
-            <div class="note-card__meta">
-              <span class="tag tag--mono">{formatIndex(n.close)}</span>
-              <span class:list={['tag', 'tag--mono', n.change >= 0 ? 'tag--up' : 'tag--down']}>{signedPct(n.change)}</span>
-              {n.foreignNet != null && <span class="tag tag--mono">Foreign {signedNumber(n.foreignNet, 0)} bn</span>}
-            </div>
-          </a>
-        ))}
-        <a class="card card--dashed" href="/market-views#archive" data-reveal>
-          <Icon name="plus" size={20} />
-          <span class="small">Browse the archive</span>
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- FAQ -->
-  <section class="section" aria-labelledby="faq-title">
-    <div class="container">
-      <div class="section-head">
-        <h2 id="faq-title" class="display display-l">Questions</h2>
-        <p class="section-head__aside">
-          How the numbers are built and where they come from. Anything else: <a class="link" href="mailto:hnguyenvutruong@gmail.com">send an email</a>.
-        </p>
-      </div>
-      <div class="faq">
-        <nav class="side-nav" aria-label="Question topics" data-spy>
-          {faq.map((g) => <a href={`#faq-${g.id}`}>{g.title}</a>)}
-        </nav>
-        <div>
-          {faq.map((g, gi) => (
-            <div class="faq-group" id={`faq-${g.id}`}>
-              <h3>{g.title}</h3>
-              {g.items.map((item, i) => (
-                <details class="faq-item" open={gi === 0 && i === 0}>
-                  <summary>{item.q}<Icon name="chevron_down" size={16} /></summary>
-                  <p class="faq-item__a">{item.a}</p>
-                </details>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  </section>
+      </dl>
+    </section>
+  </div>
 </BaseLayout>

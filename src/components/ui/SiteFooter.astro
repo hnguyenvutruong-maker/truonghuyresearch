@@ -1,124 +1,69 @@
 ---
-// Closing band (dusk horizon + call to action) and the rounded footer card with the site map.
+// Compact institutional footer: credential lockup, site map, disclosure bar.
 import BrandMark from './BrandMark.astro';
-import Icon from './Icon.astro';
-import Sky from './Sky.astro';
 import { methodPages, valuationGroups, valuationModels } from '../../data/valuation-models';
 
-interface Props {
-  cta?: boolean;
-}
-const { cta = true } = Astro.props;
 const year = new Date().getFullYear();
-
-const columns = [
-  {
-    title: 'Research',
-    links: [
-      { href: '/research', label: 'Coverage overview' },
-      ...valuationModels.map((m) => ({ href: `/research/${m.slug}`, label: `${m.ticker} · ${m.company}` })),
-    ],
-  },
+const columns: Array<{ title: string; links: Array<{ href: string; label: string; external?: boolean }> }> = [
+  { title: 'Coverage', links: [{ href: '/research', label: 'All companies' }, ...valuationModels.map((m) => ({ href: `/research/${m.slug}`, label: `${m.ticker} · ${m.company}` }))] },
   {
     title: 'Methods',
     links: [
       ...methodPages.map((p) => ({ href: p.href, label: valuationGroups.find((g) => g.id === p.id)?.title ?? p.id })),
-      { href: '/research#files', label: 'Excel workbooks' },
-      { href: '/research/hpg/tear-sheet', label: 'A4 tear sheets' },
+      { href: '/research#files', label: 'Model files' },
     ],
   },
   {
     title: 'Market notes',
     links: [
       { href: '/market-views', label: 'All notes' },
-      { href: '/market-views?kind=weekly#archive', label: 'Weekly views' },
-      { href: '/monthly-views', label: 'Monthly views' },
-      { href: '/market-views#foreign-flow', label: 'Foreign flow monitor' },
-      { href: '/rss.xml', label: 'RSS feed' },
+      { href: '/market-views?kind=weekly#archive', label: 'Weekly' },
+      { href: '/monthly-views', label: 'Monthly' },
+      { href: '/market-views#foreign-flow', label: 'Foreign flow' },
+      { href: '/rss.xml', label: 'RSS' },
     ],
   },
   {
-    title: 'About',
+    title: 'Analyst',
     links: [
       { href: '/contact', label: 'Profile & contact' },
-      { href: '/cv.pdf', label: 'Download CV', external: true },
-      { href: '/disclaimer', label: 'Disclaimer' },
+      { href: '/cv.pdf', label: 'CV (PDF)', external: true },
+      { href: 'https://www.linkedin.com/in/trghuyy/', label: 'LinkedIn', external: true },
       { href: 'https://github.com/hnguyenvutruong-maker/truonghuyresearch', label: 'Source code', external: true },
     ],
   },
 ];
 ---
 
-{cta && (
-  <section class="cta no-print" aria-labelledby="cta-title">
-    <Sky variant="cta" />
-    <div class="container">
-      <h2 id="cta-title" class="display display-l" data-reveal>
-        Read the models,<br />not just the conclusions.
-      </h2>
-      <p class="lead" data-reveal>
-        Every range on this site ships with the Excel workbook behind it. Open the cells, change the inputs and check the
-        work.
+<footer class="site-foot no-print">
+  <div class="container site-foot__grid">
+    <div class="site-foot__brand">
+      <a class="brand" href="/" aria-label="Truong Huy Research home">
+        <BrandMark />
+        <span class="brand__name">Truong Huy <span>Research</span></span>
+      </a>
+      <p>
+        Equity research on Vietnam-listed companies by Nguyen Vu Truong Huy · UEH Finance &amp; Banking · Passed Level II
+        of the CFA Program. Valuations are ranges, every model is downloadable.
       </p>
-      <div class="btn-row" data-reveal>
-        <a class="btn btn--primary btn--lg" href="/research#files">Browse model files</a>
-        <a class="btn btn--secondary btn--lg" href="/contact">Get in touch</a>
-      </div>
+      <p><a href="mailto:hnguyenvutruong@gmail.com">hnguyenvutruong@gmail.com</a></p>
     </div>
-  </section>
-)}
-
-<footer class:list={['site-footer', 'no-print', !cta && 'site-footer--solo']}>
-  <div class="footer-card">
-    <div class="footer-grid">
-      <div class="footer-brand">
-        <a class="brand" href="/" aria-label="Truong Huy Research home">
-          <BrandMark />
-          <span>Truong Huy <span class="brand__sub">Research</span></span>
-        </a>
-        <p>
-          Independent equity research on Vietnam-listed companies by Nguyen Vu Truong Huy: open valuation models,
-          printable tear sheets and VN-Index market notes.
-        </p>
-        <a class="footer-mail" href="mailto:hnguyenvutruong@gmail.com">
-          <Icon name="mail" size={13} /> hnguyenvutruong@gmail.com
-        </a>
-        <div class="socials">
-          <a href="https://www.linkedin.com/in/trghuyy/" target="_blank" rel="noopener" aria-label="LinkedIn">
-            <Icon name="linkedin" size={15} />
-          </a>
-          <a href="https://github.com/hnguyenvutruong-maker/truonghuyresearch" target="_blank" rel="noopener" aria-label="GitHub">
-            <Icon name="github" size={15} />
-          </a>
-          <a href="/rss.xml" aria-label="RSS feed"><Icon name="rss" size={15} /></a>
-          <a href="mailto:hnguyenvutruong@gmail.com" aria-label="Email"><Icon name="mail" size={15} /></a>
-        </div>
-      </div>
-
-      {columns.map((col) => (
-        <nav class="footer-col" aria-label={col.title}>
-          <h3>{col.title}</h3>
-          <ul>
-            {col.links.map((l) => (
-              <li>
-                <a href={l.href} {...('external' in l && l.external ? { target: '_blank', rel: 'noopener' } : {})}>
-                  {l.label}
-                  {'external' in l && l.external && <Icon name="north_east" size={11} />}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      ))}
-    </div>
-
-    <div class="footer-bottom">
-      <span>© {year} Nguyen Vu Truong Huy · Passed Level II of the CFA Program · Academic research, not investment advice.</span>
-      <nav aria-label="Legal">
-        <a href="/disclaimer">Disclaimer</a>
-        <a href="/rss.xml">RSS</a>
-        <a href="/sitemap-index.xml">Sitemap</a>
+    {columns.map((c) => (
+      <nav aria-label={c.title}>
+        <h3>{c.title}</h3>
+        <ul>
+          {c.links.map((l) => (
+            <li><a href={l.href} {...(l.external ? { target: '_blank', rel: 'noopener' } : {})}>{l.label}{l.external ? ' ↗' : ''}</a></li>
+          ))}
+        </ul>
       </nav>
-    </div>
+    ))}
+  </div>
+  <div class="container site-foot__bar">
+    <span>© {year} Nguyen Vu Truong Huy · Academic research, not investment advice · Prices are as of each model date, not live.</span>
+    <nav aria-label="Legal">
+      <a href="/disclaimer">Disclaimer</a>
+      <a href="/sitemap-index.xml">Sitemap</a>
+    </nav>
   </div>
 </footer>

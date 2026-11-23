@@ -1,16 +1,15 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import CoverageStrip from '../components/ui/CoverageStrip.astro';
+import CoverageTable from '../components/ui/CoverageTable.astro';
 import Disclaimer from '../components/ui/Disclaimer.astro';
 import FootballField from '../components/ui/FootballField.astro';
 import Icon from '../components/ui/Icon.astro';
 import PageHeader from '../components/ui/PageHeader.astro';
-import ResearchTerminal from '../components/ui/ResearchTerminal.astro';
 import Ticker from '../components/ui/Ticker.astro';
 import ValuationComparator from '../components/ui/ValuationComparator.astro';
 import WorkbookVault from '../components/ui/WorkbookVault.astro';
 import { impliedMovePct, methodPages, valuationGroups, valuationModels } from '../data/valuation-models';
-import { formatDate, signedPct } from '../lib/format';
+import { formatDate, formatVndK, signedPct } from '../lib/format';
 
 const workbooks = valuationModels.reduce((t, m) => t + m.downloads.length, 0);
 const priceDate = formatDate(valuationModels[0].referencePrice.asOf);
@@ -26,111 +25,99 @@ const reports = valuationModels.map((m) => {
 ---
 
 <BaseLayout
-  title="Research coverage | Truong Huy Research"
+  title="Coverage | Truong Huy Research"
   description="Valuation coverage of HPG, BID, FPT, BMP and PNJ: DCF, comparable, precedent-transaction and LBO outputs against the price each model used, with downloadable Excel workbooks and A4 tear sheets."
 >
   <PageHeader
-    crumbs={[{ label: 'Research' }]}
-    eyebrow="Equity research · Vietnam"
+    crumbs={[{ label: 'Coverage' }]}
+    eyebrow="Coverage · 5 companies · HOSE"
     title="Coverage"
-    lead="Five Vietnam-listed companies, valued with two or three methods each. Every range is measured against the share price the model used, and every model is a download away."
+    lead="Every company is valued with two or three methods. Each range is measured against the share price the model used, and every workbook is a download away."
   >
     <div class="btn-row">
-      <a class="btn btn--primary" href="#monitor">Open the monitor</a>
-      <a class="btn btn--secondary" href="#files"><Icon name="download" size={14} /> Model files</a>
-      <button type="button" class="btn btn--ghost" data-cmd-open><Icon name="search" size={14} /> Search <kbd>/</kbd></button>
+      <a class="btn btn--primary" href="#files"><Icon name="download" size={12} /> Model files</a>
+      <a class="btn btn--ghost" href="#spread">Method spread</a>
+      <a class="btn btn--ghost" href="#methods">Methods</a>
     </div>
-    <dl slot="aside" class="facts">
+    <dl slot="aside" class="facts facts--focus">
+      <div><dt>Prices used as of</dt><dd>{priceDate}</dd></div>
       <div><dt>Companies</dt><dd>{valuationModels.length}</dd></div>
       <div><dt>Excel workbooks</dt><dd>{workbooks}</dd></div>
-      <div><dt>Methods</dt><dd>4 frameworks</dd></div>
-      <div><dt>Prices as of</dt><dd>{priceDate}</dd></div>
+      <div><dt>Frameworks</dt><dd>DCF · Comps · Prec · LBO</dd></div>
     </dl>
   </PageHeader>
-  <CoverageStrip />
 
-  <section class="section--tight" id="monitor" aria-labelledby="monitor-title">
-    <div class="container stack-6">
-      <div class="sec-head">
-        <h2 id="monitor-title">Valuation monitor</h2>
-        <span class="small muted">Sort any column · filter by method</span>
+  <div class="container ws">
+    <section class="panel col-24" id="monitor" aria-labelledby="mon-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="mon-title"><Icon name="table" size={13} /> Coverage monitor</h2>
+        <span class="panel__meta">VND/share · implied move vs. price used</span>
       </div>
-      <ResearchTerminal title="Coverage monitor" />
-    </div>
-  </section>
+      <CoverageTable />
+      <div class="panel__foot">
+        <span>Low / high move = lowest and highest method centre vs. price used</span>
+        <span>Prices used {priceDate}</span>
+      </div>
+    </section>
 
-  <section class="section--tight" aria-labelledby="reports-title">
-    <div class="container">
-      <div class="sec-head">
-        <h2 id="reports-title">Company reports</h2>
-        <span class="small muted">Implied move range across methods</span>
+    <section class="panel col-24" aria-labelledby="rng-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="rng-title"><Icon name="chart" size={13} /> Valuation ranges</h2>
       </div>
+      <div class="panel__body"><FootballField models={valuationModels} /></div>
+    </section>
+
+    <section class="col-24" aria-labelledby="rep-title">
+      <h2 class="sr-only" id="rep-title">Company reports</h2>
       <div class="grid-3">
         {reports.map(({ m, low, high }) => (
-          <a class="card card--link stack-4" href={`/research/${m.slug}`} data-reveal>
-            <div class="row row--between">
-              <span class="cell-co">
-                <Ticker label={m.ticker} size="lg" />
-                <span>{m.ticker}<span class="cell-co__sub">{m.company}</span></span>
-              </span>
-              <span class="tag tag--mono">{signedPct(low, 0)} / {signedPct(high, 0)}</span>
+          <a class="panel" href={`/research/${m.slug}`}>
+            <div class="panel__head">
+              <span class="panel__title"><Ticker label={m.ticker} /> {m.company}</span>
+              <span class="panel__actions"><span class:list={['tag', low >= 0 ? 'tag--up' : high < 0 ? 'tag--down' : 'tag--amber']}>{signedPct(low, 0)} / {signedPct(high, 0)}</span></span>
             </div>
-            <p class="small text-2">{m.report.headline}</p>
-            <FootballField outputs={m.outputs} reference={m.referencePrice} ticker={m.ticker} legend={false} />
-            <div class="row">
-              {m.methods.map((x) => <span class="tag">{x}</span>)}
+            <div class="panel__body stack-3">
+              <p class="h-sm">{m.report.headline}</p>
+              <FootballField outputs={m.outputs} reference={m.referencePrice} ticker={m.ticker} legend={false} compact />
+              <div class="row">
+                <span class="tag">{m.sector}</span>
+                <span class="tag">Price used {formatVndK(m.referencePrice.value)}</span>
+              </div>
             </div>
-            <span class="arrow-link">Read report <Icon name="arrow_right" size={14} /></span>
-          </a>
-        ))}
-        <div class="card stack-4" data-reveal>
-          <p class="eyebrow">Overview</p>
-          <FootballField models={valuationModels} />
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section--tight" id="comparator" aria-labelledby="spread-title">
-    <div class="container">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">Method spread</p>
-          <h2 id="spread-title" class="display display-s">Where the methods disagree, the spread is the finding</h2>
-        </div>
-        <p class="section-head__aside">Each card lists every method's output against the price used, and why the methods land apart.</p>
-      </div>
-      <ValuationComparator />
-    </div>
-  </section>
-
-  <section class="section--tight" id="methods" aria-labelledby="methods-title">
-    <div class="container">
-      <div class="sec-head">
-        <h2 id="methods-title">Valuation frameworks</h2>
-      </div>
-      <div class="grid-3">
-        {methods.map((p, i) => (
-          <a class="card card--link stack-3" href={p.href}>
-            <span class:list={['qlist__dot', ['qlist__dot--dcf', 'qlist__dot--comp', 'qlist__dot--lbo'][i]]}>{p.group.title.slice(0, 1)}</span>
-            <p class="eyebrow">{p.group.eyebrow}</p>
-            <h3 class="card__title">{p.group.title}</h3>
-            <p class="small text-2">{p.group.description}</p>
-            <div class="row">{p.tickers.map((t) => <span class="tag tag--mono">{t}</span>)}</div>
           </a>
         ))}
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="section--tight" id="files" aria-labelledby="files-title">
-    <div class="container stack-6">
-      <div class="sec-head">
-        <h2 id="files-title">Model files</h2>
-        <span class="small muted">Unprotected workbooks and printable A4 tear sheets</span>
+    <section class="col-24" id="spread" aria-labelledby="spread-title">
+      <div class="panel">
+        <div class="panel__head">
+          <h2 class="panel__title" id="spread-title"><Icon name="layers" size={13} /> Method spread</h2>
+          <span class="panel__meta">Where methods disagree, the spread is the finding</span>
+        </div>
+        <div class="panel__body"><ValuationComparator /></div>
       </div>
+    </section>
+
+    <section class="panel col-24" id="methods" aria-labelledby="methods-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="methods-title"><Icon name="grid" size={13} /> Valuation frameworks</h2>
+      </div>
+      <dl class="defs grid-defs grid-defs--3">
+        {methods.map((p) => (
+          <div>
+            <dt><a class="link" href={p.href}>{p.group.title}</a> <span class="dim">· {p.group.eyebrow}</span></dt>
+            <dd>{p.group.description}</dd>
+            <dd class="row">{p.tickers.map((t) => <Ticker label={t} />)}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+
+    <section class="col-24 stack-3" id="files" aria-labelledby="files-title">
+      <h2 class="sr-only" id="files-title">Model files</h2>
       <WorkbookVault />
       <Disclaimer />
-    </div>
-  </section>
+    </section>
+  </div>
 </BaseLayout>
