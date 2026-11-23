@@ -54,7 +54,7 @@ deliberately not committed to this public repo.
 ├── scripts/check-csp.mjs         # post-build: every inline <script> hash must be in vercel.json
 ├── .github/workflows/            # 3 scheduled bot workflows (see §9)
 ├── public/
-│   ├── cv.pdf, og-image.png, favicon.*, robots.txt
+│   ├── cv.pdf, favicon.*, robots.txt   (default OG image is generated: /og/site.png)
 │   ├── research/tear-sheets/       # generated A4 tear-sheet PDFs + hpg-page.png specimen
 │   └── research/valuation-models/  # downloadable .xlsx/.xls/.zip model files
 └── src/
@@ -207,7 +207,7 @@ model is refreshed, update `lastUpdated`, `referencePrice`, `outputs` and (for a
 | `/monthly-views` | `monthly-views/index.astro` | Monthly notes only. |
 | `/contact`, `/disclaimer`, `/404` | static | |
 | `/research/[slug]/tear-sheet` | `research/[slug]/tear-sheet.astro` | One-page A4 summary; exported to `public/research/tear-sheets/<slug>.pdf` by `npm run tear-sheets` (builds, then prints with `playwright-core` + installed Chrome; `CHROME_PATH` overrides). **Re-run it whenever a model changes** and commit the PDFs; report pages link the PDF only if it exists. |
-| `/og/<path>.png` | `og/[...path].png.ts` | Build-time 1200×630 OG cards (satori + sharp; Source Serif 4 and Libre Franklin `.woff` from `@fontsource`, not yet restyled to the terminal look) for every report and note. |
+| `/og/<path>.png` | `og/[...path].png.ts` | Build-time 1200×630 OG cards in the terminal style (satori + sharp): `/og/site.png` (the default `og:image`), one per report (range bars + price box) and one per note. satori needs static `.woff`, so it reads `@fontsource/newsreader`, `inter` and `jetbrains-mono` (the site itself uses the `@fontsource-variable` packages). |
 | `/rss.xml` | `rss.xml.ts` | Weekly + monthly feed with full note HTML (`markdown-it` + `sanitize-html`). |
 
 `ValuationMethodPage` sits in `components/`; everything else lives under `components/ui/` (§4).
