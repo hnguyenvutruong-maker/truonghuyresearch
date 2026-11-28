@@ -1,0 +1,41 @@
+---
+// Document head: breadcrumb, label, Newsreader title, lead, action slot and an optional fact/price box.
+import Icon from './Icon.astro';
+
+interface Crumb {
+  href?: string;
+  label: string;
+}
+interface Props {
+  crumbs?: Crumb[];
+  eyebrow?: string;
+  title: string;
+  lead?: string;
+}
+const { crumbs = [], eyebrow, title, lead } = Astro.props;
+const hasAside = Astro.slots.has('aside');
+---
+
+<header class="doc-head">
+  <div class="container">
+    <div class:list={['doc-head__grid', hasAside && 'doc-head__grid--aside']}>
+      <div>
+        <nav class="crumbs" aria-label="Breadcrumb">
+          <a href="/">Desk</a>
+          {crumbs.map((c) => (
+            <>
+              <Icon name="chevron_right" size={10} />
+              {c.href ? <a href={c.href}>{c.label}</a> : <span aria-current="page">{c.label}</span>}
+            </>
+          ))}
+        </nav>
+        <slot name="before" />
+        {eyebrow && <p class="eyebrow">{eyebrow}</p>}
+        <h1 class="display">{title}</h1>
+        {lead && <p class="lead">{lead}</p>}
+        <slot />
+      </div>
+      {hasAside && <div><slot name="aside" /></div>}
+    </div>
+  </div>
+</header>

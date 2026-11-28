@@ -1,48 +1,37 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import CoverageTable from '../components/ui/CoverageTable.astro';
 import FootballField from '../components/ui/FootballField.astro';
+import ForeignFlowMonitor from '../components/ui/ForeignFlowMonitor.astro';
+import Icon from '../components/ui/Icon.astro';
+import Ticker from '../components/ui/Ticker.astro';
 import VnIndexChart from '../components/ui/VnIndexChart.astro';
-import { formatOutput, impliedMovePct, methodPages, outputMethodLabel, valuationGroups, valuationModels } from '../data/valuation-models';
+import flowCache from '../content/market-views/_foreign_flow_cache.json';
+import { methodPages, STALE_AFTER_DAYS, valuationGroups, valuationModels } from '../data/valuation-models';
 import { publicFileSize } from '../lib/files';
-import { formatDate, formatIndex, formatVndK, signedPct } from '../lib/format';
+import { formatDate, formatIndex, signedPct } from '../lib/format';
 import { monthlySummary, weeklySummary } from '../lib/notes';
 
 const weekly = (await getCollection('market-views')).map(weeklySummary).sort((a, b) => b.date.valueOf() - a.date.valueOf());
 const monthly = (await getCollection('monthly-views')).map(monthlySummary).sort((a, b) => b.date.valueOf() - a.date.valueOf());
-const trend = [...weekly].reverse().map((n) => ({ time: n.date.toISOString().slice(0, 10), value: n.close }));
-const latestTwoNotes = [...weekly, ...monthly].sort((a, b) => b.date.valueOf() - a.date.valueOf()).slice(0, 2);
+const notes = [...weekly, ...monthly].sort((a, b) => b.date.valueOf() - a.date.valueOf());
 const latestWeekly = weekly[0];
-const workbooks = valuationModels.reduce((t, m) => t + m.downloads.length, 0);
+const trend = [...weekly].reverse().map((n) => ({ time: n.date.toISOString().slice(0, 10), value: n.close }));
+const files = valuationModels.flatMap((m) => m.downloads.map((d) => ({ m, d, size: publicFileSize(d.href) })));
 const priceDate = formatDate(valuationModels[0].referencePrice.asOf);
+const flowSessions = Object.keys(flowCache).length;
 
-const reports = valuationModels.map((m) => {
-  const moves = m.outputs.map((o) => impliedMovePct(o, m.referencePrice));
-  const assumptions = (m.keyAssumptions ?? m.report.assumptions).slice(0, 4);
-  const tearHref = `/research/tear-sheets/${m.slug}.pdf`;
-  const tearSize = publicFileSize(tearHref);
-  return {
-    m,
-    low: Math.min(...moves),
-    high: Math.max(...moves),
-    assumptions,
-    tearHref,
-    tearSize,
-  };
-});
-
-const methodCards = methodPages.map((p) => {
-  const group = valuationGroups.find((g) => g.id === p.id)!;
-  const tickers = valuationModels
-    .filter((m) => m.valuationNotes.some((n) => n.groups.includes(p.id)))
-    .map((m) => m.ticker);
-  return { ...p, group, tickers };
-});
+const methods = methodPages.map((p) => ({
+  ...p,
+  group: valuationGroups.find((g) => g.id === p.id)!,
+  tickers: valuationModels.filter((m) => m.valuationNotes.some((n) => n.groups.includes(p.id))).map((m) => m.ticker),
+}));
 ---
 
 <BaseLayout
-  title="Truong Huy Research — Equity Research & Valuation Portfolio"
-  description="Valuation models, open Excel workbooks and weekly VN-Index notes on Vietnam-listed companies by Nguyen Vu Truong Huy, who has passed Level II of the CFA Program."
+  title="Truong Huy Research — Vietnam equity research desk"
+  description="Valuation ranges, open Excel workbooks and weekly VN-Index notes on Vietnam-listed companies by Nguyen Vu Truong Huy, who has passed Level II of the CFA Program."
 >
   <script type="application/ld+json" is:inline set:html={JSON.stringify({
     '@context': 'https://schema.org',
@@ -56,298 +45,149 @@ const methodCards = methodPages.map((p) => {
     knowsAbout: ['Equity Research', 'DCF Valuation', 'Comparable Company Analysis', 'LBO Modeling', 'Vietnam Equities'],
   })} />
 
-  <div class="once-col-m">
-    <!-- 1. ONCE UI MAGIC PORTFOLIO CENTERED HERO (magic-portfolio/src/app/page.tsx) -->
-    <section class="once-hero">
-      <div class="once-hero-badge-wrap" data-reveal>
-        <a class="once-badge" href="/research/hpg">
-          <strong>CFA Level II Passed</strong>
-          <span class="once-badge-divider" aria-hidden="true"></span>
-          <span class="on-brand-medium">Featured equity research · {valuationModels.length} companies</span>
-        </a>
-      </div>
-
-      <div class="once-hero-title-wrap" data-reveal data-reveal-delay="1">
-        <h1 class="display-strong-l">
-          Bridging institutional valuation and transparent models
-        </h1>
-      </div>
-
-      <div class="once-hero-sub-wrap" data-reveal data-reveal-delay="2">
-        <p class="heading-default-xl on-neutral-weak">
-          I'm Truong Huy, an equity research analyst from{' '}
-          <strong class="on-neutral-strong">UEH Finance</strong>, where I build open FCFF DCF,
-          comparable, precedent, and LBO workbooks on Vietnam-listed companies alongside weekly VN-Index notes.
+  <header class="doc-head">
+    <div class="container doc-head__grid doc-head__grid--aside">
+      <div>
+        <p class="eyebrow">Equity research desk · Vietnam · HOSE</p>
+        <h1 class="display">Vietnam equities, valued as ranges across methods</h1>
+        <p class="lead">
+          Five HOSE-listed companies valued with DCF, trading comparables, precedent transactions and LBO, each shipped with
+          its Excel workbook, plus weekly and monthly notes on the VN-Index, liquidity and foreign flow.
         </p>
+        <div class="lockup">
+          <strong>Nguyen Vu Truong Huy</strong><i></i>UEH Finance &amp; Banking<i></i>Passed Level II of the CFA Program<i></i>Ho Chi Minh City
+        </div>
+        <div class="btn-row">
+          <a class="btn btn--primary" href="/research">Open coverage</a>
+          <a class="btn btn--ghost" href={notes[0]?.href ?? '/market-views'}>Latest note · {notes[0]?.period}</a>
+          <a class="btn btn--ghost" href="/cv.pdf" target="_blank" rel="noopener"><Icon name="download" size={12} /> CV</a>
+        </div>
       </div>
+      <dl class="facts facts--focus">
+        <div><dt>Prices used as of</dt><dd>{priceDate}</dd></div>
+        <div><dt>Companies</dt><dd>{valuationModels.length}</dd></div>
+        <div><dt>Excel workbooks</dt><dd>{files.length}</dd></div>
+        <div><dt>Market notes</dt><dd>{weekly.length} W · {monthly.length} M</dd></div>
+        <div><dt>Foreign-flow record</dt><dd>{flowSessions} sessions</dd></div>
+        <div><dt>Latest note</dt><dd>{notes[0] ? formatDate(notes[0].date) : '—'}</dd></div>
+      </dl>
+    </div>
+  </header>
 
-      <div class="once-hero-actions" data-reveal data-reveal-delay="3">
-        <a id="about" class="once-btn once-btn-secondary once-btn-avatar" href="/contact">
-          <span class="once-avatar once-avatar-m" aria-hidden="true">TH</span>
-          <span>About – Truong Huy</span>
-          <span class="once-arrow-icon" aria-hidden="true">→</span>
-        </a>
-        <a class="once-btn once-btn-secondary" href="/cv.pdf" target="_blank" rel="noopener">
-          <span>Download CV (PDF)</span>
-        </a>
+  <div class="container ws">
+    <section class="panel col-24" aria-labelledby="mon-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="mon-title"><Icon name="table" size={13} /> Coverage monitor</h2>
+        <span class="panel__meta">VND/share · implied move vs. price used</span>
+        <span class="panel__actions"><a class="btn btn--ghost btn--sm" href="/research">Full coverage <Icon name="arrow_right" size={12} /></a></span>
+      </div>
+      <CoverageTable />
+      <div class="panel__foot">
+        <span>{valuationModels.length} companies · sort any column</span>
+        <span>Prices used {priceDate}; not live quotes</span>
       </div>
     </section>
 
-    <!-- 2. FEATURED PROJECT SHOWCASE (<Projects range={[1, 1]} />) -->
-    <section class="once-projects-list" aria-label="Featured Valuation Suite" data-reveal data-reveal-delay="2">
-      <article class="once-project-card">
-        <div class="once-carousel" data-once-carousel>
-          <div class="once-carousel-viewport">
-            <div class="once-slide-stack">
-              <!-- Slide 1: 5-Company Valuation Football Field -->
-              <div class="once-slide is-active" data-carousel-slide>
-                <div class="once-Slide-header">
-                  <span class="once-slide-kicker">01 / Valuation Distribution · Implied Move vs. Price Used</span>
-                  <span class="once-slide-meta">Ref. Prices: {priceDate} · {workbooks} Open Excel Models</span>
-                </div>
-                <FootballField models={valuationModels} />
-              </div>
-
-              <!-- Slide 2: Open Excel Workbook Architecture -->
-              <div class="once-slide" data-carousel-slide>
-                <div class="once-Slide-header">
-                  <span class="once-slide-kicker">02 / Four Valuation Frameworks Across {workbooks} Excel Workbooks</span>
-                  <span class="once-slide-meta">Unprotected .xlsx &amp; .xls · Printable A4 Tear Sheets</span>
-                </div>
-                <div class="once-kpi-grid">
-                  {methodCards.map(({ group, href, tickers }) => (
-                    <a href={href} class="once-kpi-box">
-                      <span class="once-kpi-label">{group.eyebrow}</span>
-                      <span class="once-kpi-value">{group.title}</span>
-                      <span class="once-kpi-sub">Applied to {tickers.join(' · ')}</span>
-                    </a>
-                  ))}
-                </div>
-              </div>
-
-              <!-- Slide 3: VN-Index Weekly Structure -->
-              <div class="once-slide" data-carousel-slide>
-                <div class="once-Slide-header">
-                  <span class="once-slide-kicker">03 / VN-Index Weekly Close &amp; Market Telemetry</span>
-                  <span class="once-slide-meta">{weekly.length} Weekly Notes · {monthly.length} Monthly Reviews</span>
-                </div>
-                {latestWeekly && (
-                  <VnIndexChart
-                    trendData={trend}
-                    label={`VN-Index weekly close · ${formatIndex(latestWeekly.close)} (${signedPct(latestWeekly.change)})`}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div class="once-carousel-indicators" role="tablist" aria-label="Featured suite slides">
-            <button type="button" class="once-carousel-dot is-active" data-carousel-dot aria-selected="true" aria-label="Slide 1: Valuation distribution">
-              <span class="once-carousel-dot-bar"></span>
-            </button>
-            <button type="button" class="once-carousel-dot" data-carousel-dot aria-selected="false" aria-label="Slide 2: Valuation frameworks">
-              <span class="once-carousel-dot-bar"></span>
-            </button>
-            <button type="button" class="once-carousel-dot" data-carousel-dot aria-selected="false" aria-label="Slide 3: VN-Index weekly close">
-              <span class="once-carousel-dot-bar"></span>
-            </button>
-          </div>
-        </div>
-
-        <div class="once-project-body">
-          <div class="once-project-title-col">
-            <h2 class="heading-strong-xl">
-              Vietnam Equity Valuation Suite — {valuationModels.length} Companies &amp; {workbooks} Open Excel Models
-            </h2>
-          </div>
-          <div class="once-project-desc-col">
-            <div class="once-project-tags">
-              <span class="once-tag once-tag-brand">FCFF DCF</span>
-              <span class="once-tag">Comparable Multiples</span>
-              <span class="once-tag">Precedent M&amp;A</span>
-              <span class="once-tag">Sponsor LBO</span>
-            </div>
-            <p class="body-default-s on-neutral-weak">
-              Every valuation range is paired with the exact unprotected Excel workbook and a printable A4 executive tear sheet so assumptions, discount rates, peer multiples, and debt schedules can be audited cell-by-cell.
-            </p>
-            <div class="once-project-links">
-              <a class="once-smart-link" href="/research">
-                <span>Explore research hub</span>
-                <span class="once-arrow-icon" aria-hidden="true">→</span>
-              </a>
-              <a class="once-smart-link" href="/market-views">
-                <span>View VN-Index market notes</span>
-                <span class="once-arrow-icon" aria-hidden="true">↗</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </article>
+    <section class="panel col-8" aria-labelledby="rng-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="rng-title"><Icon name="chart" size={13} /> Valuation ranges</h2>
+        <span class="panel__meta">% vs. price used</span>
+      </div>
+      <div class="panel__body"><FootballField models={valuationModels} /></div>
     </section>
 
-    <!-- 3. ONCE UI "LATEST FROM THE BLOG" SPLIT SECTION (magic-portfolio/src/app/page.tsx lines 109-138) -->
-    <section class="once-blog-section" aria-label="Latest market notes" data-reveal>
-      <div class="once-line-offset-left" aria-hidden="true">
-        <div class="once-line-h"></div>
+    <section class="panel col-8" aria-labelledby="vni-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="vni-title"><Icon name="flow" size={13} /> VN-Index · weekly close</h2>
+        {latestWeekly && (
+          <span class="panel__actions">
+            <span class:list={['tag', latestWeekly.change >= 0 ? 'tag--up' : 'tag--down']}>{formatIndex(latestWeekly.close)} {signedPct(latestWeekly.change)}</span>
+          </span>
+        )}
       </div>
-
-      <div class="once-blog-split">
-        <div class="once-blog-heading-col">
-          <h2 class="display-strong-xs">Latest from the blog</h2>
-        </div>
-        <div class="once-blog-posts-col">
-          <div class="once-posts-grid">
-            {latestTwoNotes.map((note) => (
-              <a class="once-post-card" href={note.href}>
-                <div class="once-post-author-row">
-                  <div class="once-post-author">
-                    <span class="once-avatar once-avatar-s" aria-hidden="true">TH</span>
-                    <span class="label-default-s">Nguyen Vu Truong Huy</span>
-                  </div>
-                  <span class="body-default-xs on-neutral-weak">{formatDate(note.date)}</span>
-                </div>
-                <h3 class="heading-strong-l">{note.headline}</h3>
-                <span class="label-strong-s on-neutral-weak">
-                  {note.kind} · VN-Index {formatIndex(note.close)} ({signedPct(note.change)})
-                </span>
-              </a>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div class="once-line-offset-right" aria-hidden="true">
-        <div class="once-line-h"></div>
+      <div class="panel__body">
+        <VnIndexChart trendData={trend} label={`VN-Index weekly close across ${trend.length} weekly notes`} height="md" />
       </div>
     </section>
 
-    <!-- 4. COVERED COMPANY CASE STUDIES (<Projects range={[2]} />) -->
-    <section class="once-projects-list" aria-label="Company valuation case studies">
-      {reports.map(({ m, low, high, assumptions, tearHref, tearSize }) => (
-        <article class="once-project-card" data-reveal>
-          <div class="once-carousel" data-once-carousel>
-            <div class="once-carousel-viewport">
-              <div class="once-slide-stack">
-                <!-- Slide 1: Valuation Output & Method Breakdown -->
-                <div class="once-slide is-active" data-carousel-slide>
-                  <div class="once-Slide-header">
-                    <span class="once-slide-kicker">{m.ticker} · {m.sector}</span>
-                    <span class="once-slide-meta">Ref. Price: VND {formatVndK(m.referencePrice.value)} ({formatDate(m.referencePrice.asOf)})</span>
-                  </div>
-                  <div class="once-kpi-grid">
-                    <div class="once-kpi-box">
-                      <span class="once-kpi-label">Price Used</span>
-                      <span class="once-kpi-value">VND {formatVndK(m.referencePrice.value)}</span>
-                      <span class="once-kpi-sub">As of {formatDate(m.referencePrice.asOf)}</span>
-                    </div>
-                    <div class="once-kpi-box">
-                      <span class="once-kpi-label">Implied Move Range</span>
-                      <span class="once-kpi-value">{signedPct(low, 0)} to {signedPct(high, 0)}</span>
-                      <span class="once-kpi-sub">{m.methods.join(' · ')}</span>
-                    </div>
-                    {m.outputs.map((o) => {
-                      const move = impliedMovePct(o, m.referencePrice);
-                      return (
-                        <div class="once-kpi-box">
-                          <span class="once-kpi-label">{outputMethodLabel[o.method]}</span>
-                          <span class="once-kpi-value">{formatOutput(o)}</span>
-                          <span class="once-kpi-sub">{signedPct(move, 1)} · {o.basis}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+    <div class="col-8">
+      <ForeignFlowMonitor compact />
+    </div>
 
-                <!-- Slide 2: Core Assumptions -->
-                <div class="once-slide" data-carousel-slide>
-                  <div class="once-Slide-header">
-                    <span class="once-slide-kicker">{m.ticker} · Core Model Assumptions</span>
-                    <span class="once-slide-meta">{m.downloads.length} Excel Workbooks + A4 Tear Sheet ({tearSize})</span>
-                  </div>
-                  <div class="once-kpi-grid">
-                    {assumptions.map((a) => (
-                      <div class="once-kpi-box">
-                        <span class="once-kpi-label">{a.label}</span>
-                        <span class="once-kpi-value">{a.value}</span>
-                        <span class="once-kpi-sub">{a.detail}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="once-carousel-indicators" role="tablist" aria-label={`${m.ticker} slides`}>
-              <button type="button" class="once-carousel-dot is-active" data-carousel-dot aria-selected="true" aria-label={`${m.ticker} valuation summary`}>
-                <span class="once-carousel-dot-bar"></span>
-              </button>
-              <button type="button" class="once-carousel-dot" data-carousel-dot aria-selected="false" aria-label={`${m.ticker} core assumptions`}>
-                <span class="once-carousel-dot-bar"></span>
-              </button>
-            </div>
-          </div>
-
-          <div class="once-project-body">
-            <div class="once-project-title-col">
-              <h2 class="heading-strong-xl">
-                {m.ticker} — {m.company}
-              </h2>
-            </div>
-            <div class="once-project-desc-col">
-              <div class="once-project-tags">
-                {m.methods.map((method) => (
-                  <span class="once-tag once-tag-brand">{method}</span>
-                ))}
-                <span class="once-tag">{signedPct(low, 0)} to {signedPct(high, 0)}</span>
-              </div>
-              <p class="body-default-s on-neutral-weak">
-                {m.report.headline} {m.summary}
-              </p>
-              <div class="once-project-links">
-                <a class="once-smart-link" href={`/research/${m.slug}`}>
-                  <span>Read case study</span>
-                  <span class="once-arrow-icon" aria-hidden="true">→</span>
-                </a>
-                <a class="once-smart-link" href={tearHref}>
-                  <span>Tear Sheet (PDF, {tearSize})</span>
-                  <span class="once-arrow-icon" aria-hidden="true">↗</span>
-                </a>
-                {m.downloads[0] && (
-                  <a class="once-smart-link" href={m.downloads[0].href} download>
-                    <span>View project ({m.downloads[0].format})</span>
-                    <span class="once-arrow-icon" aria-hidden="true">↓</span>
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-        </article>
-      ))}
+    <section class="panel col-10" aria-labelledby="notes-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="notes-title"><Icon name="book" size={13} /> Latest market notes</h2>
+        <span class="panel__actions"><a class="btn btn--ghost btn--sm" href="/market-views#archive">Archive · {notes.length}</a></span>
+      </div>
+      <ol class="notelist notelist--compact">
+        {notes.slice(0, 6).map((n) => (
+          <li>
+            <a href={n.href}>
+              <span class="notelist__when"><span class="tag tag--blue">{n.kind}</span>{n.period}</span>
+              <span class="notelist__title">{n.headline}</span>
+              <span class="notelist__fig">{formatIndex(n.close)} <span class:list={['tag', n.change >= 0 ? 'tag--up' : 'tag--down']}>{signedPct(n.change)}</span></span>
+            </a>
+          </li>
+        ))}
+      </ol>
     </section>
 
-    <!-- 5. ONCE UI NEWSLETTER / DIRECT ACCESS SURFACE (Newsletter.tsx) -->
-    <section class="once-newsletter" data-reveal>
-      <div class="once-newsletter-bg" aria-hidden="true">
-        <div class="once-newsletter-gradient"></div>
-        <div class="once-newsletter-dots"></div>
+    <section class="panel col-7" aria-labelledby="meth-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="meth-title"><Icon name="layers" size={13} /> Methods</h2>
       </div>
-      <div class="once-newsletter-content">
-        <h2 class="display-strong-xs">Audit the models or get in touch</h2>
-        <p class="body-default-l on-neutral-weak">
-          Available for Equity Research, Investment Analysis, and Corporate Finance roles in Ho Chi Minh City. Every Excel workbook and one-page tear sheet is open for direct download.
-        </p>
-        <div class="once-hero-actions">
-          <a class="once-btn once-btn-primary" href="/cv.pdf" target="_blank" rel="noopener">
-            <span>Download CV (PDF)</span>
-          </a>
-          <a class="once-btn once-btn-secondary" href="mailto:hnguyenvutruong@gmail.com">
-            <span>hnguyenvutruong@gmail.com</span>
-          </a>
-          <a class="once-btn once-btn-secondary" href="/research">
-            <span>All {workbooks} Excel Workbooks</span>
-          </a>
+      <dl class="defs">
+        {methods.map((p) => (
+          <div>
+            <dt><a class="link" href={p.href}>{p.group.title}</a> <span class="dim">· {p.group.eyebrow}</span></dt>
+            <dd>{p.group.description}</dd>
+            <dd class="row">{p.tickers.map((t) => <Ticker label={t} />)}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+
+    <section class="panel col-7" aria-labelledby="files-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="files-title"><Icon name="file" size={13} /> Model files</h2>
+        <span class="panel__actions"><a class="btn btn--ghost btn--sm" href="/research#files">All {files.length}</a></span>
+      </div>
+      <div class="files">
+        {files.slice(0, 5).map(({ m, d, size }) => (
+          <div class="file">
+            <span class:list={['file-ico', d.format === 'ZIP' && 'file-ico--zip']}>{d.format}</span>
+            <div>
+              <p class="file__name">{m.ticker} · {d.modelType ?? d.label}</p>
+              <p class="file__meta">{d.sheets.slice(0, 4).join(', ')}{size ? ` · ${size}` : ''}</p>
+            </div>
+            <a class="btn btn--ghost btn--sm" href={d.href} download aria-label={`Download ${m.ticker} ${d.label} (${d.format})`}><Icon name="download" size={12} /></a>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section class="panel col-24" aria-labelledby="read-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="read-title"><Icon name="check" size={13} /> How to read the numbers</h2>
+      </div>
+      <dl class="defs grid-defs">
+        <div>
+          <dt>Price used</dt>
+          <dd>The share price each model pack used as its market input ({priceDate}). It is not a live quote; every implied move is measured against it, and figures are flagged once a model is more than {STALE_AFTER_DAYS} days old.</dd>
         </div>
-      </div>
+        <div>
+          <dt>Range, not a target</dt>
+          <dd>Each method's output is a VND range. DCF bars span the corners of the WACC × exit EV/EBITDA grid; the amber diamond marks the base case. Where methods disagree, the spread is the finding.</dd>
+        </div>
+        <div>
+          <dt>Measured market data</dt>
+          <dd>VN-Index prices come from VNDirect (Yahoo Finance as fallback) and no note is published without them. Unavailable figures show as “—”. Cross-asset values in notes up to 5 Jun 2026 may not be measured closes.</dd>
+        </div>
+        <div>
+          <dt>Not investment advice</dt>
+          <dd>Academic portfolio work. Verify every assumption in the workbooks before relying on it. <a class="link" href="/disclaimer">Disclaimer</a></dd>
+        </div>
+      </dl>
     </section>
   </div>
 </BaseLayout>

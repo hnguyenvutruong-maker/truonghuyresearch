@@ -1,4 +1,7 @@
 ---
+// Valuation methodology range bars (DESIGN.md): 4px track, cobalt spread with 2px edges,
+// white pip at the price the model used, amber diamond at the base case.
+// `models` → one row per company (methods stacked); `outputs + reference` → one row per method.
 import {
   formatOutput,
   impliedMovePct,
@@ -7,107 +10,115 @@ import {
   type ValuationModel,
   type ValuationOutput,
 } from '../../data/valuation-models';
-import { formatDate, formatVndK, signedPct } from '../../lib/format';
+import { formatVndK, signedPct } from '../../lib/format';
 
 interface Props {
+  models?: ValuationModel[];
   outputs?: ValuationOutput[];
   reference?: ReferencePrice;
   ticker?: string;
-  note?: boolean;
-  models?: ValuationModel[];
+  legend?: boolean;
+  compact?: boolean;
 }
+const { models, outputs, reference, legend = true, compact = false } = Astro.props;
 
-const { outputs, reference, ticker, models } = Astro.props;
+const pct = (v: number, ref: ReferencePrice) => (v / ref.value - 1) * 100;
+const all: Array<{ o: ValuationOutput; ref: ReferencePrice }> = models
+  ? models.flatMap((m) => m.outputs.map((o) => ({ o, ref: m.referencePrice })))
+  : (outputs ?? []).map((o) => ({ o, ref: reference as ReferencePrice }));
+const MIN = Math.min(-10, Math.floor((Math.min(...all.map(({ o, ref }) => pct(Math.min(o.low, o.high), ref)), 0) - 4) / 10) * 10);
+const MAX = Math.max(10, Math.ceil((Math.max(...all.map(({ o, ref }) => pct(Math.max(o.low, o.high), ref)), 0) + 4) / 10) * 10);
 
-const MIN_PCT = -35;
-const MAX_PCT = 35;
-const SPAN = MAX_PCT - MIN_PCT;
-const toX = (pct: number) => {
-  const clamped = Math.max(MIN_PCT, Math.min(MAX_PCT, pct));
-  return Number((((clamped - MIN_PCT) / SPAN) * 100).toFixed(2));
-};
-const zeroX = toX(0);
+// Outer SVGs have no viewBox: x positions are percentages of the width, heights stay in px.
+const x = (p: number) => Number((((Math.max(MIN, Math.min(MAX, p)) - MIN) / (MAX - MIN)) * 100).toFixed(2));
+const pc = (v: number) => `${v}%`;
+const ticks = Array.from({ length: Math.round((MAX - MIN) / 10) + 1 }, (_, i) => MIN + i * 10);
+const zero = x(0);
 
-const methodColorMap: Record<string, string> = {
-  DCF: 'var(--brand-color-strong)',
-  Comparable: 'var(--scheme-aqua-600)',
-  Precedent: 'var(--scheme-violet-600)',
-  LBO: 'var(--scheme-emerald-600)',
-};
+type Bar = { x1: number; x2: number; base: number | null; y: number };
+const bar = (o: ValuationOutput, ref: ReferencePrice, y: number): Bar => ({
+  x1: x(pct(Math.min(o.low, o.high), ref)),
+  x2: Math.max(x(pct(Math.max(o.low, o.high), ref)), x(pct(Math.min(o.low, o.high), ref)) + 0.6),
+  base: o.base !== undefined ? x(pct(o.base, ref)) : null,
+  y,
+});
+const LANE = 12;
 
-const listModels: ValuationModel[] = models
-  ? models
-  : outputs && reference && ticker
-    ? [
-        {
-          slug: ticker.toLowerCase(),
-          ticker,
-          company: ticker,
-          sector: '',
-          methods: [],
-          referencePrice: reference,
-          outputs,
-          summary: '',
-          conclusion: '',
-          valuationNotes: [],
-          report: {
-            headline: '',
-            stance: '',
-            thesis: [],
-            assumptions: [],
-            valuationResult: [],
-            interpretation: [],
-            risks: [],
-            disclaimer: '',
-          },
-          downloads: [],
-        },
-      ]
-    : [];
-
-const rows = listModels.map((m) => {
+const companyRows = (models ?? []).map((m) => {
   const moves = m.outputs.map((o) => impliedMovePct(o, m.referencePrice));
-  const low = Math.min(...moves);
-  const high = Math.max(...moves);
-  const bars = m.outputs.map((o, idx) => {
-    const lowPct = ((o.low - m.referencePrice.value) / m.referencePrice.value) * 100;
-    const highPct = ((o.high - m.referencePrice.value) / m.referencePrice.value) * 100;
-    const x1 = toX(Math.min(lowPct, highPct));
-    const x2 = toX(Math.max(lowPct, highPct));
-    return {
-      method: o.method,
-      label: outputMethodLabel[o.method],
-      formatted: formatOutput(o),
-      moveText: signedPct(impliedMovePct(o, m.referencePrice), 1),
-      x: x1,
-      width: Math.max(2.2, Number((x2 - x1).toFixed(2))),
-      y: 4 + idx * 7,
-      color: methodColorMap[o.method] ?? 'var(--brand-color-strong)',
-    };
-  });
   return {
-    slug: m.slug,
-    ticker: m.ticker,
-    refText: `VND ${formatVndK(m.referencePrice.value)} (${formatDate(m.referencePrice.asOf)})`,
-    spreadText: `${signedPct(low, 0)} to ${signedPct(high, 0)}`,
-    bars,
+    m,
+    h: m.outputs.length * LANE + 4,
+    spread: `${signedPct(Math.min(...moves), 0)} / ${signedPct(Math.max(...moves), 0)}`,
+    bars: m.outputs.map((o, i) => bar(o, m.referencePrice, 2 + i * LANE)),
   };
 });
+const methodRows = models
+  ? []
+  : (outputs ?? []).map((o) => ({
+      label: outputMethodLabel[o.method],
+      text: formatOutput(o),
+      move: impliedMovePct(o, reference as ReferencePrice),
+      bar: bar(o, reference as ReferencePrice, 2),
+    }));
 ---
 
-<div class="once-val-rows">
-  {rows.map((row) => (
-    <a href={`/research/${row.slug}`} class="once-val-row">
-      <span class="once-val-ticker">{row.ticker}</span>
-      <svg class="once-val-svg" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true">
-        <line x1={toX(-20)} y1="0" x2={toX(-20)} y2="28" stroke="var(--neutral-alpha-weak)" stroke-width="0.35" />
-        <line x1={zeroX} y1="0" x2={zeroX} y2="28" stroke="var(--scheme-yellow-600)" stroke-width="0.65" />
-        <line x1={toX(20)} y1="0" x2={toX(20)} y2="28" stroke="var(--neutral-alpha-weak)" stroke-width="0.35" />
-        {row.bars.map((bar) => (
-          <rect x={bar.x} y={bar.y} width={bar.width} height="5.5" rx="1.5" fill={bar.color} />
-        ))}
-      </svg>
-      <span class="once-val-spread on-brand-weak">{row.spreadText}</span>
-    </a>
-  ))}
-</div>
+<figure class:list={['rb', !models && 'rb--detail', compact && 'rb--compact']}>
+  {models
+    ? companyRows.map(({ m, h, spread, bars }) => (
+        <a class="rb-row" href={`/research/${m.slug}`} aria-label={`${m.ticker}: implied move ${spread} against VND ${formatVndK(m.referencePrice.value)}`}>
+          <span class="rb-row__label">{m.ticker}<small>{m.outputs.map((o) => outputMethodLabel[o.method].slice(0, 4)).join(' · ')}</small></span>
+          <svg class="rb-svg" width="100%" height={h} aria-hidden="true">
+            {ticks.map((t) => <line class="rb-grid" x1={pc(x(t))} x2={pc(x(t))} y1="0" y2={h} />)}
+            {bars.map((b) => (
+              <g>
+                <rect class="rb-track" x="0" y={b.y + 3} width="100%" height="4" rx="2" />
+                <rect class="rb-spread" x={pc(b.x1)} y={b.y} width={pc(Number((b.x2 - b.x1).toFixed(2)))} height="10" />
+                <line class="rb-edge-l" x1={pc(b.x1)} x2={pc(b.x1)} y1={b.y} y2={b.y + 10} />
+                <line class="rb-edge-l" x1={pc(b.x2)} x2={pc(b.x2)} y1={b.y} y2={b.y + 10} />
+                {b.base !== null && (
+                  <svg x={pc(b.base)} y={b.y} overflow="visible"><rect class="rb-base" x="-3" y="2" width="6" height="6" transform="rotate(45 0 5)" /></svg>
+                )}
+              </g>
+            ))}
+            <line class="rb-price-l" x1={pc(zero)} x2={pc(zero)} y1="0" y2={h} />
+          </svg>
+          <span class="rb-row__val">{spread}</span>
+        </a>
+      ))
+    : methodRows.map((r) => (
+        <div class="rb-row">
+          <span class="rb-row__label">{r.label}</span>
+          <svg class="rb-svg" width="100%" height="16" role="img" aria-label={`${r.label}: VND ${r.text} per share, ${signedPct(r.move, 1)} against the price used`}>
+            {ticks.map((t) => <line class="rb-grid" x1={pc(x(t))} x2={pc(x(t))} y1="0" y2="16" />)}
+            <rect class="rb-track" x="0" y="6" width="100%" height="4" rx="2" />
+            <rect class="rb-spread" x={pc(r.bar.x1)} y="3" width={pc(Number((r.bar.x2 - r.bar.x1).toFixed(2)))} height="10" />
+            <line class="rb-edge-l" x1={pc(r.bar.x1)} x2={pc(r.bar.x1)} y1="3" y2="13" />
+            <line class="rb-edge-l" x1={pc(r.bar.x2)} x2={pc(r.bar.x2)} y1="3" y2="13" />
+            {r.bar.base !== null && (
+              <svg x={pc(r.bar.base)} y="3" overflow="visible"><rect class="rb-base" x="-3" y="2" width="6" height="6" transform="rotate(45 0 5)" /></svg>
+            )}
+            <line class="rb-price-l" x1={pc(zero)} x2={pc(zero)} y1="1" y2="15" />
+          </svg>
+          <span class="rb-row__val">{r.text} <span class={r.move >= 0 ? 'up' : 'down'}>{signedPct(r.move, 1)}</span></span>
+        </div>
+      ))}
+
+  <div class="rb-row" aria-hidden="true">
+    <span></span>
+    <svg class="rb-svg" width="100%" height="12">
+      {ticks.map((t) => (
+        <text class="rb-axis" x={pc(x(t))} y="10" text-anchor={t === MIN ? 'start' : t === MAX ? 'end' : 'middle'}>{t > 0 ? '+' : t < 0 ? '−' : ''}{Math.abs(t)}%</text>
+      ))}
+    </svg>
+    <span></span>
+  </div>
+
+  {legend && (
+    <figcaption class="rb-legend">
+      <span><i class="lg-spread"></i>Method range</span>
+      <span><i class="lg-price"></i>Price used (0%)</span>
+      <span><i class="lg-base"></i>Base case</span>
+    </figcaption>
+  )}
+</figure>

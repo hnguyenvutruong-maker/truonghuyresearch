@@ -3,7 +3,6 @@
 // public/research/tear-sheets/<slug>.pdf by `npm run tear-sheets`.
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import FootballField from '../../../components/ui/FootballField.astro';
-import Ticker from '../../../components/ui/Ticker.astro';
 import { formatOutput, impliedMovePct, outputMethodLabel, portfolioDisclaimer, valuationModels } from '../../../data/valuation-models';
 import { publicFileSize } from '../../../lib/files';
 import { formatDate, formatVndK, signedPct } from '../../../lib/format';
@@ -18,6 +17,11 @@ const assumptions = (model.keyAssumptions ?? model.report.assumptions).slice(0, 
 const risks = model.report.risks.slice(0, 3);
 const pdfHref = `/research/tear-sheets/${model.slug}.pdf`;
 const pdfSize = publicFileSize(pdfHref);
+const moves = model.outputs.map((o) => impliedMovePct(o, reference));
+const lowMove = Math.min(...moves);
+const highMove = Math.max(...moves);
+const lowVnd = Math.min(...model.outputs.map((o) => Math.min(o.low, o.high)));
+const highVnd = Math.max(...model.outputs.map((o) => Math.max(o.low, o.high)));
 ---
 
 <BaseLayout
@@ -27,32 +31,40 @@ const pdfSize = publicFileSize(pdfHref);
 >
   <div class="tear">
     <div class="no-print tear__bar">
-      <a class="back" href={`/research/${model.slug}`}>← Back to Full {model.ticker} Report</a>
+      <a class="btn btn--ghost btn--sm" href={`/research/${model.slug}`}>← Full {model.ticker} report</a>
       <div class="btn-row">
         {pdfSize && (
           <a class="btn btn--primary btn--sm" href={pdfHref} download>
-            Download Pre-built PDF ({pdfSize})
+            Download PDF ({pdfSize})
           </a>
         )}
-        <button type="button" class="btn btn--secondary btn--sm" data-print>
-          Print / Save A4 PDF
+        <button type="button" class="btn btn--ghost btn--sm" data-print>
+          Print / save as PDF
         </button>
       </div>
     </div>
 
     <article class="ts">
       <header class="ts__top">
-        <span class="ts__brand">Truong Huy <span class="muted">Research</span></span>
-        <span class="mono t-label muted">Equity Research Tear Sheet · Model of {formatDate(modelDate)}</span>
+        <div>
+          <p class="ts__brand">Truong Huy Research · Equity tear sheet</p>
+          <p class="ts__cred">Nguyen Vu Truong Huy · UEH Finance &amp; Banking · Passed Level II of the CFA Program</p>
+        </div>
+        <p class="ts__cred">{model.ticker} · HOSE · Model of {formatDate(modelDate)}</p>
       </header>
 
       <div class="ts__title">
-        <Ticker label={model.ticker} size="lg" />
         <div>
           <p class="eyebrow">{model.sector} · {model.methods.join(' · ')}</p>
-          <h1>{model.company}</h1>
-          <p class="t-small secondary">{model.report.headline}</p>
+          <h1>{model.company} ({model.ticker})</h1>
+          <p class="small text-2">{model.report.headline}</p>
         </div>
+        <dl class="ts__box">
+          <div><dt>Price used</dt><dd>VND {formatVndK(reference.value)}</dd></div>
+          <div><dt>Price date</dt><dd>{formatDate(reference.asOf)}</dd></div>
+          <div><dt>Range</dt><dd>{formatVndK(lowVnd)}–{formatVndK(highVnd)}</dd></div>
+          <div><dt>Implied move</dt><dd>{signedPct(lowMove, 0)} / {signedPct(highMove, 0)}</dd></div>
+        </dl>
       </div>
 
       <FootballField outputs={model.outputs} reference={reference} ticker={model.ticker} />
@@ -97,7 +109,7 @@ const pdfSize = publicFileSize(pdfHref);
 
       <section>
         <h2 class="ts__h">Conclusion</h2>
-        <p class="t-small">{model.conclusion}</p>
+        <p class="small">{model.conclusion}</p>
       </section>
 
       <section>

@@ -31,45 +31,44 @@ const items = valuationModels.map((m) => {
 });
 ---
 
-<div class="grid">
-  {items.map(({ model, outputs, spreadPts, whyDiffer }) => (
-    <article class="card card--rule span-6">
-      <div class="sheet__head">
-        <a href={`/research/${model.slug}`} class="desk-selector__title">
-          <Ticker label={model.ticker} />
-          <div>
-            <span class="data__name">{model.company}</span>
-            <span class="data__sub">{model.sector} · Ref {formatVndK(model.referencePrice.value)}</span>
-          </div>
-        </a>
-        <span class="badge badge--navy">
-          {outputs.length > 1 ? `Method spread: ${spreadPts.toFixed(1)} pts` : 'Single-method band'}
-        </span>
-      </div>
-
-      <p class="t-small"><strong>Core question:</strong> {model.investmentQuestion ?? model.report.headline}</p>
-
-      <ul class="rows">
-        {outputs.map((o) => (
-          <li>
-            <div>
-              <span class="rows__name">{o.label}</span>
-              <span class="data__sub">{o.basis}</span>
-            </div>
-            <div class="rows__value">
-              <span class="num">{o.formatted}</span>
-              <span class:list={['badge', o.move >= 0 ? 'badge--up' : 'badge--down']}>{signedPct(o.move, 1)}</span>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      <p class="t-small muted">{whyDiffer}</p>
-
-      <div class="btn-row">
-        <a class="btn btn--secondary btn--sm" href={`/research/${model.slug}`}>Read {model.ticker} report</a>
-        <a class="btn btn--ghost btn--sm" href={`/research/${model.slug}/tear-sheet`}>A4 tear sheet</a>
-      </div>
-    </article>
-  ))}
+<div class="table-scroll" tabindex="0" role="region" aria-label="Method spread by company, scrolls horizontally">
+  <table class="dtable dtable--pin">
+    <thead>
+      <tr>
+        <th scope="col">Company</th>
+        <th scope="col">Method</th>
+        <th scope="col" class="r">Output, VND</th>
+        <th scope="col" class="r">vs. price used</th>
+        <th scope="col">What the range spans</th>
+      </tr>
+    </thead>
+    <tbody>
+      {items.map(({ model, outputs, spreadPts, whyDiffer }) => (
+        <>
+          {outputs.map((o, i) => (
+            <tr>
+              <th scope="row">
+                {i === 0 ? (
+                  <a class="cell-co" href={`/research/${model.slug}`}><Ticker label={model.ticker} /> {formatVndK(model.referencePrice.value)}</a>
+                ) : (
+                  <span class="sr-only">{model.ticker}</span>
+                )}
+              </th>
+              <td>{o.label}</td>
+              <td class="r">{o.formatted}</td>
+              <td class="r"><span class:list={['tag', o.move >= 0 ? 'tag--up' : 'tag--down']}>{signedPct(o.move, 1)}</span></td>
+              <td class="wrap">{o.basis}</td>
+            </tr>
+          ))}
+          <tr class="subtotal">
+            <th scope="row"><span class="sr-only">{model.ticker}</span></th>
+            <td>{outputs.length > 1 ? 'Method spread' : 'Single method'}</td>
+            <td class="r">{outputs.length > 1 ? `${spreadPts.toFixed(1)} pts` : '—'}</td>
+            <td></td>
+            <td class="wrap">{whyDiffer}</td>
+          </tr>
+        </>
+      ))}
+    </tbody>
+  </table>
 </div>

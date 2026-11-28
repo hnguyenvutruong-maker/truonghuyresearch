@@ -1,185 +1,94 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import VnIndexChart from '../../components/ui/VnIndexChart.astro';
+import Disclaimer from '../../components/ui/Disclaimer.astro';
 import ForeignFlowMonitor from '../../components/ui/ForeignFlowMonitor.astro';
+import Icon from '../../components/ui/Icon.astro';
 import MacroThesisTracker from '../../components/ui/MacroThesisTracker.astro';
-import { formatDate, formatIndex, signedPct } from '../../lib/format';
+import NoteList from '../../components/ui/NoteList.astro';
+import PageHeader from '../../components/ui/PageHeader.astro';
+import VnIndexChart from '../../components/ui/VnIndexChart.astro';
+import { formatDate, formatIndex, formatNumber, signedNumber, signedPct } from '../../lib/format';
 import { monthlySummary, weeklySummary } from '../../lib/notes';
 
 const weekly = (await getCollection('market-views')).map(weeklySummary);
 const monthly = (await getCollection('monthly-views')).map(monthlySummary);
-const allPosts = [...weekly, ...monthly].sort((a, b) => b.date.valueOf() - a.date.valueOf());
-
-const trend = [...weekly]
-  .sort((a, b) => a.date.valueOf() - b.date.valueOf())
-  .map((n) => ({ time: n.date.toISOString().slice(0, 10), value: n.close }));
-
-const featuredPost = allPosts[0];
-const secondAndThirdPosts = allPosts.slice(1, 3);
-const earlierPosts = allPosts.slice(3);
+const all = [...weekly, ...monthly].sort((a, b) => b.date.valueOf() - a.date.valueOf());
+const trend = [...weekly].sort((a, b) => a.date.valueOf() - b.date.valueOf()).map((n) => ({ time: n.date.toISOString().slice(0, 10), value: n.close }));
+const latest = all[0];
+const latestWeekly = [...weekly].sort((a, b) => b.date.valueOf() - a.date.valueOf())[0];
+const featured = all.slice(0, 3);
 ---
 
 <BaseLayout
   title="Market notes on the VN-Index | Truong Huy Research"
-  description="Weekly and monthly Vietnam market notes: VN-Index levels, liquidity, live HOSE foreign flow telemetry, sector rotation and cross-asset context."
+  description="Weekly and monthly Vietnam market notes: VN-Index levels, liquidity, HOSE foreign flow, sector rotation and cross-asset context."
 >
-  <div class="once-col-m">
-    <!-- Once UI Blog Header (magic-portfolio/src/app/blog/page.tsx) -->
-    <section class="once-hero" data-reveal>
-      <div class="once-hero-badge-wrap">
-        <span class="once-badge">
-          <strong>{allPosts.length} Market Notes</strong>
-          <span class="once-badge-divider" aria-hidden="true"></span>
-          <span class="on-brand-medium">{weekly.length} Weekly · {monthly.length} Monthly · 109 HOSE Sessions</span>
-        </span>
+  <PageHeader
+    crumbs={[{ label: 'Market notes' }]}
+    eyebrow={`${weekly.length} weekly · ${monthly.length} monthly`}
+    title="Market notes"
+    lead="Where the VN-Index travelled, how much traded, what foreign investors did and how the dollar, oil, gold and Bitcoin moved around it. Figures come from measured data; the prose is checked against them."
+  >
+    <div class="btn-row">
+      {latest && <a class="btn btn--primary" href={latest.href}>Latest note <Icon name="arrow_right" size={14} /></a>}
+      <a class="btn btn--ghost" href="/monthly-views">Monthly views</a>
+      <a class="btn btn--ghost" href="/rss.xml"><Icon name="rss" size={14} /> RSS</a>
+    </div>
+    {latestWeekly && (
+      <dl slot="aside" class="facts facts--focus">
+        <div><dt>Latest week</dt><dd>{latestWeekly.period}</dd></div>
+        <div><dt>VN-Index close</dt><dd>{formatIndex(latestWeekly.close)} <span class={latestWeekly.change >= 0 ? 'up' : 'down'}>{signedPct(latestWeekly.change)}</span></dd></div>
+        <div><dt>Avg daily liquidity</dt><dd>{formatNumber(latestWeekly.liquidity, 0)} bn</dd></div>
+        <div><dt>Foreign net</dt><dd class={latestWeekly.foreignNet != null && latestWeekly.foreignNet < 0 ? 'down' : 'up'}>{latestWeekly.foreignNet != null ? `${signedNumber(latestWeekly.foreignNet)} bn` : '—'}</dd></div>
+      </dl>
+    )}
+  </PageHeader>
+
+  <div class="container ws">
+    <section class="panel col-16" aria-labelledby="vni-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="vni-title"><Icon name="chart" size={13} /> VN-Index · weekly close</h2>
+        <span class="panel__meta">{trend.length} weekly notes</span>
       </div>
-      <div class="once-hero-title-wrap">
-        <h1 class="display-strong-m">Writing about VN-Index structure &amp; HOSE flow...</h1>
+      <div class="panel__body">
+        <VnIndexChart trendData={trend} label={`VN-Index weekly close across ${trend.length} weekly notes`} />
       </div>
-      <p class="heading-default-xl on-neutral-weak">
-        Weekly and monthly dispatches on VN-Index technical levels, liquidity, daily foreign trading across HOSE, and global cross-asset channels.
-      </p>
     </section>
 
-    <!-- Featured Post [1, 1] + Interactive VN-Index Chart (blog/page.tsx line 38) -->
-    <section class="once-projects-list" aria-label="Featured market note and VN-Index chart" data-reveal>
-      {featuredPost && (
-        <a class="once-post-card is-surface" href={featuredPost.href}>
-          <div class="once-post-author-row">
-            <div class="once-post-author">
-              <span class="once-avatar once-avatar-s" aria-hidden="true">TH</span>
-              <span class="label-default-s">Nguyen Vu Truong Huy</span>
-            </div>
-            <span class="body-default-xs on-neutral-weak">{formatDate(featuredPost.date)}</span>
-            <span class="once-tag once-tag-brand">Latest Dispatch</span>
-          </div>
-          <h2 class="heading-strong-xl">{featuredPost.headline}</h2>
-          <span class="label-strong-s on-brand-weak">
-            {featuredPost.kind} · {featuredPost.period} · VN-Index {formatIndex(featuredPost.close)} ({signedPct(featuredPost.change)}) →
-          </span>
-        </a>
-      )}
-
-      {featuredPost && (
-        <div class="once-surface-card">
-          <div class="once-Slide-header">
-            <h3 class="heading-strong-l">VN-Index weekly close</h3>
-            <span class="once-slide-meta">{formatIndex(featuredPost.close)} ({signedPct(featuredPost.change)})</span>
-          </div>
-          <VnIndexChart
-            trendData={trend}
-            label={`VN-Index weekly close · ${formatIndex(featuredPost.close)} (${signedPct(featuredPost.change)})`}
-          />
-        </div>
-      )}
+    <section class="panel col-8" aria-labelledby="latest-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="latest-title"><Icon name="book" size={13} /> Latest</h2>
+        <span class="panel__meta">{latest ? formatDate(latest.date) : ''}</span>
+      </div>
+      <ol class="notelist notelist--compact">
+        {featured.map((n) => (
+          <li>
+            <a href={n.href}>
+              <span class="notelist__when"><span class="tag tag--blue">{n.kind}</span>{n.period}</span>
+              <span class="notelist__title">{n.headline}</span>
+              <span class="notelist__fig">{formatIndex(n.close)} <span class:list={['tag', n.change >= 0 ? 'tag--up' : 'tag--down']}>{signedPct(n.change)}</span></span>
+            </a>
+          </li>
+        ))}
+      </ol>
     </section>
 
-    <!-- Posts [2, 3] in 2-Column Grid (blog/page.tsx line 39) -->
-    <section class="once-posts-grid" aria-label="Recent market notes" data-reveal>
-      {secondAndThirdPosts.map((post) => (
-        <a class="once-post-card is-surface" href={post.href}>
-          <div class="once-post-author-row">
-            <div class="once-post-author">
-              <span class="once-avatar once-avatar-s" aria-hidden="true">TH</span>
-              <span class="label-default-s">Nguyen Vu Truong Huy</span>
-            </div>
-            <span class="body-default-xs on-neutral-weak">{formatDate(post.date)}</span>
-          </div>
-          <h3 class="heading-strong-l">{post.headline}</h3>
-          <span class="label-strong-s on-neutral-weak">
-            {post.kind} · {post.period} · VN-Index {formatIndex(post.close)} ({signedPct(post.change)})
-          </span>
-        </a>
-      ))}
-    </section>
-
-    <!-- HOSE Foreign Flow Monitor & Macro Thesis Tracker -->
-    <section class="container" id="foreign-flow" data-reveal>
+    <section class="col-24" id="foreign-flow" aria-label="Foreign flow">
       <ForeignFlowMonitor />
     </section>
 
-    <section class="container" id="thesis-tracker" data-reveal>
+    <section class="col-24" id="levels" aria-label="Levels and regime">
       <MacroThesisTracker />
     </section>
 
-    <!-- Once UI Newsletter Surface (blog/page.tsx line 40) -->
-    <section class="once-newsletter" data-reveal>
-      <div class="once-newsletter-bg" aria-hidden="true">
-        <div class="once-newsletter-gradient"></div>
-        <div class="once-newsletter-dots"></div>
+    <section class="panel col-24" id="archive" aria-labelledby="archive-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="archive-title"><Icon name="calendar" size={13} /> Archive</h2>
+        <span class="panel__meta">{all.length} notes</span>
       </div>
-      <div class="once-newsletter-content">
-        <h2 class="display-strong-xs">Subscribe to Truong Huy's Market Notes</h2>
-        <p class="body-default-l on-neutral-weak">
-          Follow weekly dispatches on VN-Index structure, foreign institutional flow, and equity valuation updates via RSS.
-        </p>
-        <div class="once-hero-actions">
-          <a class="once-btn once-btn-primary" href="/rss.xml">
-            <span>Subscribe via RSS</span>
-          </a>
-          <a class="once-btn once-btn-secondary" href="/research">
-            <span>Explore Equity Models</span>
-          </a>
-        </div>
-      </div>
+      <NoteList notes={all} filter />
     </section>
-
-    <!-- Earlier Posts 2-Column Grid (blog/page.tsx lines 41-44) -->
-    <section class="once-blog-section" id="archive" data-reveal>
-      <div class="once-Slide-header">
-        <h2 class="heading-strong-xl">Earlier posts ({earlierPosts.length})</h2>
-        <div class="filter-pills" role="group" aria-label="Filter notes by frequency">
-          <button type="button" class="filter-pill is-active" data-note-kind-filter="all" aria-pressed="true">
-            All ({earlierPosts.length})
-          </button>
-          <button type="button" class="filter-pill" data-note-kind-filter="Weekly" aria-pressed="false">
-            Weekly
-          </button>
-          <button type="button" class="filter-pill" data-note-kind-filter="Monthly" aria-pressed="false">
-            Monthly
-          </button>
-        </div>
-      </div>
-
-      <div class="once-posts-grid" data-earlier-posts-grid>
-        {earlierPosts.map((post) => (
-          <a class="once-post-card" href={post.href} data-post-kind={post.kind}>
-            <div class="once-post-author-row">
-              <div class="once-post-author">
-                <span class="once-avatar once-avatar-s" aria-hidden="true">TH</span>
-                <span class="label-default-s">Nguyen Vu Truong Huy</span>
-              </div>
-              <span class="body-default-xs on-neutral-weak">{formatDate(post.date)}</span>
-            </div>
-            <h3 class="heading-strong-l">{post.headline}</h3>
-            <span class="label-strong-s on-neutral-weak">
-              {post.kind} · {post.period} · VN-Index {formatIndex(post.close)} ({signedPct(post.change)})
-            </span>
-          </a>
-        ))}
-      </div>
-    </section>
+    <div class="col-24"><Disclaimer /></div>
   </div>
 </BaseLayout>
-
-<script>
-  const filterBtns = document.querySelectorAll<HTMLButtonElement>('[data-note-kind-filter]');
-  const cards = document.querySelectorAll<HTMLElement>('[data-earlier-posts-grid] [data-post-kind]');
-
-  filterBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const kind = btn.getAttribute('data-note-kind-filter') || 'all';
-      filterBtns.forEach((b) => {
-        const active = b === btn;
-        b.classList.toggle('is-active', active);
-        b.setAttribute('aria-pressed', active ? 'true' : 'false');
-      });
-      cards.forEach((card) => {
-        const cardKind = card.getAttribute('data-post-kind');
-        const show = kind === 'all' || cardKind === kind;
-        card.toggleAttribute('hidden', !show);
-      });
-    });
-  });
-</script>

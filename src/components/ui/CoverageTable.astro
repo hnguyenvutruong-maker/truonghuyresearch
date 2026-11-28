@@ -1,14 +1,15 @@
 ---
-// CoverageTable: method-group filter + sortable coverage matrix (unslop-ui clean header)
+// Coverage matrix: method filter chips + sortable columns (aria-sort), one row per company.
 import Ticker from './Ticker.astro';
+import Icon from './Icon.astro';
 import { formatOutput, impliedMovePct, valuationModels, type OutputMethod } from '../../data/valuation-models';
 import { formatVndK, signedPct } from '../../lib/format';
 
 interface Props {
-  sortable?: boolean;
-  filterable?: boolean;
+  /** Optional caption shown in the toolbar row. */
+  label?: string;
 }
-const { sortable = false, filterable = true } = Astro.props;
+const { label = 'Sorted by ticker' } = Astro.props;
 
 const columns: Array<{ method: OutputMethod; label: string }> = [
   { method: 'DCF', label: 'DCF' },
@@ -16,70 +17,60 @@ const columns: Array<{ method: OutputMethod; label: string }> = [
   { method: 'Precedent', label: 'Precedent' },
   { method: 'LBO', label: 'LBO' },
 ];
+const sectorTag = ['tag--blue', 'tag--blue', 'tag--blue', 'tag--amber', 'tag--up'];
 
 const rows = [...valuationModels]
   .sort((a, b) => a.ticker.localeCompare(b.ticker))
   .map((model) => {
     const moves = model.outputs.map((o) => impliedMovePct(o, model.referencePrice));
     const by = Object.fromEntries(
-      model.outputs.map((o) => [
-        o.method,
-        { text: formatOutput(o), move: impliedMovePct(o, model.referencePrice) },
-      ])
+      model.outputs.map((o) => [o.method, { text: formatOutput(o), move: impliedMovePct(o, model.referencePrice) }])
     ) as Partial<Record<OutputMethod, { text: string; move: number }>>;
     const groups = [...new Set(model.valuationNotes.flatMap((n) => n.groups))];
-    return { model, by, groups, low: Math.min(...moves), high: Math.max(...moves) };
+    const low = Math.min(...moves);
+    const high = Math.max(...moves);
+    const signal =
+      low > 0
+        ? { text: 'All methods above', cls: 'signal--up' }
+        : high < 0
+          ? { text: 'All methods below', cls: 'signal--down' }
+          : { text: 'Straddles price', cls: 'signal--amber' };
+    return { model, by, groups, low, high, signal, sectorIdx: valuationModels.indexOf(model) % sectorTag.length };
   });
 
+const count = (g: string) => rows.filter((r) => r.groups.includes(g as never)).length;
 const heads = [
-  { key: 'price', label: 'Price Used' },
-  ...columns.map((c) => ({ key: c.method.toLowerCase(), label: c.label })),
-  { key: 'low', label: 'Low Move' },
-  { key: 'high', label: 'High Move' },
+  { key: 'price', label: 'Price used', r: true },
+  ...columns.map((c) => ({ key: c.method.toLowerCase(), label: c.label, r: true })),
+  { key: 'low', label: 'Low move', r: true },
+  { key: 'high', label: 'High move', r: true },
 ];
-
-const dcfCount = rows.filter((r) => r.groups.includes('dcf')).length;
-const compCount = rows.filter((r) => r.groups.includes('comparable')).length;
-const lboCount = rows.filter((r) => r.groups.includes('transaction-lbo')).length;
 ---
 
-<div class="stack-4" data-coverage-root>
-  {filterable && (
-    <div class="filter-bar">
-      <div class="filter" role="group" aria-label="Filter companies by valuation method">
-        <button type="button" data-cov-filter="all" aria-pressed="true">All ({rows.length})</button>
-        <button type="button" data-cov-filter="dcf" aria-pressed="false">DCF ({dcfCount})</button>
-        <button type="button" data-cov-filter="comparable" aria-pressed="false">Comparables ({compCount})</button>
-        <button type="button" data-cov-filter="transaction-lbo" aria-pressed="false">Precedent &amp; LBO ({lboCount})</button>
-      </div>
-    </div>
-  )}
+<div data-coverage-root>
+  <div class="toolbar" role="group" aria-label="Filter companies by valuation method">
+    <span class="chip" aria-hidden="true"><Icon name="sort" /> <span data-sort-label>{label}</span></span>
+    <button type="button" class="chip" data-cov-filter="all" aria-pressed="true">All <span class="count">{rows.length}</span></button>
+    <button type="button" class="chip" data-cov-filter="dcf" aria-pressed="false">DCF <span class="count">{count('dcf')}</span></button>
+    <button type="button" class="chip" data-cov-filter="comparable" aria-pressed="false">Comparables <span class="count">{count('comparable')}</span></button>
+    <button type="button" class="chip" data-cov-filter="transaction-lbo" aria-pressed="false">Precedent &amp; LBO <span class="count">{count('transaction-lbo')}</span></button>
+  </div>
 
-  <div class="table-scroll" tabindex="0" role="region" aria-label="Coverage table">
-    <table class="data" data-sortable={sortable ? '' : undefined}>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="Coverage table, scrolls horizontally">
+    <table class="dtable dtable--pin" data-sortable>
       <caption class="sr-only">Valuation coverage in VND per share, with implied moves against the price each model used</caption>
       <thead>
         <tr>
-          <th scope="col" aria-sort={sortable ? 'ascending' : undefined}>
-            {sortable ? (
-              <button type="button" class="sort" data-sort="ticker" data-type="text">
-                Company <span data-arrow aria-hidden="true">↑</span>
-              </button>
-            ) : (
-              'Company'
-            )}
+          <th scope="col" aria-sort="ascending">
+            <button type="button" class="sort" data-sort="ticker" data-type="text">Company <span data-arrow aria-hidden="true">↑</span></button>
           </th>
+          <th scope="col">Sector</th>
           {heads.map((h) => (
-            <th scope="col" aria-sort={sortable ? 'none' : undefined}>
-              {sortable ? (
-                <button type="button" class="sort" data-sort={h.key}>
-                  {h.label} <span data-arrow aria-hidden="true">↕</span>
-                </button>
-              ) : (
-                h.label
-              )}
+            <th scope="col" aria-sort="none" class={h.r ? 'r' : undefined}>
+              <button type="button" class="sort" data-sort={h.key}>{h.label} <span data-arrow aria-hidden="true">↕</span></button>
             </th>
           ))}
+          <th scope="col">Signal</th>
         </tr>
       </thead>
       <tbody>
@@ -94,35 +85,34 @@ const lboCount = rows.filter((r) => r.groups.includes('transaction-lbo')).length
             {...Object.fromEntries(columns.map((c) => [`data-${c.method.toLowerCase()}`, r.by[c.method]?.move ?? '']))}
           >
             <th scope="row">
-              <a href={`/research/${r.model.slug}`}>
+              <span class="cell-co">
                 <Ticker label={r.model.ticker} />
-                <span>
-                  <span class="data__name">{r.model.company}</span>
-                  <span class="data__sub">{r.model.sector}</span>
-                </span>
-              </a>
+                <a href={`/research/${r.model.slug}`}>
+                  {r.model.ticker}
+                  <span class="cell-co__sub">{r.model.company}</span>
+                </a>
+              </span>
             </th>
-            <td class="num">{formatVndK(r.model.referencePrice.value)}</td>
+            <td><span class:list={['tag', sectorTag[r.sectorIdx]]}>{r.model.sector}</span></td>
+            <td class="r num">{formatVndK(r.model.referencePrice.value)}</td>
             {columns.map((c) => {
               const cell = r.by[c.method];
               return (
-                <td>
+                <td class="r">
                   {cell ? (
-                    <>
+                    <span class="cell-stack">
                       <span class="num">{cell.text}</span>
-                      <br />
-                      <span class:list={['move', cell.move >= 0 ? 'move--up' : 'move--down']}>
-                        {signedPct(cell.move, 1)}
-                      </span>
-                    </>
+                      <span class:list={['num', 'xsmall', cell.move >= 0 ? 'up' : 'down']}>{signedPct(cell.move, 1)}</span>
+                    </span>
                   ) : (
-                    <span class="muted mono">—</span>
+                    <span class="muted">—</span>
                   )}
                 </td>
               );
             })}
-            <td class:list={['num', r.low >= 0 ? 'up' : 'down']}>{signedPct(r.low, 1)}</td>
-            <td class:list={['num', r.high >= 0 ? 'up' : 'down']}>{signedPct(r.high, 1)}</td>
+            <td class="r"><span class:list={['tag', 'tag--mono', r.low >= 0 ? 'tag--up' : 'tag--down']}>{signedPct(r.low, 1)}</span></td>
+            <td class="r"><span class:list={['tag', 'tag--mono', r.high >= 0 ? 'tag--up' : 'tag--down']}>{signedPct(r.high, 1)}</span></td>
+            <td><span class:list={['signal', r.signal.cls]}>{r.signal.text}</span></td>
           </tr>
         ))}
       </tbody>
@@ -134,17 +124,17 @@ const lboCount = rows.filter((r) => r.groups.includes('transaction-lbo')).length
   document.querySelectorAll<HTMLElement>('[data-coverage-root]').forEach((root) => {
     const filterButtons = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-cov-filter]'));
     const tableRows = Array.from(root.querySelectorAll<HTMLTableRowElement>('[data-cov-row]'));
+    const sortLabel = root.querySelector<HTMLElement>('[data-sort-label]');
 
-    filterButtons.forEach((btn) => {
+    filterButtons.forEach((btn) =>
       btn.addEventListener('click', () => {
         const group = btn.dataset.covFilter ?? 'all';
         filterButtons.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
         tableRows.forEach((row) => {
-          const rowGroups = (row.dataset.groups ?? '').split(/\s+/);
-          row.hidden = group !== 'all' && !rowGroups.includes(group);
+          row.hidden = group !== 'all' && !(row.dataset.groups ?? '').split(/\s+/).includes(group);
         });
-      });
-    });
+      })
+    );
 
     const table = root.querySelector<HTMLTableElement>('table[data-sortable]');
     if (!table) return;
@@ -152,7 +142,9 @@ const lboCount = rows.filter((r) => r.groups.includes('transaction-lbo')).length
     const buttons = Array.from(table.querySelectorAll<HTMLButtonElement>('button[data-sort]'));
     let current = { key: 'ticker', dir: 1 };
 
-    const sortBy = (key: string, isText: boolean) => {
+    const sortBy = (btn: HTMLButtonElement) => {
+      const key = btn.dataset.sort ?? 'ticker';
+      const isText = btn.dataset.type === 'text';
       const dir = current.key === key ? -current.dir : isText ? 1 : -1;
       current = { key, dir };
       Array.from(body.rows)
@@ -166,17 +158,14 @@ const lboCount = rows.filter((r) => r.groups.includes('transaction-lbo')).length
           return (Number(av) - Number(bv)) * dir;
         })
         .forEach((row) => body.appendChild(row));
-
       buttons.forEach((b) => {
-        const active = b.dataset.sort === key;
+        const active = b === btn;
         b.closest('th')?.setAttribute('aria-sort', active ? (dir === 1 ? 'ascending' : 'descending') : 'none');
         const arrow = b.querySelector('[data-arrow]');
         if (arrow) arrow.textContent = active ? (dir === 1 ? '↑' : '↓') : '↕';
       });
+      if (sortLabel) sortLabel.textContent = `Sorted by ${(btn.textContent ?? '').replace(/[↑↓↕]/g, '').trim().toLowerCase()}`;
     };
-
-    buttons.forEach((b) =>
-      b.addEventListener('click', () => sortBy(b.dataset.sort ?? 'ticker', b.dataset.type === 'text'))
-    );
+    buttons.forEach((b) => b.addEventListener('click', () => sortBy(b)));
   });
 </script>

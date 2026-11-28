@@ -1,0 +1,15 @@
+---
+// Truong Huy Research mark: three candlesticks rising inside a rounded frame.
+interface Props {
+  class?: string;
+}
+const { class: className = 'brand__mark' } = Astro.props;
+---
+
+<svg class={className} viewBox="0 0 32 32" fill="none" aria-hidden="true" focusable="false">
+  <rect x="1.5" y="1.5" width="29" height="29" rx="8.5" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.4" />
+  <path d="M10 9v14M16 7v16M22 11v12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+  <rect x="8" y="13" width="4" height="6" rx="1" fill="currentColor" />
+  <rect x="14" y="10" width="4" height="8" rx="1" fill="currentColor" />
+  <rect x="20" y="14" width="4" height="5" rx="1" fill="currentColor" />
+</svg>

@@ -1,39 +1,41 @@
 ---
-// Academic & Regulatory Disclaimer (/disclaimer)
 import BaseLayout from '../layouts/BaseLayout.astro';
-import DocHead from '../components/ui/DocHead.astro';
+import PageHeader from '../components/ui/PageHeader.astro';
 import { portfolioDisclaimer } from '../data/valuation-models';
+
+const terms = [
+  {
+    title: 'Personal academic work',
+    text: 'All financial models, valuation reports, tear sheets and market notes on truonghuyresearch.xyz are personal academic and portfolio work by Nguyen Vu Truong Huy. They do not represent the views, positions or strategies of any current or past employer, university or institution.',
+  },
+  {
+    title: 'Point-in-time valuation figures',
+    text: 'Valuation outputs and reference share prices are as of the model date shown on each report and workbook (11 June 2026) and are not refreshed with live quotes. Implied upside or downside compares only against those model-date prices.',
+  },
+  {
+    title: 'Automated data and language-model assistance',
+    text: 'Weekly and monthly notes are drafted with automated Python data collection and a language model; frontmatter figures are enforced against measured market data. Cross-asset values in notes up to 5 June 2026 may not be measured closes. A dash (—) means the figure was unavailable from primary sources at publication.',
+  },
+  {
+    title: 'No investment advice',
+    text: 'Nothing here is financial, legal, tax or investment advice, or a recommendation or solicitation to buy, hold or sell any security. Verify every assumption, date, figure and formula independently before relying on it.',
+  },
+];
 ---
 
-<BaseLayout
-  title="Disclaimer | Truong Huy Research"
-  description="Academic portfolio disclaimer for the valuation models and market notes on truonghuyresearch.xyz."
->
-  <div class="doc">
-    <DocHead
-      label="Academic Portfolio · Important Disclosures"
-      title="Research &amp; Portfolio Disclaimer"
-      lead={portfolioDisclaimer}
-      back={{ href: '/', label: 'Home' }}
-    />
-    <section class="ground-surface">
-      <div class="wrap">
-        <div class="sheet sheet--accent stack-4 measure">
-          <span class="eyebrow">Terms of Use &amp; Analytical Limitations</span>
-          <p>
-            <strong>1. Personal Academic Work:</strong> All financial models, valuation reports, tear sheets, market notes, and equity research published on <code>truonghuyresearch.xyz</code> are personal academic and portfolio demonstration work prepared by Nguyen Vu Truong Huy. They do not represent the views, official positions, or investment strategies of any current or past employer, university, or institution.
-          </p>
-          <p>
-            <strong>2. Point-in-Time Valuation Figures:</strong> Company valuation outputs and reference share prices are as of the specific model date shown on each report and workbook (11 June 2026) and are not refreshed automatically with live market quotes. Implied upside or downside percentages compare exclusively against those model-date prices.
-          </p>
-          <p>
-            <strong>3. Automated Market Data &amp; Language Model Assistance:</strong> Weekly and monthly market notes are drafted with the assistance of automated Python data-collection pipelines and a language model, with frontmatter figures enforced against recorded market data. Any metric shown as a dash (—) was unavailable from primary sources at publication time.
-          </p>
-          <p>
-            <strong>4. No Investment Advice:</strong> Nothing on this website constitutes financial, legal, tax, or investment advice, nor a recommendation or solicitation to buy, hold, or sell any security. Readers must independently verify every assumption, date, market figure, and Excel formula before relying on any material here for analysis or decision-making.
-          </p>
+<BaseLayout title="Disclaimer | Truong Huy Research" description="Academic portfolio disclaimer for the valuation models and market notes on truonghuyresearch.xyz.">
+  <PageHeader crumbs={[{ label: 'Disclaimer' }]} eyebrow="Important disclosures" title="Disclaimer" lead={portfolioDisclaimer} />
+  <div class="container ws">
+    <section class="panel col-24" aria-label="Terms">
+      {terms.map((t, i) => (
+        <div class="cv-item">
+          <span class="cv-item__when">0{i + 1}</span>
+          <div>
+            <h2 class="h-sm">{t.title}</h2>
+            <p class="small muted">{t.text}</p>
+          </div>
         </div>
-      </div>
+      ))}
     </section>
   </div>
 </BaseLayout>

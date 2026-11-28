@@ -1,182 +1,123 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import CoverageStrip from '../components/ui/CoverageStrip.astro';
+import CoverageTable from '../components/ui/CoverageTable.astro';
+import Disclaimer from '../components/ui/Disclaimer.astro';
+import FootballField from '../components/ui/FootballField.astro';
+import Icon from '../components/ui/Icon.astro';
+import PageHeader from '../components/ui/PageHeader.astro';
+import Ticker from '../components/ui/Ticker.astro';
 import ValuationComparator from '../components/ui/ValuationComparator.astro';
 import WorkbookVault from '../components/ui/WorkbookVault.astro';
-import { formatOutput, impliedMovePct, methodPages, outputMethodLabel, valuationGroups, valuationModels } from '../data/valuation-models';
+import { impliedMovePct, methodPages, valuationGroups, valuationModels } from '../data/valuation-models';
 import { formatDate, formatVndK, signedPct } from '../lib/format';
 
 const workbooks = valuationModels.reduce((t, m) => t + m.downloads.length, 0);
+const priceDate = formatDate(valuationModels[0].referencePrice.asOf);
 const methods = methodPages.map((p) => ({
   ...p,
   group: valuationGroups.find((g) => g.id === p.id)!,
   tickers: valuationModels.filter((m) => m.valuationNotes.some((n) => n.groups.includes(p.id))).map((m) => m.ticker),
 }));
+const reports = valuationModels.map((m) => {
+  const moves = m.outputs.map((o) => impliedMovePct(o, m.referencePrice));
+  return { m, low: Math.min(...moves), high: Math.max(...moves) };
+});
 ---
 
 <BaseLayout
-  title="Projects – Nguyen Vu Truong Huy | Truong Huy Research"
+  title="Coverage | Truong Huy Research"
   description="Valuation coverage of HPG, BID, FPT, BMP and PNJ: DCF, comparable, precedent-transaction and LBO outputs against the price each model used, with downloadable Excel workbooks and A4 tear sheets."
 >
-  <div class="once-col-m">
-    <CoverageStrip />
+  <PageHeader
+    crumbs={[{ label: 'Coverage' }]}
+    eyebrow="Coverage · 5 companies · HOSE"
+    title="Coverage"
+    lead="Every company is valued with two or three methods. Each range is measured against the share price the model used, and every workbook is a download away."
+  >
+    <div class="btn-row">
+      <a class="btn btn--primary" href="#files"><Icon name="download" size={12} /> Model files</a>
+      <a class="btn btn--ghost" href="#spread">Method spread</a>
+      <a class="btn btn--ghost" href="#methods">Methods</a>
+    </div>
+    <dl slot="aside" class="facts facts--focus">
+      <div><dt>Prices used as of</dt><dd>{priceDate}</dd></div>
+      <div><dt>Companies</dt><dd>{valuationModels.length}</dd></div>
+      <div><dt>Excel workbooks</dt><dd>{workbooks}</dd></div>
+      <div><dt>Frameworks</dt><dd>DCF · Comps · Prec · LBO</dd></div>
+    </dl>
+  </PageHeader>
 
-    <!-- Centered Once UI Work Header (magic-portfolio/src/app/work/page.tsx) -->
-    <section class="once-hero" data-reveal>
-      <div class="once-hero-badge-wrap">
-        <span class="once-badge">
-          <strong>{valuationModels.length} Companies</strong>
-          <span class="once-badge-divider" aria-hidden="true"></span>
-          <span class="on-brand-medium">{workbooks} Open Excel Workbooks · Ref. 11 Jun 2026</span>
-        </span>
+  <div class="container ws">
+    <section class="panel col-24" id="monitor" aria-labelledby="mon-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="mon-title"><Icon name="table" size={13} /> Coverage monitor</h2>
+        <span class="panel__meta">VND/share · implied move vs. price used</span>
       </div>
-      <div class="once-hero-title-wrap">
-        <h1 class="display-strong-m">Projects – Nguyen Vu Truong Huy</h1>
+      <CoverageTable />
+      <div class="panel__foot">
+        <span>Low / high move = lowest and highest method centre vs. price used</span>
+        <span>Prices used {priceDate}</span>
       </div>
-      <p class="heading-default-xl on-neutral-weak">
-        Fundamental equity research case studies on Vietnam-listed companies with downloadable Excel models and printable A4 tear sheets.
-      </p>
     </section>
 
-    <!-- All 5 Company Case Studies as Once UI <ProjectCard> blocks -->
-    <section class="once-projects-list" aria-label="Equity research case studies">
-      {valuationModels.map((m) => {
-        const moves = m.outputs.map((o) => impliedMovePct(o, m.referencePrice));
-        const low = Math.min(...moves);
-        const high = Math.max(...moves);
-        const assumptions = (m.keyAssumptions ?? m.report.assumptions).slice(0, 4);
-        return (
-          <article class="once-project-card" data-reveal>
-            <div class="once-carousel" data-once-carousel>
-              <div class="once-carousel-viewport">
-                <div class="once-slide-stack">
-                  <!-- Slide 1: Valuation Output & Method Spread -->
-                  <div class="once-slide is-active" data-carousel-slide>
-                    <div class="once-Slide-header">
-                      <span class="once-slide-kicker">{m.ticker} · {m.sector}</span>
-                      <span class="once-slide-meta">Ref. Price: VND {formatVndK(m.referencePrice.value)} ({formatDate(m.referencePrice.asOf)})</span>
-                    </div>
-                    <div class="once-kpi-grid">
-                      <div class="once-kpi-box">
-                        <span class="once-kpi-label">Price Used</span>
-                        <span class="once-kpi-value">VND {formatVndK(m.referencePrice.value)}</span>
-                        <span class="once-kpi-sub">As of {formatDate(m.referencePrice.asOf)}</span>
-                      </div>
-                      <div class="once-kpi-box">
-                        <span class="once-kpi-label">Implied Move</span>
-                        <span class="once-kpi-value">{signedPct(low, 0)} to {signedPct(high, 0)}</span>
-                        <span class="once-kpi-sub">{m.methods.join(' · ')}</span>
-                      </div>
-                      {m.outputs.map((o) => (
-                        <div class="once-kpi-box">
-                          <span class="once-kpi-label">{outputMethodLabel[o.method]}</span>
-                          <span class="once-kpi-value">{formatOutput(o)}</span>
-                          <span class="once-kpi-sub">{signedPct(impliedMovePct(o, m.referencePrice), 1)} vs. ref price</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+    <section class="panel col-24" aria-labelledby="rng-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="rng-title"><Icon name="chart" size={13} /> Valuation ranges</h2>
+      </div>
+      <div class="panel__body"><FootballField models={valuationModels} /></div>
+    </section>
 
-                  <!-- Slide 2: Key Financial Assumptions -->
-                  <div class="once-slide" data-carousel-slide>
-                    <div class="once-Slide-header">
-                      <span class="once-slide-kicker">{m.ticker} · Core Model Drivers</span>
-                      <span class="once-slide-meta">{m.downloads.length} Unprotected Excel Workbooks</span>
-                    </div>
-                    <div class="once-kpi-grid">
-                      {assumptions.map((a) => (
-                        <div class="once-kpi-box">
-                          <span class="once-kpi-label">{a.label}</span>
-                          <span class="once-kpi-value">{a.value}</span>
-                          <span class="once-kpi-sub">{a.detail}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="once-carousel-indicators" role="tablist" aria-label={`${m.ticker} slides`}>
-                <button type="button" class="once-carousel-dot is-active" data-carousel-dot aria-selected="true" aria-label="Slide 1">
-                  <span class="once-carousel-dot-bar"></span>
-                </button>
-                <button type="button" class="once-carousel-dot" data-carousel-dot aria-selected="false" aria-label="Slide 2">
-                  <span class="once-carousel-dot-bar"></span>
-                </button>
+    <section class="col-24" aria-labelledby="rep-title">
+      <h2 class="sr-only" id="rep-title">Company reports</h2>
+      <div class="grid-3">
+        {reports.map(({ m, low, high }) => (
+          <a class="panel" href={`/research/${m.slug}`}>
+            <div class="panel__head">
+              <span class="panel__title"><Ticker label={m.ticker} /> {m.company}</span>
+              <span class="panel__actions"><span class:list={['tag', low >= 0 ? 'tag--up' : high < 0 ? 'tag--down' : 'tag--amber']}>{signedPct(low, 0)} / {signedPct(high, 0)}</span></span>
+            </div>
+            <div class="panel__body stack-3">
+              <p class="h-sm">{m.report.headline}</p>
+              <FootballField outputs={m.outputs} reference={m.referencePrice} ticker={m.ticker} legend={false} compact />
+              <div class="row">
+                <span class="tag">{m.sector}</span>
+                <span class="tag">Price used {formatVndK(m.referencePrice.value)}</span>
               </div>
             </div>
-
-            <div class="once-project-body">
-              <div class="once-project-title-col">
-                <h2 class="heading-strong-xl">{m.ticker} — {m.company}</h2>
-              </div>
-              <div class="once-project-desc-col">
-                <div class="once-project-tags">
-                  {m.methods.map((method) => (
-                    <span class="once-tag once-tag-brand">{method}</span>
-                  ))}
-                  <span class="once-tag">{signedPct(low, 0)} to {signedPct(high, 0)}</span>
-                </div>
-                <p class="body-default-s on-neutral-weak">
-                  {m.report.headline} {m.summary}
-                </p>
-                <div class="once-project-links">
-                  <a class="once-smart-link" href={`/research/${m.slug}`}>
-                    <span>Read case study</span>
-                    <span class="once-arrow-icon" aria-hidden="true">→</span>
-                  </a>
-                  <a class="once-smart-link" href={`/research/${m.slug}/tear-sheet`}>
-                    <span>A4 Tear Sheet</span>
-                    <span class="once-arrow-icon" aria-hidden="true">↗</span>
-                  </a>
-                  {m.downloads.map((d) => (
-                    <a class="once-smart-link" href={d.href} download>
-                      <span>{d.label} ({d.format})</span>
-                      <span class="once-arrow-icon" aria-hidden="true">↓</span>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </article>
-        );
-      })}
-    </section>
-
-    <!-- Cross-Coverage Valuation Comparator -->
-    <section class="container" id="comparator" data-reveal>
-      <ValuationComparator />
-    </section>
-
-    <!-- Methodology Hubs -->
-    <section class="once-blog-section" id="methods" aria-label="Valuation Frameworks" data-reveal>
-      <div class="once-line-offset-left" aria-hidden="true">
-        <div class="once-line-h"></div>
+          </a>
+        ))}
       </div>
-      <div class="once-blog-split">
-        <div class="once-blog-heading-col">
-          <h2 class="display-strong-xs">Valuation Frameworks</h2>
+    </section>
+
+    <section class="col-24" id="spread" aria-labelledby="spread-title">
+      <div class="panel">
+        <div class="panel__head">
+          <h2 class="panel__title" id="spread-title"><Icon name="layers" size={13} /> Method spread</h2>
+          <span class="panel__meta">Where methods disagree, the spread is the finding</span>
         </div>
-        <div class="once-blog-posts-col">
-          <div class="once-posts-grid">
-            {methods.map(({ group, href, tickers }) => (
-              <a class="once-post-card is-surface" href={href}>
-                <span class="label-strong-s on-brand-weak">{tickers.join(' · ')}</span>
-                <h3 class="heading-strong-l">{group.title} — {group.eyebrow}</h3>
-                <p class="body-default-s on-neutral-weak">{group.description}</p>
-              </a>
-            ))}
+        <div class="panel__body"><ValuationComparator /></div>
+      </div>
+    </section>
+
+    <section class="panel col-24" id="methods" aria-labelledby="methods-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="methods-title"><Icon name="grid" size={13} /> Valuation frameworks</h2>
+      </div>
+      <dl class="defs grid-defs grid-defs--3">
+        {methods.map((p) => (
+          <div>
+            <dt><a class="link" href={p.href}>{p.group.title}</a> <span class="dim">· {p.group.eyebrow}</span></dt>
+            <dd>{p.group.description}</dd>
+            <dd class="row">{p.tickers.map((t) => <Ticker label={t} />)}</dd>
           </div>
-        </div>
-      </div>
-      <div class="once-line-offset-right" aria-hidden="true">
-        <div class="once-line-h"></div>
-      </div>
+        ))}
+      </dl>
     </section>
 
-    <!-- Excel Workbook Vault -->
-    <section class="container" id="vault" data-reveal>
+    <section class="col-24 stack-3" id="files" aria-labelledby="files-title">
+      <h2 class="sr-only" id="files-title">Model files</h2>
       <WorkbookVault />
+      <Disclaimer />
     </section>
   </div>
 </BaseLayout>

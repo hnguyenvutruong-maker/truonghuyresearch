@@ -2,6 +2,7 @@
 // HOSE Foreign Flow Monitor: visualizes real daily foreign investor buy/sell/net flows
 // from src/content/market-views/_foreign_flow_cache.json with smooth cross-blur window switching.
 import rawFlow from '../../content/market-views/_foreign_flow_cache.json';
+import Icon from './Icon.astro';
 import { formatDate, formatNumber, signedNumber } from '../../lib/format';
 
 interface Props {
@@ -97,55 +98,46 @@ const windows = compact
     ];
 ---
 
-<div class="sheet" data-flow-monitor>
-  <div class="sheet__head">
-    <h3 class="t-h3">HOSE foreign daily net flow</h3>
+<div class="panel" data-flow-monitor>
+  <div class="panel__head">
+    <span class="panel__title"><Icon name="flow" size={14} /> HOSE foreign net flow, daily</span>
     {!compact && (
-      <div class="filter" role="tablist" aria-label="Foreign flow timeframe">
-        {windows.map((w, idx) => (
-          <button
-            type="button"
-            role="tab"
-            data-flow-tab={w.id}
-            aria-selected={idx === 0 ? 'true' : 'false'}
-          >
-            {w.label}
-          </button>
-        ))}
-      </div>
+      <span class="panel__actions">
+        <span class="seg" role="tablist" aria-label="Foreign flow window">
+          {windows.map((w, idx) => (
+            <button type="button" role="tab" data-flow-tab={w.id} aria-selected={idx === 0 ? 'true' : 'false'}>
+              {w.label}
+            </button>
+          ))}
+        </span>
+      </span>
     )}
   </div>
 
-  <div class="panel-stack">
+  <div class="panel__body">
     {windows.map((w, idx) => (
-      <div
-        data-flow-panel={w.id}
-        class:list={['panel-item', idx === 0 && 'is-active']}
-        aria-hidden={idx === 0 ? 'false' : 'true'}
-      >
-        <dl class="flow-kpi-grid">
-          <div class="flow-kpi">
-            <dt>Net flow ({w.sessions.length}d)</dt>
+      <div data-flow-panel={w.id} hidden={idx !== 0}>
+        <dl class="flow-kpis">
+          <div>
+            <dt>Net flow ({w.sessions.length} sessions)</dt>
             <dd class:list={[w.totalNet >= 0 ? 'up' : 'down']}>{signedNumber(w.totalNet, 1)} bn VND</dd>
           </div>
-          <div class="flow-kpi">
+          <div>
             <dt>Foreign buy</dt>
             <dd>{formatNumber(w.totalBuy, 0)} bn VND</dd>
           </div>
-          <div class="flow-kpi">
+          <div>
             <dt>Foreign sell</dt>
             <dd>{formatNumber(w.totalSell, 0)} bn VND</dd>
           </div>
-          <div class="flow-kpi">
-            <dt>Inflow / outflow days</dt>
-            <dd>
-              <span class="up">{w.netBuyDays}d</span> / <span class="down">{w.netSellDays}d</span>
-            </dd>
+          <div>
+            <dt>Net-buy / net-sell days</dt>
+            <dd><span class="up">{w.netBuyDays}</span> / <span class="down">{w.netSellDays}</span></dd>
           </div>
         </dl>
 
         {w.latest && (
-          <div class="flow-inspector" data-flow-readout>
+          <div class="inspector" aria-live="polite">
             <span><strong data-flow-date>{w.latest.dateLabel}</strong></span>
             <span>Buy <strong data-flow-buy>{w.latest.buyLabel}</strong></span>
             <span>Sell <strong data-flow-sell>{w.latest.sellLabel}</strong></span>
@@ -155,10 +147,9 @@ const windows = compact
         )}
 
         <svg viewBox="0 0 1000 215" preserveAspectRatio="none" class="flow-svg" role="img" aria-label={`HOSE daily foreign net flow from ${w.first?.dateLabel} to ${w.latest?.dateLabel}`}>
-          <line x1="0" x2="1000" y1="24" y2="24" class="grid-line" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
-          <line x1="0" x2="1000" y1={w.yZero} y2={w.yZero} class="price-line" stroke-width="1.5" vector-effect="non-scaling-stroke" />
-          <line x1="0" x2="1000" y1="196" y2="196" class="grid-line" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
-
+          <line x1="0" x2="1000" y1="24" y2="24" class="c-grid" vector-effect="non-scaling-stroke" />
+          <line x1="0" x2="1000" y1={w.yZero} y2={w.yZero} class="flow-zero" vector-effect="non-scaling-stroke" />
+          <line x1="0" x2="1000" y1="196" y2="196" class="c-grid" vector-effect="non-scaling-stroke" />
           {w.sessions.map((b) => (
             <rect
               x={b.x}
@@ -176,16 +167,15 @@ const windows = compact
               data-net-pos={b.net >= 0 ? '1' : '0'}
               data-cum-pos={b.cumNet >= 0 ? '1' : '0'}
               tabindex="0"
-              aria-label={`${b.dateLabel}: Net ${b.netLabel}`}
+              aria-label={`${b.dateLabel}: net ${b.netLabel}`}
             />
           ))}
-
-          <polyline points={w.polyline} class="flow-cum-line" vector-effect="non-scaling-stroke" />
+          <polyline points={w.polyline} class="flow-cum" vector-effect="non-scaling-stroke" />
         </svg>
 
-        <div class="sheet__head t-label muted">
-          <span class="mono">{w.first?.dateLabel} – {w.latest?.dateLabel}</span>
-          <span class="mono">Bars: daily net (bn VND) · Line: cumulative net</span>
+        <div class="chart-foot">
+          <span>{w.first?.dateLabel} – {w.latest?.dateLabel}</span>
+          <span class="legend"><span><i class="l-up"></i>Net buy</span><span><i class="l-down"></i>Net sell</span><span><i class="l-cum"></i>Cumulative net</span></span>
         </div>
       </div>
     ))}
@@ -202,9 +192,7 @@ const windows = compact
         const targetId = tab.dataset.flowTab;
         tabs.forEach((t) => t.setAttribute('aria-selected', String(t === tab)));
         panels.forEach((p) => {
-          const active = p.dataset.flowPanel === targetId;
-          p.classList.toggle('is-active', active);
-          p.setAttribute('aria-hidden', String(!active));
+          p.hidden = p.dataset.flowPanel !== targetId;
         });
       });
     });

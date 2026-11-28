@@ -1,40 +1,58 @@
-# Truong Huy Research — Design System Master (`@once-ui-system/magic-portfolio` v2.3.0)
+# Truong Huy Research — "Research Terminal" (2026-11)
 
-## 1. Aesthetic & Architecture
-- **Reference Benchmark**: [`once-ui-system/magic-portfolio`](https://github.com/once-ui-system/magic-portfolio) built on `@once-ui-system/core` v2.1.0 OKLCH tokens (`src/styles/once-ui-tokens.css` & `src/styles/site.css`).
-- **Root Configuration (`<html>`)**:
-  - `data-theme="dark"` (default) | `data-theme="light"` (toggleable via View Transitions)
-  - `data-neutral="gray"` (`oklch(0.1448 0 0)` `#0a0a0a` page canvas in dark mode)
-  - `data-brand="cyan"`
-  - `data-accent="red"`
-  - `data-solid="contrast"`
-  - `data-solid-style="flat"`
-  - `data-border="playful"`
-  - `data-surface="translucent"` (`backdrop-filter: blur(1rem)`)
-  - `data-transition="all"`
-  - `data-scaling="100"`
-- **Typography**:
-  - `--font-heading`, `--font-body`, `--font-label`: **Geist Sans** (`@fontsource/geist-sans`)
-  - `--font-code`: **Geist Mono** (`@fontsource/geist-mono`) with `font-variant-numeric: tabular-nums`
+The source specification is [DESIGN.md](DESIGN.md), supplied by the owner. This file records how it
+is implemented in `src/styles/site.css` and where the build deliberately differs.
 
-## 2. Signature Once UI Magic Portfolio Components
-1. **Ambient `<Background>` & `<Fade>` (`BaseLayout.astro`)**:
-   - Top & bottom fixed `<Fade>` edge blur masks (`backdrop-filter: blur(0.5rem)`).
-   - Full-viewport radial-masked `<Background>` combining a top-centered cyan radial glow (`.once-bg-gradient`) and a 16px brand dot matrix (`.once-bg-dots`, `opacity: 0.42`).
-2. **Floating Dock `<Header>` (`SiteHeader.astro`)**:
-   - Left: `Asia/Ho_Chi_Minh` location indicator.
-   - Center: Translucent pill dock (`.once-dock`) with icon+label `ToggleButton`s (`Home`, `About`, `Work`, `Blog`, `Models`), vertical dividers (`.once-dock-divider`), `⌘K` Command Search trigger, and `ThemeToggle`.
-   - Right: Live ticking 24-hour clock (`[data-once-clock]`) in `Asia/Ho_Chi_Minh`.
-   - Mobile (`max-width: 768px`): Dock floats at the bottom above the home indicator.
-3. **Centered Display Hero & Shimmer `<Badge>` (`index.astro`)**:
-   - Continuous diagonal shimmer `<Badge>` (`onceShineDefault` / `onceShineHover`).
-   - `display-strong-l` (`4rem`) balanced headline + `heading-default-xl` (`1.5rem`) subline.
-   - Rounded pill `<Button id="about">` with embedded circular `<Avatar>` (`TH`) and animated right arrow (`→`).
-4. **Interactive Multi-Slide `<ProjectCard>` (`index.astro`, `research.astro`)**:
-   - Cross-blur `<Carousel>` (`[data-once-carousel]`) with 2px horizontal line indicators (`.once-carousel-indicators`) and a 5:7 split row below (`flex: 5` title, `flex: 7` tags + summary + `SmartLink` actions).
-5. **Offset `<Line>` Blog Split & `<Newsletter>` Surface (`index.astro`, `market-views/index.astro`)**:
-   - 1:3 split section framed by offset horizontal `<Line>` dividers, pairing `"Latest from the blog"` with a 2-column grid of `<Post>` cards (with author `<Avatar size="s">` + date + title + tag).
-   - Masked `<Newsletter>` callout surface with internal radial gradient + dot matrix.
-6. **Sticky Avatar & Fixed Left `<TableOfContents>` About Page (`contact.astro`)**:
-   - Fixed left `<TableOfContents>` with 16px horizontal dash indicators that slide right on hover.
-   - Sticky left column with `160px` circular `<Avatar size="xl">`, timezone globe row, and language/CFA tags; right column with schedule pill, `display-strong-xl` name, social buttons, and structured experience/studies/technical sections.
+## Implementation
+- **Dark only.** The theme switch, light tokens and the inline theme script were removed.
+  `vercel.json` is back to `script-src 'self'` with no hashes.
+- **Surfaces** follow the prose palette in DESIGN.md: canvas `#0A0C10`, Level 1 `#12151D` (docks,
+  sidebars, table headers), Level 2 `#1A1F2C` (active modules, table rows), hover `#22293A`,
+  hairlines `#262E3D`. Ink is `#F8FAFC` / `#C2C6D6` / `#94A3B8` / `#64748B`.
+  The front-matter Material tokens (`#051424`…) are not used, because they conflict with the prose
+  values.
+- **Semantic colours:** emerald `#10B981`, crimson `#EF4444` and amber `#F59E0B` (base case and
+  price focus), each with 0.12 fills and 0.3 borders on pills. Cobalt `#3B82F6` marks controls,
+  active tabs and the command palette.
+- **Type:** Newsreader (titles: `.display` 36/44, `.h-lg`, `.h-md`, `.h-sm`), Inter (prose 15/13/11)
+  and JetBrains Mono (every figure, label, table cell and button). All self-hosted through
+  `@fontsource-variable`.
+- **Shape:** 4px radii everywhere, no consumer shadows. The only overlay shadow is
+  `0 8px 24px rgba(0,0,0,.65)` on the command palette and mobile drawer.
+- **Shell:**
+  - A fixed 48px command bar: brand, nav tabs with a cobalt underline, status pips for the model
+    date and the last foreign-flow session, and the ⌘K trigger.
+  - A 30px quote tape: VN-Index weekly close, each ticker's price used and implied-move band, and
+    the latest HOSE foreign net.
+  - A compact footer.
+- **Grid:** `.ws` is 1 column below 1024px, 12 columns at 1024–1439px and 24 columns at ≥1440px,
+  using `.col-24/16/14/12/10/8/7/6`. Gutter is 12px, margin 16px.
+- **Panels:** `.panel` (Level 1 dock) with `.panel__head` (mono uppercase title, meta, actions),
+  `.panel__body` and `.panel__foot`.
+- **Tables:** `.dtable` has a 28px uppercase mono header and 30px Level 2 rows, with numbers
+  right-aligned. `.dtable--pin` makes the first column sticky below 1024px, and `tr.subtotal`
+  draws a double rule.
+- **Range bar** (`FootballField.astro`):
+  - Track, spread and markers: a 4px track, a cobalt 25% spread with 2px edges, a white pip at the
+    price used and an amber diamond at the base case.
+  - The outer SVG has no viewBox, so x positions are percentages and heights stay in px.
+- **Sensitivity:** the base cell has a 1px amber halo and an amber tint. The other cells shade
+  from crimson to emerald against the price used.
+- **Report page:**
+  - Three panes at ≥1440px: a sticky contents rail, the main column, and a sticky right rail with
+    the valuation box and model files.
+  - Two panes at 1024–1439px. On mobile the panes stack as nav chips, then the rail, then the main
+    column.
+- **Tear sheet:**
+  - Print inversion to white, `#0F172A` ink and `#CBD5E1` rules.
+  - The header carries the credential lockup (Nguyen Vu Truong Huy · UEH Finance & Banking ·
+    Passed Level II of the CFA Program), the ticker and model date, and a valuation box in place
+    of the spec's "target price box".
+
+## Deliberate deviations from DESIGN.md (factual accuracy)
+- **No BUY/HOLD/SELL ratings, target prices or 52-week ranges.** The research publishes valuation
+  ranges against a dated price used, not ratings. The rating-pill styles are reused for implied
+  moves and range signals ("All methods above / Straddles price / All methods below").
+- **Sensitivity axes are WACC × exit EV/EBITDA, not WACC × terminal growth.** That is what the HPG
+  and FPT workbooks compute.
+- **The analyst lockup reads "UEH Finance & Banking"**, matching the owner record in CLAUDE.md.

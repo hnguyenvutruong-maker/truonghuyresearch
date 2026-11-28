@@ -1,12 +1,7 @@
 ---
-import '@fontsource/geist-sans/400.css';
-import '@fontsource/geist-sans/500.css';
-import '@fontsource/geist-sans/600.css';
-import '@fontsource/geist-sans/700.css';
-import '@fontsource/geist-mono/400.css';
-import '@fontsource/geist-mono/500.css';
-import '@fontsource/geist-mono/600.css';
-import '../styles/once-ui-tokens.css';
+import '@fontsource-variable/newsreader/opsz.css';
+import '@fontsource-variable/inter/index.css';
+import '@fontsource-variable/jetbrains-mono/index.css';
 import '../styles/site.css';
 import Analytics from '@vercel/analytics/astro';
 import SiteHeader from '../components/ui/SiteHeader.astro';
@@ -23,7 +18,7 @@ interface Props {
 const {
   title,
   description = 'Equity research on Vietnam-listed companies: valuation models, open Excel workbooks and market notes by Nguyen Vu Truong Huy.',
-  image = '/og-image.png',
+  image = '/og/site.png',
   type = 'website',
 } = Astro.props;
 
@@ -32,27 +27,14 @@ const ogImageURL = new URL(image, Astro.site ?? 'https://truonghuyresearch.xyz')
 ---
 
 <!doctype html>
-<html
-  lang="en"
-  data-theme="dark"
-  data-neutral="gray"
-  data-brand="cyan"
-  data-accent="red"
-  data-solid="contrast"
-  data-solid-style="flat"
-  data-border="playful"
-  data-surface="translucent"
-  data-transition="all"
-  data-scaling="100"
-  data-viz-style="gradient"
->
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#0a0a0a" />
-    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#12151d" />
+    <meta name="color-scheme" content="dark" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="alternate icon" href="/favicon.ico" />
     <link rel="canonical" href={canonicalURL} />
@@ -68,172 +50,73 @@ const ogImageURL = new URL(image, Astro.site ?? 'https://truonghuyresearch.xyz')
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:creator" content="@trghuyy" />
   </head>
-  <body class="once-body">
-    <div class="route-loader no-print" aria-hidden="true"></div>
-    <a class="skip-link" href="#top">Skip to content</a>
-
-    <!-- Once UI Ambient Background (<RevealFx><Background mask gradient dots /></RevealFx>) -->
-    <div class="once-bg-layer no-print" aria-hidden="true">
-      <div class="once-bg-mask">
-        <div class="once-bg-gradient"></div>
-        <div class="once-bg-dots"></div>
-      </div>
-    </div>
-
-    <!-- Once UI Edge Fade Blur Strips (<Fade>) -->
-    <div class="once-fade-top no-print" aria-hidden="true"></div>
-    <div class="once-fade-bottom no-print" aria-hidden="true"></div>
-
-    <div class="once-top-spacer no-print" aria-hidden="true"></div>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
     <SiteHeader />
-
-    <main id="top" class="once-main">
+    <main id="main" class="page">
       <slot />
     </main>
-
     <SiteFooter />
     <CommandPalette />
 
     <script>
-      const THEME_KEY = 'data-theme';
-      const root = document.documentElement;
 
-      function applyTheme(theme: 'dark' | 'light') {
-        root.setAttribute('data-theme', theme);
-        const metaTheme = document.querySelector('meta[name="theme-color"]');
-        if (metaTheme) {
-          metaTheme.setAttribute('content', theme === 'light' ? '#ffffff' : '#0a0a0a');
-        }
-      }
-
-      try {
-        const saved = localStorage.getItem(THEME_KEY);
-        if (saved === 'light' || saved === 'dark') {
-          applyTheme(saved);
-        } else {
-          applyTheme('dark');
-        }
-      } catch {
-        applyTheme('dark');
-      }
-
-      document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const current = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-          const next = current === 'dark' ? 'light' : 'dark';
-
-          const runSwitch = () => {
-            applyTheme(next);
-            try {
-              localStorage.setItem(THEME_KEY, next);
-            } catch {
-              // ignore storage errors
-            }
-          };
-
-          if ('startViewTransition' in document && typeof (document as any).startViewTransition === 'function') {
-            (document as any).startViewTransition(runSwitch);
-          } else {
-            runSwitch();
-          }
-        });
+      // Mobile drawer toggle.
+      const nav = document.querySelector<HTMLElement>('[data-site-nav]');
+      const toggle = document.querySelector<HTMLButtonElement>('[data-nav-toggle]');
+      const setOpen = (open: boolean) => {
+        nav?.classList.toggle('nav-open', open);
+        toggle?.setAttribute('aria-expanded', String(open));
+        toggle?.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+      };
+      toggle?.addEventListener('click', () => setOpen(!nav?.classList.contains('nav-open')));
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') setOpen(false);
       });
+      nav?.querySelectorAll('.nav-drawer a, .nav-drawer button').forEach((el) => el.addEventListener('click', () => setOpen(false)));
 
-      // Live Clock (Once UI Header TimeDisplay for Asia/Ho_Chi_Minh)
-      const clockEls = document.querySelectorAll<HTMLElement>('[data-once-clock]');
-      if (clockEls.length > 0) {
-        const updateClock = () => {
-          try {
-            const now = new Date();
-            const formatted = new Intl.DateTimeFormat('en-GB', {
-              timeZone: 'Asia/Ho_Chi_Minh',
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-              hour12: false
-            }).format(now);
-            clockEls.forEach((el) => {
-              el.textContent = formatted;
-            });
-          } catch {
-            // fallback
-          }
-        };
-        updateClock();
-        setInterval(updateClock, 1000);
-      }
-
-      // Once UI Carousel Slide Controller
-      document.querySelectorAll<HTMLElement>('[data-once-carousel]').forEach((carousel) => {
-        const slides = Array.from(carousel.querySelectorAll<HTMLElement>('[data-carousel-slide]'));
-        const dots = Array.from(carousel.querySelectorAll<HTMLButtonElement>('[data-carousel-dot]'));
-        if (slides.length <= 1) return;
-
-        const activateSlide = (idx: number) => {
-          slides.forEach((s, i) => s.classList.toggle('is-active', i === idx));
-          dots.forEach((d, i) => {
-            d.classList.toggle('is-active', i === idx);
-            d.setAttribute('aria-selected', i === idx ? 'true' : 'false');
+      // Generic tab sets: [data-tabs] > [role=tab][aria-controls] ↔ [role=tabpanel].
+      document.querySelectorAll<HTMLElement>('[data-tabs]').forEach((set) => {
+        const tabs = Array.from(set.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+        const select = (tab: HTMLButtonElement, focus = false) => {
+          tabs.forEach((t) => {
+            const on = t === tab;
+            t.setAttribute('aria-selected', String(on));
+            t.tabIndex = on ? 0 : -1;
+            const panel = document.getElementById(t.getAttribute('aria-controls') ?? '');
+            if (panel) panel.hidden = !on;
           });
+          if (focus) tab.focus();
         };
-
-        dots.forEach((dot, idx) => {
-          dot.addEventListener('click', () => activateSlide(idx));
+        tabs.forEach((tab, i) => {
+          tab.addEventListener('click', () => select(tab));
+          tab.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+              e.preventDefault();
+              const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+              select(next, true);
+            }
+          });
         });
       });
 
-      // Staggered RevealFx Observer
-      const revealEls = document.querySelectorAll<HTMLElement>('[data-reveal]');
-      if ('IntersectionObserver' in window && revealEls.length > 0) {
-        const observer = new IntersectionObserver(
+      // Scroll-spy for in-page side navigation ([data-spy] a[href^="#"]).
+      document.querySelectorAll<HTMLElement>('[data-spy]').forEach((navEl) => {
+        const links = Array.from(navEl.querySelectorAll<HTMLAnchorElement>('a[href^="#"]'));
+        const targets = links
+          .map((a) => document.getElementById(decodeURIComponent(a.hash.slice(1))))
+          .filter((el): el is HTMLElement => el !== null);
+        if (!targets.length || !('IntersectionObserver' in window)) return;
+        const spy = new IntersectionObserver(
           (entries) => {
             entries.forEach((entry) => {
-              if (entry.isIntersecting) {
-                entry.target.classList.add('is-revealed');
-                observer.unobserve(entry.target);
-              }
+              if (!entry.isIntersecting) return;
+              links.forEach((a) => a.classList.toggle('is-active', a.hash === `#${entry.target.id}`));
             });
           },
-          { rootMargin: '0px 0px -30px 0px', threshold: 0.05 }
+          { rootMargin: '-25% 0px -65% 0px' }
         );
-        revealEls.forEach((el) => observer.observe(el));
-      } else {
-        revealEls.forEach((el) => el.classList.add('is-revealed'));
-      }
-
-      // Instant Hover Prefetch & Route Loader
-      const prefetched = new Set<string>();
-      document.querySelectorAll<HTMLAnchorElement>('a[href^="/"]').forEach((anchor) => {
-        anchor.addEventListener(
-          'pointerenter',
-          () => {
-            const href = anchor.getAttribute('href');
-            if (!href || prefetched.has(href) || href.startsWith('/models/') || href.endsWith('.pdf')) return;
-            prefetched.add(href);
-            const link = document.createElement('link');
-            link.rel = 'prefetch';
-            link.href = href;
-            document.head.appendChild(link);
-          },
-          { passive: true }
-        );
-
-        anchor.addEventListener('click', (e) => {
-          const href = anchor.getAttribute('href');
-          if (
-            !href ||
-            href.startsWith('#') ||
-            anchor.hasAttribute('download') ||
-            anchor.target === '_blank' ||
-            e.metaKey ||
-            e.ctrlKey ||
-            e.shiftKey ||
-            e.altKey
-          ) {
-            return;
-          }
-          root.classList.add('is-navigating');
-        });
+        targets.forEach((t) => spy.observe(t));
       });
     </script>
     <Analytics />
